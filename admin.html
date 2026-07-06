@@ -1,0 +1,461 @@
+﻿<!--
+  PÁGINA: admin.html — Panel de Administración
+  PROPÓSITO: Interfaz exclusiva para administradores.
+  ACCESO: Solo usuarios con rol "admin". Si alguien sin ese rol
+          intenta entrar, el script inline al final los redirige.
+
+  ARQUITECTURA DE LA PÁGINA:
+  Usa un layout de dos columnas:
+  ┌──────────┬────────────────────────────────┐
+  │ SIDEBAR  │  CONTENIDO PRINCIPAL           │
+  │          │                                │
+  │ Botones  │  Solo UNA sección visible      │
+  │ de       │  a la vez. Al hacer clic en    │
+  │ navegación│ un botón del sidebar, admin.js │
+  │          │  muestra esa sección y oculta  │
+  │          │  las demás.                    │
+  └──────────┴────────────────────────────────┘
+
+  SECCIONES DEL PANEL:
+  - Dashboard:      resumen con estadísticas y últimas actividades
+  - Productos:      CRUD completo del catálogo
+  - Pedidos:        ver y cambiar estado de todos los pedidos
+  - Usuarios:       ver clientes y promover a admin
+  - Configuración:  editar información de contacto del sitio
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Admin — Dulcería Charles</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Navbar y drawer igual que en el resto del sitio -->
+  <nav class="navbar">
+    <div class="nav-brand">🍬 Dulcería Charles</div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <nav class="nav-drawer" id="nav-drawer" aria-hidden="true">
+    <div class="drawer-header">🍬 Menú</div>
+    <a href="index.html">🏠 Inicio</a>
+    <a href="catalogo.html">🍭 Catálogo</a>
+    <a href="favoritos.html">❤️ Mis Favoritos</a>
+    <a href="carrito.html">🛒 Carrito <span class="drawer-cart-count" id="cart-count">0</span></a>
+    <a href="pedidos.html">📦 Mis Pedidos</a>
+    <a href="contacto.html">📬 Contacto</a>
+  </nav>
+
+  <!-- ============================================================
+       LAYOUT DEL PANEL ADMIN
+       Dos columnas: sidebar izquierdo + contenido principal.
+       Definido en admin.css con CSS Grid o Flexbox.
+  ============================================================ -->
+  <div class="admin-layout">
+
+    <!-- ============================================================
+         SIDEBAR — Menú de navegación del panel admin
+         Cada botón tiene data-section="nombre" que admin.js
+         usa para saber qué sección mostrar al hacer clic.
+         La clase "active" marca cuál está seleccionado actualmente.
+    ============================================================ -->
+    <aside class="admin-sidebar">
+      <span class="admin-sidebar-title">General</span>
+      <button class="admin-nav-btn active" data-section="dashboard">
+        <span class="nav-icon">📊</span><span>Dashboard</span>
+      </button>
+
+      <span class="admin-sidebar-title">Catálogo</span>
+      <button class="admin-nav-btn" data-section="productos">
+        <span class="nav-icon">🍬</span><span>Productos</span>
+      </button>
+
+      <span class="admin-sidebar-title">Ventas</span>
+      <button class="admin-nav-btn" data-section="pedidos">
+        <span class="nav-icon">📦</span><span>Pedidos</span>
+      </button>
+
+      <span class="admin-sidebar-title">Usuarios</span>
+      <button class="admin-nav-btn" data-section="usuarios">
+        <span class="nav-icon">👥</span><span>Usuarios</span>
+      </button>
+
+      <span class="admin-sidebar-title">Sitio</span>
+      <button class="admin-nav-btn" data-section="configuracion">
+        <span class="nav-icon">⚙️</span><span>Configuración</span>
+      </button>
+    </aside>
+
+    <!-- ============================================================
+         CONTENIDO PRINCIPAL
+         Contiene todas las secciones. Solo la que tiene la clase
+         "active" es visible. Las demás tienen display:none (en CSS).
+    ============================================================ -->
+    <main class="admin-main">
+
+      <!-- ── SECCIÓN: DASHBOARD ──────────────────────────────────
+           Muestra un resumen del negocio:
+           - Tarjetas con estadísticas (productos, pedidos, clientes, ingresos)
+           - Tabla de últimos pedidos (excluyendo inconclusos)
+           - Tabla de últimos clientes registrados
+           Todo se carga dinámicamente con renderDashboard() en admin.js
+      ──────────────────────────────────────────────────────────── -->
+      <section class="admin-section active" id="sec-dashboard">
+        <h2 class="admin-section-title">📊 Dashboard</h2>
+        <div class="admin-stats" id="stat-cards"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;flex-wrap:wrap;">
+          <div class="admin-table-wrap" style="padding:1.2rem 1.4rem;">
+            <h3 style="font-family:'Fredoka One',cursive;color:var(--pink);font-size:1rem;margin-bottom:0.8rem;">📦 Últimos pedidos</h3>
+            <div id="dash-orders"></div>
+          </div>
+          <div class="admin-table-wrap" style="padding:1.2rem 1.4rem;">
+            <h3 style="font-family:'Fredoka One',cursive;color:var(--purple);font-size:1rem;margin-bottom:0.8rem;">👥 Últimos registros</h3>
+            <div id="dash-users"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── SECCIÓN: PRODUCTOS ─────────────────────────────────
+           CRUD completo del catálogo de productos.
+           - Barra de búsqueda y filtro por categoría (dinámico desde BD)
+           - Botón "Categorías" para gestionar categorías
+           - Botón "Agregar producto" abre el modal de formulario
+           - Tabla con todos los productos activos
+           - Botones Editar y Eliminar en cada fila
+           Toda la lógica está en renderProductos() de admin.js
+      ──────────────────────────────────────────────────────────── -->
+      <section class="admin-section" id="sec-productos">
+        <h2 class="admin-section-title">🍬 Productos</h2>
+        <div class="admin-toolbar">
+          <input type="text" class="admin-search" id="prod-search" placeholder="🔍 Buscar producto…" />
+          <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
+            <select id="prod-filter-cat" class="admin-search" style="width:auto;">
+              <option value="">Todas las categorías</option>
+            </select>
+            <button class="btn-admin-add" id="btn-manage-cats" style="background:var(--purple);">🏷️ Categorías</button>
+            <button class="btn-admin-add" id="btn-add-prod">＋ Agregar producto</button>
+          </div>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Imagen</th>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Precio</th>
+                <th>Dest.</th>
+                <th>Proveedor</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="prod-tbody"></tbody>
+          </table>
+        </div>
+        <p id="prod-count" style="font-size:0.82rem;color:var(--text-light);margin-top:0.6rem;"></p>
+      </section>
+
+      <!-- ── SECCIÓN: PEDIDOS ───────────────────────────────────
+           Lista de TODOS los pedidos de todos los clientes.
+           Incluye inconclusos para que el admin tenga visibilidad total.
+           El dropdown de estado en cada fila permite cambiar el progreso:
+           inconcluso → pendiente → confirmado → enviado → entregado
+           Lógica en renderPedidos() de admin.js
+      ──────────────────────────────────────────────────────────── -->
+      <section class="admin-section" id="sec-pedidos">
+        <h2 class="admin-section-title">📦 Pedidos</h2>
+        <div class="admin-toolbar">
+          <input type="text" class="admin-search" id="ord-search" placeholder="🔍 Buscar por nombre o número…" />
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Cliente</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Pago</th>
+                <th>Total</th>
+                <th>Tipo</th>
+              </tr>
+            </thead>
+            <tbody id="ord-tbody"></tbody>
+          </table>
+        </div>
+        <div class="admin-empty hidden" id="ord-empty"><span>📦</span>No hay pedidos registrados.</div>
+      </section>
+
+      <!-- ── SECCIÓN: USUARIOS ──────────────────────────────────
+           Lista de todos los clientes registrados en el sitio.
+           Muestra: nombre, correo, rol, fecha de registro.
+           Permite promover un cliente a administrador.
+           Lógica en renderUsuarios() de admin.js
+      ──────────────────────────────────────────────────────────── -->
+
+      <!-- ── SECCIÓN: CONFIGURACIÓN ─────────────────────────────
+           Formulario para editar la información de contacto
+           que aparece en la página contacto.html.
+           Al guardar, los cambios se reflejan en el sitio de inmediato.
+           Los datos se guardan en la tabla "configuracion" de MySQL.
+           Lógica en renderConfiguracion() de admin.js
+      ──────────────────────────────────────────────────────────── -->
+      <!-- ══ CONFIGURACIÓN ══ -->
+      <section class="admin-section" id="sec-configuracion">
+        <h2 class="admin-section-title">⚙️ Configuración del sitio</h2>
+        <div class="admin-table-wrap" style="padding:1.5rem 1.8rem;max-width:680px;">
+          <p style="font-size:0.88rem;color:var(--text-light);margin-bottom:1.2rem;">Edita la información que aparece en la página de <strong>Contacto</strong>.</p>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label>Dirección</label>
+              <input type="text" id="cfg-direccion" placeholder="Av. Dulce 123, Col. Centro" />
+            </div>
+            <div class="admin-form-group">
+              <label>Ciudad</label>
+              <input type="text" id="cfg-ciudad" placeholder="Ciudad de México, CDMX" />
+            </div>
+          </div>
+
+          <div class="admin-form-group">
+            <label>Horario <small style="color:var(--text-light);">(separa líneas con |)</small></label>
+            <input type="text" id="cfg-horario" placeholder="Lunes a Viernes: 9:00 – 20:00|Sábados: 10:00 – 18:00" />
+          </div>
+
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label>Teléfono</label>
+              <input type="text" id="cfg-telefono" placeholder="+52 55 1234 5678" />
+            </div>
+            <div class="admin-form-group">
+              <label>Correo electrónico</label>
+              <input type="email" id="cfg-email" placeholder="hola@dulceriacharles.com" />
+            </div>
+          </div>
+
+          <p style="font-size:0.88rem;color:var(--text-light);margin:1rem 0 0.5rem;">Redes sociales <small>(URL completa o # para ocultar)</small></p>
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label>Instagram</label>
+              <input type="text" id="cfg-instagram" placeholder="https://instagram.com/…" />
+            </div>
+            <div class="admin-form-group">
+              <label>Facebook</label>
+              <input type="text" id="cfg-facebook" placeholder="https://facebook.com/…" />
+            </div>
+          </div>
+          <div class="admin-form-row">
+            <div class="admin-form-group">
+              <label>WhatsApp</label>
+              <input type="text" id="cfg-whatsapp" placeholder="https://wa.me/521234567890" />
+            </div>
+            <div class="admin-form-group">
+              <label>Twitter / X</label>
+              <input type="text" id="cfg-twitter" placeholder="https://x.com/…" />
+            </div>
+          </div>
+
+          <div id="cfg-msg" style="min-height:1.2em;font-size:0.88rem;margin-bottom:0.5rem;"></div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn-admin-add" id="btn-cfg-save">💾 Guardar cambios</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ USUARIOS ══ -->
+      <section class="admin-section" id="sec-usuarios">
+        <h2 class="admin-section-title">👥 Usuarios</h2>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Rol</th>
+                <th>Registro</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="usr-tbody"></tbody>
+          </table>
+        </div>
+        <div class="admin-empty hidden" id="usr-empty"><span>👥</span>No hay usuarios registrados.</div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ══ MODAL PRODUCTO ══ -->
+  <div class="admin-modal-overlay" id="prod-modal-overlay">
+    <div class="admin-modal">
+      <button class="admin-modal-close" id="prod-modal-close">✕</button>
+      <h3 id="prod-modal-title">Agregar producto</h3>
+      <input type="hidden" id="prod-edit-id" value="" />
+
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label>Nombre *</label>
+          <input type="text" id="pf-name" placeholder="Ej: Paleta Payaso 10pz" />
+        </div>
+        <div class="admin-form-group">
+          <label>Precio (MXN) *</label>
+          <input type="number" id="pf-price" placeholder="Ej: 85" min="1" />
+        </div>
+      </div>
+
+      <div class="admin-form-group">
+        <label>Categoría *</label>
+        <select id="pf-cat">
+          <option value="">Selecciona categoría</option>
+        </select>
+      </div>
+
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label>Imagen (opcional)</label>
+          <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.4rem;">
+            <label style="display:inline-flex;align-items:center;gap:0.3rem;
+              background:var(--purple);color:#fff;padding:0.4rem 0.8rem;
+              border-radius:8px;cursor:pointer;font-size:0.82rem;font-weight:700;">
+              📁 Subir imagen
+              <input type="file" id="pf-img-file" accept="image/*" style="display:none;" />
+            </label>
+            <span id="pf-upload-status" style="font-size:0.78rem;color:var(--text-light);"></span>
+          </div>
+          <input type="text" id="pf-image" placeholder="img/productos/… (o sube una imagen arriba)" />
+        </div>
+        <div class="admin-form-group">
+          <label>Proveedor (opcional)</label>
+          <input type="text" id="pf-proveedor" placeholder="Ej: Distribuidora López" />
+        </div>
+      </div>
+
+      <div class="admin-form-group checkbox-group">
+        <input type="checkbox" id="pf-featured" />
+        <label for="pf-featured">⭐ Mostrar como producto destacado</label>
+      </div>
+
+      <div id="pf-err" style="color:#e74c3c;font-size:0.85rem;margin-bottom:0.5rem;min-height:1em;"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:0.8rem;margin-top:0.8rem;">
+        <button class="btn btn-outline" id="prod-modal-cancel">Cancelar</button>
+        <button class="btn-admin-add" id="prod-modal-save">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL CATEGORÍAS ══ -->
+  <div class="admin-modal-overlay" id="cats-modal-overlay">
+    <div class="admin-modal" style="max-width:480px;">
+      <button class="admin-modal-close" id="cats-modal-close">✕</button>
+      <h3>🏷️ Gestionar categorías</h3>
+
+      <!-- Agregar nueva -->
+      <!-- Formulario para agregar categoría nueva -->
+      <div style="background:#fdf8ff;border-radius:12px;padding:1rem;margin:0.8rem 0;">
+
+        <!-- Fila 1: preview + controles de icono -->
+        <div style="display:flex;gap:0.8rem;align-items:flex-start;margin-bottom:0.8rem;flex-wrap:wrap;">
+
+          <!-- Vista previa -->
+          <div id="cat-new-icon-preview" style="
+            width:64px;height:64px;border-radius:12px;flex-shrink:0;
+            background:#ede9fe;display:flex;align-items:center;
+            justify-content:center;font-size:2.2rem;overflow:hidden;
+            border:2px solid #ddd6fe;">🍬</div>
+
+          <div style="flex:1;min-width:180px;">
+            <!-- Opción A: subir imagen desde el equipo -->
+            <div style="margin-bottom:0.5rem;">
+              <label style="
+                display:inline-flex;align-items:center;gap:0.4rem;
+                background:var(--purple);color:#fff;padding:0.4rem 0.9rem;
+                border-radius:8px;cursor:pointer;font-size:0.83rem;font-weight:700;">
+                📁 Subir imagen
+                <input type="file" id="cat-img-file" accept="image/*" style="display:none;" />
+              </label>
+              <span id="cat-upload-status" style="font-size:0.78rem;color:var(--text-light);margin-left:0.5rem;"></span>
+            </div>
+
+            <!-- Opción B: escribir emoji -->
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <span style="font-size:0.78rem;color:var(--text-light);white-space:nowrap;">
+                O escribe un emoji (<kbd>Win+.</kbd>):
+              </span>
+              <input type="text" id="cat-new-emoji" placeholder="🍬" maxlength="8"
+                     style="width:54px;padding:0.35rem 0.3rem;border:1px solid #ddd;
+                            border-radius:6px;font-size:1.2rem;text-align:center;" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Campo oculto que guarda el valor final (URL o emoji) -->
+        <input type="hidden" id="cat-new-icon" value="🍬" />
+
+        <!-- Fila 2: nombre + botón agregar -->
+        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;">
+          <input type="text" id="cat-new-name" placeholder="Nombre de la categoría…"
+                 style="flex:1;padding:0.5rem 0.8rem;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;" />
+          <button class="btn-admin-add" id="btn-cat-add" style="white-space:nowrap;">＋ Agregar</button>
+        </div>
+      </div>
+      <div id="cat-add-err" style="color:#e74c3c;font-size:0.82rem;min-height:1em;margin-bottom:0.6rem;"></div>
+
+      <!-- Lista -->
+      <div id="cats-list" style="max-height:320px;overflow-y:auto;border-top:1px solid #f0eaff;padding-top:0.8rem;">
+        <p style="color:var(--text-light);font-size:0.88rem;">Cargando…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CONFIRM DELETE ══ -->
+  <div class="confirm-dialog" id="confirm-dialog">
+    <div class="confirm-box">
+      <h4>🗑️ Eliminar producto</h4>
+      <p>¿Estás seguro? Esta acción no se puede deshacer.</p>
+      <div class="confirm-actions">
+        <button class="btn btn-outline" id="confirm-no">Cancelar</button>
+        <button class="btn-admin-sm btn-delete" style="padding:0.5rem 1.2rem;font-size:0.9rem;" id="confirm-yes">Sí, eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCRIPTS — Orden de carga importante:
+       1. api.js   → funciones de comunicación con el servidor
+       2. data.js  → datos de productos y cupones
+       3. auth.js  → define isLoggedIn(), isAdmin(), getSession()
+
+       GUARD DE SEGURIDAD: Inmediatamente después de cargar auth.js
+       verificamos si el usuario es admin. Si no lo es, lo mandamos
+       al inicio. Esto previene que usuarios normales accedan al panel.
+       NOTA: Esta verificación es del lado del cliente. La verdadera
+       seguridad está en el backend (adminMiddleware) que rechaza
+       cualquier petición de API que no sea de un admin real.
+
+       4. cart.js  → utilidades compartidas (drawer, toast, badges)
+       5. admin.js → toda la lógica del panel de administración
+  ============================================================ -->
+  <script src="js/api.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/auth.js"></script>
+  <!-- Protección: si no es admin, redirige al inicio inmediatamente -->
+  <script>
+    if (!isAdmin()) window.location.replace('index.html');
+  </script>
+  <script src="js/cart.js"></script>
+  <script src="js/cat-icon.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
+
+

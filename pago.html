@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pago — Dulcería Charles</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/pago.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">🍬 Dulcería Charles</div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <nav class="nav-drawer" id="nav-drawer" aria-hidden="true">
+    <div class="drawer-header">🍬 Menú</div>
+    <a href="index.html">🏠 Inicio</a>
+    <a href="catalogo.html">🍭 Catálogo</a>
+    <a href="favoritos.html">❤️ Mis Favoritos</a>
+    <a href="carrito.html">🛒 Carrito <span class="drawer-cart-count" id="cart-count">0</span></a>
+    <a href="pedidos.html">📦 Mis Pedidos <span class="drawer-cart-count" id="pedidos-count" style="display:none;">0</span></a>
+    <a href="contacto.html">📬 Contacto</a>
+  </nav>
+
+  <div class="page-header">
+    <h1>💳 Finalizar pedido</h1>
+    <p>Estás a un paso de recibir tus dulces favoritos</p>
+  </div>
+
+  <!-- Barra de progreso de 3 pasos -->
+  <div class="steps-bar">
+    <div class="step active" id="step-ind-1">
+      <span class="step-num">1</span><span class="step-label">Contacto</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step-ind-2">
+      <span class="step-num">2</span><span class="step-label">Pago</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step-ind-3">
+      <span class="step-num">3</span><span class="step-label">Confirmar</span>
+    </div>
+  </div>
+
+  <div class="checkout-layout">
+    <div class="checkout-main">
+
+      <!-- PASO 1: DATOS DE CONTACTO + INFO DE PICKUP -->
+      <section class="checkout-card" id="step-1">
+        <h2 class="checkout-title">📍 Recoger en tienda</h2>
+
+        <!-- Tarjeta de información de pickup (cargada dinámicamente desde la API) -->
+        <div id="pickup-info-card" style="
+          background: linear-gradient(135deg,#fdf0fb,#ede9fe);
+          border-radius:14px; padding:1.2rem 1.4rem;
+          margin-bottom:1.4rem; border:1px solid #e9d5ff;
+        ">
+          <div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+            <div style="flex:1;min-width:160px;">
+              <p style="margin:0 0 0.3rem;font-weight:700;color:var(--purple);font-size:0.95rem;">📍 Dirección</p>
+              <p id="pickup-direccion" style="margin:0;font-size:0.88rem;color:var(--text);">Cargando…</p>
+            </div>
+            <div style="flex:1;min-width:160px;">
+              <p style="margin:0 0 0.3rem;font-weight:700;color:var(--purple);font-size:0.95rem;">🕐 Horario</p>
+              <p id="pickup-horario" style="margin:0;font-size:0.88rem;color:var(--text);">Cargando…</p>
+            </div>
+            <div style="flex:1;min-width:160px;">
+              <p style="margin:0 0 0.3rem;font-weight:700;color:var(--purple);font-size:0.95rem;">📞 Teléfono</p>
+              <p id="pickup-telefono" style="margin:0;font-size:0.88rem;color:var(--text);">Cargando…</p>
+            </div>
+          </div>
+          <p style="margin:0.8rem 0 0;font-size:0.82rem;color:#7c3aed;background:rgba(124,58,237,0.08);padding:0.5rem 0.8rem;border-radius:8px;">
+            🎉 Pasa a recoger tu pedido en la tienda directamente.
+          </p>
+        </div>
+
+        <div class="divider"></div>
+        <h3 class="section-sub">👤 Datos de contacto</h3>
+        <p class="section-hint">Te avisaremos cuando tu pedido esté listo.</p>
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Nombre completo *</label>
+            <input type="text" id="nombre" placeholder="Ej: María García" />
+            <span class="err" id="err-nombre"></span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full">
+            <label>Teléfono *</label>
+            <div class="phone-wrap">
+              <span class="phone-prefix">+52</span>
+              <input type="tel" id="telefono" placeholder="222 123 4567" />
+            </div>
+            <span class="err" id="err-telefono"></span>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" id="btn-step1">Continuar al pago →</button>
+        </div>
+      </section>
+
+      <!-- PASO 2: MÉTODO DE PAGO -->
+      <section class="checkout-card hidden" id="step-2">
+        <h2 class="checkout-title">💳 Método de pago</h2>
+        <div class="payment-options">
+          <label class="payment-opt">
+            <input type="radio" name="payment" value="efectivo" checked />
+            <div class="opt-content">
+              <span class="opt-icon">💵</span>
+              <div><strong>Efectivo</strong><p>Paga al recoger tu pedido en tienda</p></div>
+              <span class="opt-check">✓</span>
+            </div>
+          </label>
+          <label class="payment-opt">
+            <input type="radio" name="payment" value="tarjeta" />
+            <div class="opt-content">
+              <span class="opt-icon">💳</span>
+              <div><strong>Tarjeta de crédito / débito</strong><p>Visa, Mastercard, American Express</p></div>
+              <span class="opt-check">✓</span>
+            </div>
+          </label>
+          <label class="payment-opt">
+            <input type="radio" name="payment" value="transferencia" />
+            <div class="opt-content">
+              <span class="opt-icon">🏦</span>
+              <div><strong>Transferencia / SPEI</strong><p>Paga desde tu banco en línea</p></div>
+              <span class="opt-check">✓</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="card-form hidden" id="card-form">
+          <div class="form-row">
+            <div class="form-group full">
+              <label>Número de tarjeta</label>
+              <input type="text" id="card-num" placeholder="1234 5678 9012 3456" maxlength="19" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Titular</label>
+              <input type="text" id="card-name" placeholder="Como aparece en la tarjeta" />
+            </div>
+            <div class="form-group half">
+              <label>Vencimiento</label>
+              <input type="text" id="card-exp" placeholder="MM/AA" maxlength="5" />
+            </div>
+            <div class="form-group half">
+              <label>CVV</label>
+              <input type="text" id="card-cvv" placeholder="123" maxlength="4" />
+            </div>
+          </div>
+          <div class="card-secure">🔒 Tus datos están cifrados y seguros</div>
+        </div>
+
+        <div class="spei-info hidden" id="spei-info">
+          <p><strong>CLABE:</strong> 0123 4567 8901 2345 67</p>
+          <p><strong>Banco:</strong> BBVA México</p>
+          <p><strong>Beneficiario:</strong> Dulcería Charles S.A. de C.V.</p>
+          <p class="spei-note">Envía el comprobante a hola@dulceriacharles.com</p>
+        </div>
+
+        <div class="form-actions between">
+          <button class="btn btn-outline" id="btn-back1">← Volver</button>
+          <button class="btn btn-primary" id="btn-step2">Revisar pedido →</button>
+        </div>
+      </section>
+
+      <!-- PASO 3: CONFIRMACIÓN -->
+      <section class="checkout-card hidden" id="step-3">
+        <h2 class="checkout-title">✅ Revisa tu pedido</h2>
+        <div class="confirm-block" id="confirm-contact"></div>
+        <div class="confirm-block" id="confirm-payment"></div>
+        <div class="confirm-items" id="confirm-items"></div>
+        <div class="form-actions between">
+          <button class="btn btn-outline" id="btn-back2">← Volver</button>
+          <button class="btn btn-primary" id="btn-confirm">Confirmar pedido 🎉</button>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- RESUMEN LATERAL -->
+    <aside class="checkout-summary">
+      <h3>🛒 Tu pedido</h3>
+      <div id="summary-items"></div>
+      <hr />
+      <hr />
+      <div class="sum-row sum-total"><span>Total</span><span id="sum-total">$0</span></div>
+    </aside>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="footer-col footer-col--marca">
+        <p class="footer-brand-name">🍬 Dulcería Charles</p>
+        <p class="footer-slogan">Endulzando tu vida desde 2020</p>
+        <button class="dark-toggle" id="dark-toggle" title="Cambiar tema">🌙 Modo oscuro</button>
+      </div>
+      <div class="footer-col">
+        <h5>Navegación</h5>
+        <ul>
+          <li><span>🏠</span><a href="index.html">Inicio</a></li>
+          <li><span>🍭</span><a href="catalogo.html">Catálogo</a></li>
+          <li><span>🛒</span><a href="carrito.html">Carrito</a></li>
+          <li><span>📦</span><a href="pedidos.html">Mis Pedidos</a></li>
+          <li><span>📬</span><a href="contacto.html">Contacto</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Pickup</h5>
+        <ul>
+          <li><span>📍</span> <span id="footer-dir">Dulcería Charles</span></li>
+          <li><span>🕐</span> <span id="footer-hor">Ver horarios</span></li>
+          <li><span>📞</span> <span id="footer-tel">—</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom"><p>© 2026 Dulcería Charles · Ciudad de México</p></div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/auth.js"></script>
+  <script>requireLogin();</script>
+  <script src="js/cart.js"></script>
+  <script src="js/pago.js"></script>
+</body>
+</html>

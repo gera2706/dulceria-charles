@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comprobante — Dulcería Charles</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Layout ── */
+    .comp-wrapper {
+      max-width: 680px;
+      margin: 2rem auto 4rem;
+      padding: 0 1rem;
+    }
+
+    /* ── Encabezado de éxito ── */
+    .comp-success {
+      text-align: center;
+      padding: 2.5rem 1rem 2rem;
+    }
+    .comp-checkmark {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg,#10b981,#059669);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem;
+      font-size: 2rem;
+      box-shadow: 0 6px 24px rgba(16,185,129,0.35);
+    }
+    .comp-success h1 {
+      font-family: 'Fredoka One', cursive;
+      color: var(--purple);
+      font-size: 2rem;
+      margin: 0 0 0.4rem;
+    }
+    .comp-success p { color: var(--text-light); margin: 0; }
+
+    /* ── Número de pedido destacado ── */
+    .comp-order-num {
+      text-align: center;
+      background: linear-gradient(135deg,#fdf0fb,#ede9fe);
+      border: 2px solid var(--purple);
+      border-radius: 16px;
+      padding: 1.2rem;
+      margin: 1.5rem 0;
+    }
+    .comp-order-num .label { font-size: 0.85rem; color: var(--text-light); }
+    .comp-order-num .number {
+      font-family: 'Fredoka One', cursive;
+      font-size: 2.4rem;
+      color: var(--purple);
+      letter-spacing: 2px;
+    }
+    .comp-order-num .date { font-size: 0.82rem; color: var(--text-light); margin-top: 0.2rem; }
+
+    /* ── Secciones del comprobante ── */
+    .comp-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.4rem 1.6rem;
+      margin-bottom: 1.2rem;
+    }
+    .comp-card h3 {
+      font-family: 'Fredoka One', cursive;
+      color: var(--pink);
+      font-size: 1rem;
+      margin: 0 0 1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    /* ── Tabla de productos ── */
+    .comp-items { width: 100%; border-collapse: collapse; }
+    .comp-items th {
+      font-size: 0.8rem; text-transform: uppercase;
+      color: var(--text-light); padding: 0 0 0.5rem;
+      border-bottom: 1px solid #f3eeff;
+      text-align: left;
+    }
+    .comp-items th:last-child, .comp-items td:last-child { text-align: right; }
+    .comp-items td {
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #f3eeff;
+      font-size: 0.9rem;
+    }
+    .comp-items tr:last-child td { border-bottom: none; }
+
+    /* ── Totales ── */
+    .comp-totals { margin-top: 1rem; }
+    .comp-totals .row {
+      display: flex; justify-content: space-between;
+      font-size: 0.9rem; padding: 0.3rem 0;
+    }
+    .comp-totals .row.total {
+      font-weight: 800; font-size: 1.1rem;
+      border-top: 2px solid #f3eeff;
+      margin-top: 0.4rem; padding-top: 0.6rem;
+      color: var(--pink);
+    }
+    .comp-totals .row.discount { color: #10b981; }
+
+    /* ── Info de pickup ── */
+    .pickup-box {
+      background: linear-gradient(135deg,#f0fdf4,#dcfce7);
+      border: 1px solid #86efac;
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+      font-size: 0.88rem;
+    }
+    .pickup-box p { margin: 0.3rem 0; }
+
+    /* ── Botones de acción ── */
+    .comp-actions {
+      display: flex; gap: 1rem; flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    .btn-print {
+      background: linear-gradient(135deg,var(--purple),var(--pink));
+      color: #fff; border: none;
+      padding: 0.75rem 1.8rem;
+      border-radius: 50px; font-family: 'Nunito',sans-serif;
+      font-weight: 700; font-size: 0.95rem;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(168,85,247,0.35);
+    }
+    .btn-home {
+      background: var(--white);
+      color: var(--purple);
+      border: 2px solid var(--purple);
+      padding: 0.75rem 1.8rem;
+      border-radius: 50px; font-family: 'Nunito',sans-serif;
+      font-weight: 700; font-size: 0.95rem;
+      cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center;
+    }
+
+    /* ── Estado badge ── */
+    .estado-badge {
+      display: inline-block;
+      padding: 3px 14px; border-radius: 50px;
+      font-size: 0.82rem; font-weight: 700;
+    }
+
+    /* ── Loading / Error ── */
+    .comp-loading {
+      text-align: center; padding: 4rem 1rem;
+      color: var(--text-light); font-size: 1.1rem;
+    }
+
+    /* ── Ocultar elementos al imprimir ── */
+    @media print {
+      .navbar, .comp-actions, footer { display: none !important; }
+      .comp-card { box-shadow: none; border: 1px solid #eee; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-brand">🍬 Dulcería Charles</div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <nav class="nav-drawer" id="nav-drawer" aria-hidden="true">
+    <div class="drawer-header">🍬 Menú</div>
+    <a href="index.html">🏠 Inicio</a>
+    <a href="catalogo.html">🍭 Catálogo</a>
+    <a href="favoritos.html">❤️ Mis Favoritos</a>
+    <a href="carrito.html">🛒 Carrito <span class="drawer-cart-count" id="cart-count">0</span></a>
+    <a href="pedidos.html">📦 Mis Pedidos <span class="drawer-cart-count" id="pedidos-count" style="display:none;">0</span></a>
+    <a href="contacto.html">📬 Contacto</a>
+  </nav>
+
+  <!-- Contenido del comprobante (llenado por comprobante.js) -->
+  <div class="comp-wrapper" id="comp-wrapper">
+    <div class="comp-loading">Cargando comprobante…</div>
+  </div>
+
+  <footer class="footer" style="margin-top:2rem;">
+    <div class="footer-bottom"><p>© 2026 Dulcería Charles · Ciudad de México</p></div>
+  </footer>
+
+  <script src="js/api.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/comprobante.js"></script>
+</body>
+</html>

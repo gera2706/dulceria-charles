@@ -1,0 +1,149 @@
+/* ===== HERO ===== */
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4rem 4rem 3rem;
+  gap: 2rem;
+  min-height: 480px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fce7f3 0%, #ede9fe 50%, #dbeafe 100%);
+}
+/* Fondo con imagen de dulces explotando, muy sutil */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('../img/Parte principal/imagen principal 3.png');
+  background-size: cover;
+  background-position: center 30%;
+  opacity: 0.15;
+  z-index: 0;
+}
+.hero > * { position: relative; z-index: 1; }
+
+.hero-content { max-width: 560px; }
+.hero-content h1 {
+  font-family: 'Fredoka One', cursive;
+  font-size: 3rem;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+.hero-content h1 span { color: var(--pink); }
+.hero-content p { font-size: 1.15rem; color: var(--text-light); margin-bottom: 2rem; }
+
+/* Imagen principal derecha */
+.hero-image {
+  flex-shrink: 0;
+  max-width: 360px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-image img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  animation: float 4s ease-in-out infinite;
+  filter: drop-shadow(0 24px 40px rgba(167,139,250,0.3));
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-18px); }
+}
+
+/* ===== CATEGORIES ===== */
+.categories {
+  padding: 3rem 4rem;
+  text-align: center;
+}
+.categories h2 {
+  font-family: 'Fredoka One', cursive;
+  font-size: 2rem;
+  color: var(--purple);
+  margin-bottom: 2rem;
+}
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1.2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.cat-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+.cat-card:hover { transform: translateY(-4px) scale(1.03); box-shadow: 0 10px 28px rgba(196,181,253,0.35); }
+.cat-icon { font-size: 2.5rem; line-height: 1; }
+.cat-icon--img { vertical-align: middle; }
+.cat-icon__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+}
+.cat-card h3 { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+
+/* ===== FEATURED ===== */
+.featured {
+  padding: 2rem 4rem 3rem;
+  text-align: center;
+}
+.featured h2 {
+  font-family: 'Fredoka One', cursive;
+  font-size: 2rem;
+  color: var(--pink);
+  margin-bottom: 2rem;
+}
+.featured .btn { margin-top: 2.5rem; }
+
+/* ===== PROMO BANNER ===== */
+.promo-banner {
+  position: relative;
+  overflow: hidden;
+  padding: 3rem 4rem;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(254,243,199,0.95) 0%, rgba(253,230,138,0.95) 50%, rgba(254,215,170,0.95) 100%);
+}
+.promo-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('../img/Parte principal/CHINGADERAS.png');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.12;
+  z-index: 0;
+}
+.promo-banner > * { position: relative; z-index: 1; }
+.promo-content h2 {
+  font-family: 'Fredoka One', cursive;
+  font-size: 2rem;
+  color: var(--text);
+  margin-bottom: 0.8rem;
+}
+.promo-content p  { font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text); }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .hero { flex-direction: column; padding: 2.5rem 1.5rem; text-align: center; min-height: auto; }
+  .hero-image { max-width: 260px; }
+  .hero-content h1 { font-size: 2.2rem; }
+  .categories { padding: 2rem 1.5rem; }
+  .featured    { padding: 2rem 1.5rem; }
+  .promo-banner { padding: 2rem 1.5rem; }
+}

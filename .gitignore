@@ -1,0 +1,17 @@
+# Dependencias
+backend/node_modules/
+
+# Variables de entorno con credenciales — NUNCA subir al repositorio
+backend/.env
+
+# Imágenes subidas por el admin (demasiado pesadas para Git)
+img/categorias/
+img/productos_upload/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

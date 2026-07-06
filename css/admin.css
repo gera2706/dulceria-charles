@@ -1,0 +1,340 @@
+/* ============================================================
+   ADMIN PANEL — Dulcería Charles
+============================================================ */
+
+/* ── Layout ── */
+.admin-layout {
+  display: flex;
+  min-height: calc(100vh - 68px);
+}
+
+/* ── Sidebar ── */
+.admin-sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, #2a1e42 0%, #1e1630 100%);
+  padding: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  position: sticky;
+  top: 68px;
+  height: calc(100vh - 68px);
+  overflow-y: auto;
+}
+.admin-sidebar-title {
+  font-family: 'Fredoka One', cursive;
+  color: rgba(255,255,255,0.4);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.8rem 1.4rem 0.3rem;
+  margin-top: 0.5rem;
+}
+.admin-sidebar-title:first-child { margin-top: 0; }
+.admin-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 1.4rem;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.7);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.2s, color 0.2s;
+  border-left: 3px solid transparent;
+}
+.admin-nav-btn:hover  { background: rgba(255,255,255,0.07); color: #fff; }
+.admin-nav-btn.active { background: rgba(244,114,182,0.15); color: #f9a8d4; border-left-color: #f9a8d4; }
+.admin-nav-btn .nav-icon { font-size: 1.1rem; width: 22px; }
+
+/* ── Main content ── */
+.admin-main {
+  flex: 1;
+  padding: 2rem 2.5rem;
+  background: var(--bg);
+  overflow-x: hidden;
+}
+
+/* ── Section panels ── */
+.admin-section { display: none; }
+.admin-section.active { display: block; }
+
+.admin-section-title {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.6rem;
+  color: var(--purple);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* ── Stat cards ── */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.2rem;
+  margin-bottom: 2rem;
+}
+.stat-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.4rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.stat-icon  { font-size: 1.8rem; }
+.stat-value {
+  font-family: 'Fredoka One', cursive;
+  font-size: 2rem;
+  color: var(--pink);
+  line-height: 1;
+}
+.stat-label { font-size: 0.85rem; color: var(--text-light); font-weight: 700; }
+
+/* ── Toolbar ── */
+.admin-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+.admin-search {
+  padding: 0.5rem 0.9rem;
+  border: 2px solid #e8d5f5;
+  border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.92rem;
+  outline: none;
+  width: 220px;
+  transition: border-color 0.2s;
+}
+.admin-search:focus { border-color: var(--pink); }
+
+/* ── Buttons ── */
+.btn-admin-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.2rem;
+  background: linear-gradient(135deg, #f9a8d4, #c4b5fd);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.btn-admin-add:hover { background: linear-gradient(135deg, #f472b6, #a78bfa); transform: translateY(-1px); }
+.btn-admin-sm {
+  padding: 0.3rem 0.75rem;
+  border: none;
+  border-radius: 50px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.btn-admin-sm:hover { opacity: 0.85; transform: scale(1.04); }
+.btn-edit   { background: linear-gradient(135deg, #fde68a, #fbbf24); color: #78350f; }
+.btn-delete { background: linear-gradient(135deg, #fca5a5, #f87171); color: #7f1d1d; }
+.btn-save   { background: linear-gradient(135deg, #6ee7b7, #34d399); color: #064e3b; }
+
+/* ── Table ── */
+.admin-table-wrap {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.admin-table th {
+  background: linear-gradient(135deg, #fdf0fb, #ede9fe);
+  color: var(--purple);
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  white-space: nowrap;
+}
+.admin-table td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #f3eeff;
+  vertical-align: middle;
+  color: var(--text);
+}
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tr:hover td { background: #fdf9ff; }
+.admin-table img {
+  width: 44px; height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fce7f3, #ede9fe);
+  padding: 2px;
+}
+.td-actions { display: flex; gap: 0.4rem; white-space: nowrap; align-items: center; }
+.admin-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.6rem;
+  border-radius: 50px;
+  background: rgba(167,139,250,0.15);
+  color: var(--purple);
+  text-transform: capitalize;
+}
+.admin-badge.featured {
+  background: rgba(251,191,36,0.2);
+  color: #92400e;
+}
+
+/* ── Modal form ── */
+.admin-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.admin-modal-overlay.open { opacity: 1; pointer-events: all; }
+.admin-modal {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.25);
+  width: 100%; max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+  transform: scale(0.92) translateY(16px);
+  transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+.admin-modal-overlay.open .admin-modal { transform: scale(1) translateY(0); }
+.admin-modal h3 {
+  font-family: 'Fredoka One', cursive;
+  font-size: 1.35rem;
+  color: var(--purple);
+  margin-bottom: 1.4rem;
+}
+.admin-modal-close {
+  position: absolute; top: 1rem; right: 1rem;
+  background: rgba(0,0,0,0.07); border: none; border-radius: 50%;
+  width: 30px; height: 30px; font-size: 0.9rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.admin-modal-close:hover { background: rgba(0,0,0,0.14); }
+
+/* form inside modal */
+.admin-form-group {
+  display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1rem;
+}
+.admin-form-group label { font-weight: 700; font-size: 0.88rem; color: var(--text); }
+.admin-form-group input,
+.admin-form-group select,
+.admin-form-group textarea {
+  padding: 0.6rem 0.9rem;
+  border: 2px solid #e8d5f5;
+  border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.93rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fff;
+  color: var(--text);
+}
+.admin-form-group input:focus,
+.admin-form-group select:focus,
+.admin-form-group textarea:focus {
+  border-color: var(--pink);
+  box-shadow: 0 0 0 3px rgba(244,114,182,0.15);
+}
+.admin-form-row { display: flex; gap: 1rem; }
+.admin-form-row .admin-form-group { flex: 1; }
+.admin-form-group textarea { resize: vertical; min-height: 70px; }
+.admin-form-group.checkbox-group {
+  flex-direction: row; align-items: center; gap: 0.6rem;
+}
+.admin-form-group.checkbox-group input { width: 18px; height: 18px; cursor: pointer; }
+
+/* ── Confirm delete dialog ── */
+.confirm-dialog {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 600;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.confirm-dialog.open { opacity: 1; pointer-events: all; }
+.confirm-box {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 2rem;
+  max-width: 360px; width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  transform: scale(0.9); transition: transform 0.22s;
+}
+.confirm-dialog.open .confirm-box { transform: scale(1); }
+.confirm-box h4 { font-family:'Fredoka One',cursive; color:var(--pink); font-size:1.2rem; margin-bottom:0.5rem; }
+.confirm-box p  { color: var(--text-light); font-size:0.9rem; margin-bottom:1.4rem; }
+.confirm-actions { display: flex; gap: 0.8rem; justify-content: center; }
+
+/* ── Empty state ── */
+.admin-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-light);
+  font-size: 1rem;
+}
+.admin-empty span { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
+
+/* ── User role badge ── */
+.role-badge {
+  font-size: 0.72rem; font-weight: 700;
+  padding: 0.15rem 0.6rem; border-radius: 50px;
+}
+.role-badge.admin   { background: rgba(251,191,36,0.2);  color: #92400e; }
+.role-badge.cliente { background: rgba(52,211,153,0.2);  color: #065f46; }
+
+/* ── Dark mode ── */
+[data-theme="dark"] .admin-main   { background: var(--bg); }
+[data-theme="dark"] .admin-table th { background: linear-gradient(135deg, #2a1e42, #1e1630); }
+[data-theme="dark"] .admin-table tr:hover td { background: #2a1e42; }
+[data-theme="dark"] .admin-table td { border-color: #3a2d58; }
+[data-theme="dark"] .admin-form-group input,
+[data-theme="dark"] .admin-form-group select,
+[data-theme="dark"] .admin-form-group textarea { background: #2e2249; border-color: #4a3870; color: var(--text); }
+[data-theme="dark"] .admin-search { background: #2e2249; border-color: #4a3870; color: var(--text); }
+[data-theme="dark"] .admin-table img { background: #2e2249; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .admin-sidebar { width: 56px; overflow: hidden; }
+  .admin-nav-btn span:not(.nav-icon) { display: none; }
+  .admin-sidebar-title { display: none; }
+  .admin-main { padding: 1.5rem 1rem; }
+}
+@media (max-width: 600px) {
+  .admin-layout { flex-direction: column; }
+  .admin-sidebar { width: 100%; height: auto; flex-direction: row; padding: 0.5rem; position: static; }
+  .admin-sidebar-title { display: none; }
+  .admin-nav-btn { padding: 0.6rem 0.8rem; font-size: 0.82rem; }
+  .admin-table { font-size: 0.78rem; }
+}

@@ -1,0 +1,99 @@
+/* ===== LAYOUT ===== */
+.catalog-layout {
+  display: flex;
+  gap: 2rem;
+  padding: 2rem 3rem;
+  align-items: flex-start;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  position: sticky;
+  top: 80px;
+}
+.sidebar h3 {
+  font-family: 'Fredoka One', cursive;
+  color: var(--purple);
+  font-size: 1.1rem;
+  margin: 1rem 0 0.6rem;
+}
+.sidebar h3:first-child { margin-top: 0; }
+
+.filter-list { display: flex; flex-direction: column; gap: 0.3rem; }
+.filter-btn {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.2s, color 0.2s;
+}
+.filter-btn:hover  { background: rgba(244,114,182,0.1); color: var(--pink); }
+.filter-btn.active { background: var(--pink); color: #fff; }
+
+.price-filter { margin-bottom: 0.5rem; }
+.price-filter label { font-size: 0.9rem; color: var(--text-light); display: block; margin-bottom: 0.4rem; }
+input[type="range"] { width: 100%; accent-color: var(--pink); }
+
+.search-input {
+  width: 100%;
+  padding: 0.5rem 0.8rem;
+  border: 2px solid #e8d5f5;
+  border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-input:focus { border-color: var(--pink); }
+
+/* ===== MAIN ===== */
+.catalog-main { flex: 1; }
+.catalog-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+#results-count { color: var(--text-light); font-size: 0.95rem; }
+#sort-select {
+  padding: 0.4rem 0.8rem;
+  border: 2px solid #e8d5f5;
+  border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  cursor: pointer;
+}
+#sort-select:focus { border-color: var(--pink); }
+
+.no-results {
+  text-align: center;
+  font-size: 1.1rem;
+  color: var(--text-light);
+  padding: 3rem;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+  .catalog-layout { flex-direction: column; padding: 1.5rem; }
+  .sidebar { width: 100%; position: static; }
+  .filter-list { flex-direction: row; flex-wrap: wrap; }
+  .filter-btn { width: auto; }
+}

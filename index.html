@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<!--
+  PÁGINA: index.html — Inicio de Dulcería Charles
+  PROPÓSITO: Página de bienvenida del sitio. Es lo primero que ve el usuario.
+  CONTIENE:
+    1. Navbar fija con el logo y botón del menú
+    2. Drawer (menú lateral deslizante para móvil)
+    3. Hero: sección principal de bienvenida con imagen 
+    4. Categorías: accesos rápidos a cada tipo de producto
+    5. Productos destacados: cargados dinámicamente desde la base de datos
+    6. Banner de promoción semanal
+    7. Footer con información de contacto y redes sociales
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <!-- viewport: hace que el sitio se vea bien en celulares -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dulcería Charles</title>
+
+  <!-- Estilos globales (variables CSS, navbar, footer, botones, etc.) -->
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Estilos específicos de esta página (hero, categorías, destacados) -->
+  <link rel="stylesheet" href="css/index.css" />
+  <!-- Fuentes de Google: Fredoka One para títulos, Nunito para texto -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ============================================================
+       NAVBAR — Barra de navegación fija en la parte superior
+       Siempre visible mientras el usuario hace scroll.
+       El botón nav-toggle activa el drawer en móvil.
+       Las 3 <span> dentro del botón forman las líneas del ☰.
+  ============================================================ -->
+  <nav class="navbar">
+    <div class="nav-brand">🍬 Dulcería Charles</div>
+    <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ============================================================
+       OVERLAY — Fondo oscuro semitransparente que aparece
+       detrás del drawer cuando está abierto.
+       Al hacerle clic se cierra el drawer (lógica en cart.js).
+  ============================================================ -->
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+
+  <!-- ============================================================
+       DRAWER — Menú lateral que se desliza desde la derecha
+       aria-hidden="true" indica a lectores de pantalla que
+       está oculto inicialmente (accesibilidad).
+       Los badges (contadores) se actualizan con JS:
+       - #cart-count: número de items en el carrito
+       - #pedidos-count: número de pedidos inconclusos
+  ============================================================ -->
+  <nav class="nav-drawer" id="nav-drawer" aria-hidden="true">
+    <div class="drawer-header">🍬 Menú</div>
+    <a href="index.html" class="active">🏠 Inicio</a>
+    <a href="catalogo.html">🍭 Catálogo</a>
+    <a href="favoritos.html">❤️ Mis Favoritos</a>
+    <a href="carrito.html">🛒 Carrito <span class="drawer-cart-count" id="cart-count">0</span></a>
+    <a href="pedidos.html">📦 Mis Pedidos <span class="drawer-cart-count" id="pedidos-count" style="display:none;">0</span></a>
+    <a href="contacto.html">📬 Contacto</a>
+  </nav>
+
+  <!-- ============================================================
+       HERO — Sección principal de bienvenida
+       Primera cosa visible al entrar al sitio.
+       Tiene un mensaje atractivo y un botón CTA (Call To Action)
+       que lleva directamente al catálogo.
+  ============================================================ -->
+  <section class="hero">
+    <div class="hero-content">
+      <h1>¡El mundo más <span>dulce</span> te espera!</h1>
+      <p>Caramelos, chocolates, gomitas y mucho más. Todo hecho con amor para endulzar tu día.</p>
+      <a href="catalogo.html" class="btn btn-primary">Ver catálogo</a>
+    </div>
+    <div class="hero-image">
+      <img src="img/Parte principal/imagen principal 1.png" alt="Dulces Dulcería Charles" />
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CATEGORÍAS — Grid de accesos rápidos por tipo de dulce
+       La clase "reveal" activa el efecto de aparición al hacer scroll
+       (animación definida en cart.js con IntersectionObserver).
+       Cada tarjeta lleva al catálogo con el filtro de categoría
+       pre-aplicado usando el parámetro ?cat= en la URL.
+  ============================================================ -->
+  <section class="categories reveal">
+    <h2>Nuestras categorías</h2>
+    <div class="categories-grid" id="categories-grid">
+      <a href="catalogo.html?cat=bombones"   class="cat-card"><span class="cat-icon">🍡</span><h3>Bombones</h3></a>
+      <a href="catalogo.html?cat=botanas"    class="cat-card"><span class="cat-icon">🍿</span><h3>Botanas</h3></a>
+      <a href="catalogo.html?cat=chocolates" class="cat-card"><span class="cat-icon">🍫</span><h3>Chocolates</h3></a>
+      <a href="catalogo.html?cat=enchilados" class="cat-card"><span class="cat-icon">🌶️</span><h3>Enchilados</h3></a>
+      <a href="catalogo.html?cat=gomitas"    class="cat-card"><span class="cat-icon">🐻</span><h3>Gomitas</h3></a>
+      <a href="catalogo.html?cat=mazapanes"  class="cat-card"><span class="cat-icon">🥜</span><h3>Mazapanes</h3></a>
+      <a href="catalogo.html?cat=paletas"    class="cat-card"><span class="cat-icon">🍭</span><h3>Paletas</h3></a>
+      <a href="catalogo.html?cat=Refrescos"  class="cat-card"><span class="cat-icon">A</span><h3>Refrescos</h3></a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PRODUCTOS DESTACADOS
+       El div#featured-grid empieza VACÍO en el HTML.
+       index.js lo llena dinámicamente consultando la API:
+       GET /api/productos?destacado=1
+       El admin puede controlar qué productos aparecen aquí
+       marcándolos con ⭐ desde el panel de administración.
+  ============================================================ -->
+  <section class="featured reveal">
+    <h2>⭐ Productos destacados</h2>
+    <div class="products-grid" id="featured-grid">
+      <!-- Los productos se insertan aquí por index.js al cargar la página -->
+    </div>
+    <a href="catalogo.html" class="btn btn-secondary">Ver todos los productos</a>
+  </section>
+
+
+  <!-- ============================================================
+       FOOTER — Pie de página con información del negocio
+       Dividido en 3 columnas: marca/redes, navegación, contacto.
+       También contiene el botón de modo oscuro.
+  ============================================================ -->
+  <footer class="footer">
+    <div class="footer-grid">
+
+      <!-- Col 1: Marca, redes sociales y botón de tema oscuro -->
+      <div class="footer-col footer-col--marca">
+        <p class="footer-brand-name">🍬 Dulcería Charles</p>
+        <p class="footer-slogan">Endulzando tu vida desde 2020</p>
+        <div class="footer-social">
+          <a href="#" class="social-icon wa" title="WhatsApp"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="17" height="17"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a>
+         </div>
+        <button class="dark-toggle" id="dark-toggle" title="Cambiar tema">🌙 Modo oscuro</button>
+      </div>
+
+      <!-- Col 2: Links de navegación -->
+      <div class="footer-col">
+        <h5>Navegación</h5>
+        <ul>
+          <li><span>🏠</span><a href="index.html">Inicio</a></li>
+          <li><span>🍭</span><a href="catalogo.html">Catálogo</a></li>
+          <li><span>❤️</span><a href="favoritos.html">Mis Favoritos</a></li>
+          <li><span>🛒</span><a href="carrito.html">Carrito</a></li>
+          <li><span>📦</span><a href="pedidos.html">Mis Pedidos</a></li>
+          <li><span>📬</span><a href="contacto.html">Contacto</a></li>
+        </ul>
+      </div>
+
+      <!-- Col 3: Datos de contacto (hardcodeados como respaldo,
+           la página contacto.html los carga dinámicos desde la BD) -->
+      <div class="footer-col">
+        <h5>Contacto</h5>
+        <ul>
+          <li><span>📍</span> Av. Dulce 123, CDMX</li>
+          <li><span>🕐</span> Lun–Vie 9:00–20:00</li>
+          <li><span>📞</span> +52 55 1234 5678</li>
+          <li><span>📧</span> hola@dulceriacharles.com</li>
+        </ul>
+      </div>
+
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Dulcería Charles · Ciudad de México</p>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       SCRIPTS — Se cargan AL FINAL del body (no en el <head>)
+       para que el HTML ya esté listo cuando se ejecuten.
+       EL ORDEN IMPORTA MUCHO:
+       1. api.js    → debe ir primero porque los demás lo usan
+       2. data.js   → define PRODUCTS y getAllProducts()
+       3. auth.js   → define isLoggedIn() que usa cart.js
+       4. cart.js   → define buildProductCard, addToCart, etc.
+       5. index.js  → usa todo lo anterior, debe ir último
+  ============================================================ -->
+  <script src="js/api.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/cart.js"></script>
+  <script src="js/cat-icon.js"></script>
+  <script src="js/index.js"></script>
+</body>
+</html>
