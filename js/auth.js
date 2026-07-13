@@ -55,13 +55,18 @@ function initAuthDrawer() {
     drawer.appendChild(regA);
 
   } else {
-    var tag   = document.createElement('div');
+    var tag = document.createElement('div');
     tag.className = 'drawer-user-tag';
     var icon  = user.rol === 'admin' ? '⚙️' : '👤';
     var badge = user.rol === 'admin'
-      ? '<span class="drawer-role-badge admin">Admin</span>'
+      ? '<span class="drawer-role-badge admin">Administrador</span>'
       : '<span class="drawer-role-badge cliente">Cliente</span>';
-    tag.innerHTML = icon + ' <strong>' + user.nombre + '</strong>' + badge;
+    tag.innerHTML =
+      '<div class="drawer-user-avatar">' + icon + '</div>' +
+      '<div class="drawer-user-info">' +
+        '<span class="drawer-user-name">' + user.nombre + '</span>' +
+        badge +
+      '</div>';
     drawer.appendChild(tag);
 
     if (user.rol === 'admin') {

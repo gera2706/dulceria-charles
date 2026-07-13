@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   }
 
   var PAGO_ICONS = { efectivo: '💵', tarjeta: '💳', transferencia: '🏦' };
-  var PAGO_NAMES = { efectivo: 'Efectivo (paga al recoger)', tarjeta: 'Tarjeta de crédito / débito', transferencia: 'Transferencia / SPEI' };
+  var PAGO_NAMES = { efectivo: 'Efectivo al recoger', tarjeta: 'Tarjeta de crédito / débito', transferencia: 'Transferencia / SPEI' };
 
   var ESTADO_INFO = {
     pendiente_entregar:  { label: 'Pendiente por entregar', color: '#8b5cf6' },
@@ -75,80 +75,88 @@ document.addEventListener('DOMContentLoaded', async function () {
     var nombre = item.nombre || item.name || '—';
     var precio = parseFloat(item.precio || item.price || 0);
     var qty    = item.cantidad || item.qty || 1;
-    return '<tr>' +
-      '<td>' + nombre + '</td>' +
-      '<td style="text-align:center;">' + qty + '</td>' +
-      '<td>' + fmt(precio) + '</td>' +
-      '<td>' + fmt(precio * qty) + '</td>' +
-      '</tr>';
+    return '<div class="item-row">' +
+      '<span class="item-name">' + nombre + '</span>' +
+      '<span class="item-qty">' + qty + '</span>' +
+      '<span class="item-price">' + fmt(precio) + '</span>' +
+      '<span class="item-total">' + fmt(precio * qty) + '</span>' +
+    '</div>';
   }).join('');
 
-
   wrapper.innerHTML =
-    /* Encabezado de éxito */
-    '<div class="comp-success">' +
-      '<div class="comp-checkmark">✓</div>' +
-      '<h1>¡Pedido confirmado!</h1>' +
-      '<p>Tu pedido ha sido registrado exitosamente.</p>' +
-    '</div>' +
+    '<div class="ticket">' +
+      '<div class="ticket-inner">' +
 
-    /* Número de pedido */
-    '<div class="comp-order-num">' +
-      '<div class="label">Número de pedido</div>' +
-      '<div class="number">#' + String(pedido.id).padStart(4, '0') + '</div>' +
-      '<div class="date">' + fmtFecha(pedido.fecha) + '</div>' +
-      '<div style="margin-top:0.6rem;">' +
-        '<span class="estado-badge" style="background:' + estadoInfo.color + '20;color:' + estadoInfo.color + ';">' +
-          estadoInfo.label +
-        '</span>' +
+        /* Cabecera */
+        '<div class="ticket-header">' +
+          '<div class="brand-name">🍬 Dulcería Charles</div>' +
+          '<div class="brand-sub">Endulzando tu vida desde 2020</div>' +
+        '</div>' +
+        '<hr class="t-dash">' +
+
+        /* Confirmado */
+        '<div class="confirmed">' +
+          '<div class="check-circle">✓</div>' +
+          '<span class="confirmed-title">¡Pedido confirmado!</span>' +
+          '<span class="confirmed-sub">Tu pedido ha sido registrado exitosamente.</span>' +
+        '</div>' +
+        '<hr class="t-dash">' +
+
+        /* Número de pedido */
+        '<div class="order-num">' +
+          '<div class="order-label">Número de pedido</div>' +
+          '<div class="order-number">#' + String(pedido.id).padStart(4, '0') + '</div>' +
+          '<div class="order-date">' + fmtFecha(pedido.fecha) + '</div>' +
+          '<div><span class="estado-badge">' + estadoInfo.label + '</span></div>' +
+        '</div>' +
+        '<hr class="t-dash">' +
+
+        /* Datos de contacto */
+        '<div class="section-label">Datos de contacto</div>' +
+        '<div class="info-row"><span class="lbl">Nombre</span><span>' + (pedido.nombre_envio || '—') + '</span></div>' +
+        '<div class="info-row"><span class="lbl">Teléfono</span><span>+52 ' + (pedido.telefono || '—') + '</span></div>' +
+        '<div class="info-row"><span class="lbl">Pago</span><span>' +
+          (PAGO_ICONS[pedido.metodo_pago] || '💵') + ' ' + (PAGO_NAMES[pedido.metodo_pago] || pedido.metodo_pago || '—') +
+        '</span></div>' +
+        '<hr class="t-dash">' +
+
+        /* Productos */
+        '<div class="section-label">Productos</div>' +
+        '<div class="items-header">' +
+          '<span style="flex:1">Artículo</span>' +
+          '<span style="width:24px;text-align:center">Cant</span>' +
+          '<span style="width:44px;text-align:right">P/U</span>' +
+          '<span style="width:48px;text-align:right">Total</span>' +
+        '</div>' +
+        itemsRows +
+        '<div class="total-row"><span>TOTAL</span><span>' + fmt(total) + '</span></div>' +
+        '<hr class="t-dash">' +
+
+        /* Pickup */
+        '<div class="section-label">Información de pickup</div>' +
+        '<div class="pickup-block">' +
+          '🏪 <strong>Dulcería Charles</strong><br>' +
+          '📍 ' + (storeDir || '—') + '<br>' +
+          '🕐 ' + (storeHor || '—') + '<br>' +
+          '📞 ' + storeTel +
+          '<span class="pickup-note">✅ Presenta este comprobante al recoger tu pedido.</span>' +
+        '</div>' +
+        '<hr class="t-dash">' +
+
+        /* Footer del ticket */
+        '<div class="ticket-footer">' +
+          '<span class="gracias">¡Gracias por tu compra!</span>' +
+          '<p>hola@dulceriacharles.com<br>★ ★ ★ ★ ★</p>' +
+        '</div>' +
+
       '</div>' +
     '</div>' +
 
-    /* Datos del cliente */
-    '<div class="comp-card">' +
-      '<h3>👤 Datos de contacto</h3>' +
-      '<p style="margin:0.2rem 0;"><strong>' + (pedido.nombre_envio || '—') + '</strong></p>' +
-      '<p style="margin:0.2rem 0;color:var(--text-light);">+52 ' + (pedido.telefono || '—') + '</p>' +
-    '</div>' +
-
-    /* Método de pago */
-    '<div class="comp-card">' +
-      '<h3>💳 Método de pago</h3>' +
-      '<p style="margin:0;">' +
-        (PAGO_ICONS[pedido.metodo_pago] || '') + ' ' +
-        (PAGO_NAMES[pedido.metodo_pago] || pedido.metodo_pago || '—') +
-      '</p>' +
-    '</div>' +
-
-    /* Productos */
-    '<div class="comp-card">' +
-      '<h3>🍬 Productos</h3>' +
-      '<table class="comp-items">' +
-        '<thead><tr><th>Producto</th><th style="text-align:center;">Cant.</th><th>Precio</th><th>Total</th></tr></thead>' +
-        '<tbody>' + itemsRows + '</tbody>' +
-      '</table>' +
-      '<div class="comp-totals">' +
-        '<div class="row total"><span>Total</span><span>' + fmt(total) + '</span></div>' +
-      '</div>' +
-    '</div>' +
-
-    /* Info de pickup */
-    '<div class="comp-card">' +
-      '<h3>📍 Información de pickup</h3>' +
-      '<div class="pickup-box">' +
-        '<p>🏪 <strong>Dulcería Charles</strong></p>' +
-        '<p>📍 ' + (storeDir || '—') + '</p>' +
-        '<p>🕐 ' + (storeHor || '—') + '</p>' +
-        '<p>📞 ' + storeTel + '</p>' +
-        '<p style="margin-top:0.8rem;font-weight:700;color:#15803d;">✅ Presenta este comprobante al recoger tu pedido.</p>' +
-      '</div>' +
-    '</div>' +
-
-    /* Acciones */
+    /* Botones fuera del ticket */
     '<div class="comp-actions">' +
-      '<button class="btn-print" onclick="window.print()">🖨️ Imprimir comprobante</button>' +
-      '<a href="pedidos.html" class="btn-home">📦 Ver mis pedidos</a>' +
-      '<a href="index.html" class="btn-home">🏠 Ir al inicio</a>' +
+      '<button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>' +
+      '<a href="pedidos.html" class="btn-home">📦 Mis pedidos</a>' +
+      '<a href="index.html" class="btn-home">🏠 Inicio</a>' +
     '</div>';
 
   /* Limpiar sessionStorage del pedido ya que ya tenemos el comprobante */

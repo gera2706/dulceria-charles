@@ -138,7 +138,7 @@ async function loadProducts(filtros) {
     var products = await apiGetProductos(filtros || {});
     /* Normalizar campo 'name' para compatibilidad con el frontend existente */
     products = products.map(function(p) {
-      return Object.assign({}, p, { name: p.nombre, price: parseFloat(p.precio), category: p.categoria });
+      return Object.assign({}, p, { name: p.nombre, price: parseFloat(p.precio), category: p.categoria, image: p.imagen || '' });
     });
     DC_PRODUCTS_CACHE = products;
     return products;

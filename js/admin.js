@@ -349,7 +349,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         select += '</select>';
 
+        /* fila principal */
         var tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
         tr.innerHTML =
           '<td><strong>#' + o.id + '</strong></td>' +
           '<td>' + (o.cliente_nombre || '—') + '<br><small style="color:var(--text-light);">' + (o.cliente_email || '') + '</small></td>' +
@@ -357,8 +359,39 @@ document.addEventListener('DOMContentLoaded', function () {
           '<td>' + badge + '<br>' + select + '</td>' +
           '<td>' + (pagoLabel[o.metodo_pago] || o.metodo_pago || '—') + '</td>' +
           '<td><strong style="color:var(--pink);">' + fmt(_calcTotal(o)) + '</strong></td>' +
-          '<td>Pickup</td>';
+          '<td style="text-align:center;">▼</td>';
+
+        /* fila de detalle (oculta por defecto) */
+        var trDetail = document.createElement('tr');
+        trDetail.style.display = 'none';
+        var items = o.items || [];
+        var itemsHtml = items.length
+          ? items.map(function (i) {
+              var precio = parseFloat(i.precio || i.price || 0);
+              var qty    = i.cantidad || i.qty || 1;
+              return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.83rem;border-bottom:1px solid #f3eeff;">' +
+                '<span>' + (i.nombre || i.name || '—') + ' <span style="color:var(--text-light);">x' + qty + '</span></span>' +
+                '<span style="font-weight:700;">' + fmt(precio * qty) + '</span>' +
+              '</div>';
+            }).join('')
+          : '<p style="color:var(--text-light);font-size:0.83rem;">Sin productos registrados.</p>';
+
+        trDetail.innerHTML =
+          '<td colspan="7" style="background:#faf7ff;padding:0.8rem 1.2rem;">' +
+            '<div style="font-size:0.78rem;font-weight:700;color:var(--purple);margin-bottom:0.4rem;">🍬 Productos del pedido</div>' +
+            itemsHtml +
+            (o.nombre_envio ? '<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--text-light);">👤 ' + o.nombre_envio + (o.telefono ? ' · +52 ' + o.telefono : '') + '</div>' : '') +
+          '</td>';
+
+        tr.addEventListener('click', function (e) {
+          if (e.target.tagName === 'SELECT' || e.target.tagName === 'OPTION') return;
+          var visible = trDetail.style.display !== 'none';
+          trDetail.style.display = visible ? 'none' : 'table-row';
+          tr.querySelector('td:last-child').textContent = visible ? '▼' : '▲';
+        });
+
         tbody.appendChild(tr);
+        tbody.appendChild(trDetail);
       });
 
       /* Cambiar estado desde la tabla */

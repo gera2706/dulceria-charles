@@ -168,7 +168,17 @@ document.addEventListener('DOMContentLoaded', async function () {
         '</div>' +
         '<div class="pedido-section"><h4>🍬 Productos</h4></div>' +
         '<div class="pedido-items">' + itemsHtml + '</div>' +
-        totalsHtml;
+        totalsHtml +
+        '<div style="margin-top:1rem;text-align:right;">' +
+          '<a href="comprobante.html?pedido=' + order.id + '" ' +
+            'style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.85rem;font-weight:700;' +
+            'color:var(--purple-dark);border:1.5px solid var(--purple);padding:0.4rem 1rem;' +
+            'border-radius:50px;text-decoration:none;transition:background 0.2s;" ' +
+            'onmouseover="this.style.background=\'rgba(167,139,250,0.12)\'" ' +
+            'onmouseout="this.style.background=\'transparent\'">' +
+            '🖨️ Ver comprobante' +
+          '</a>' +
+        '</div>';
     }
 
     card.appendChild(header);
