@@ -107,9 +107,9 @@
 
       <!-- PASO 2: MÉTODO DE PAGO -->
       <section class="checkout-card hidden" id="step-2">
-        <h2 class="checkout-title">💳 Método de pago</h2>
+        <h2 class="checkout-title">💵 Método de pago</h2>
         <div class="payment-options">
-          <label class="payment-opt">
+          <label class="payment-opt selected">
             <input type="radio" name="payment" value="efectivo" checked />
             <div class="opt-content">
               <span class="opt-icon">💵</span>
@@ -117,53 +117,6 @@
               <span class="opt-check">✓</span>
             </div>
           </label>
-          <label class="payment-opt">
-            <input type="radio" name="payment" value="tarjeta" />
-            <div class="opt-content">
-              <span class="opt-icon">💳</span>
-              <div><strong>Tarjeta de crédito / débito</strong><p>Visa, Mastercard, American Express</p></div>
-              <span class="opt-check">✓</span>
-            </div>
-          </label>
-          <label class="payment-opt">
-            <input type="radio" name="payment" value="transferencia" />
-            <div class="opt-content">
-              <span class="opt-icon">🏦</span>
-              <div><strong>Transferencia / SPEI</strong><p>Paga desde tu banco en línea</p></div>
-              <span class="opt-check">✓</span>
-            </div>
-          </label>
-        </div>
-
-        <div class="card-form hidden" id="card-form">
-          <div class="form-row">
-            <div class="form-group full">
-              <label>Número de tarjeta</label>
-              <input type="text" id="card-num" placeholder="1234 5678 9012 3456" maxlength="19" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Titular</label>
-              <input type="text" id="card-name" placeholder="Como aparece en la tarjeta" />
-            </div>
-            <div class="form-group half">
-              <label>Vencimiento</label>
-              <input type="text" id="card-exp" placeholder="MM/AA" maxlength="5" />
-            </div>
-            <div class="form-group half">
-              <label>CVV</label>
-              <input type="text" id="card-cvv" placeholder="123" maxlength="4" />
-            </div>
-          </div>
-          <div class="card-secure">🔒 Tus datos están cifrados y seguros</div>
-        </div>
-
-        <div class="spei-info hidden" id="spei-info">
-          <p><strong>CLABE:</strong> 0123 4567 8901 2345 67</p>
-          <p><strong>Banco:</strong> BBVA México</p>
-          <p><strong>Beneficiario:</strong> Dulcería Charles S.A. de C.V.</p>
-          <p class="spei-note">Envía el comprobante a hola@dulceriacharles.com</p>
         </div>
 
         <div class="form-actions between">

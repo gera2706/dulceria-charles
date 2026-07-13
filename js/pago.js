@@ -147,32 +147,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (ok) setStep(2);
   });
 
-  /* ── Métodos de pago: mostrar/ocultar formularios ── */
-  document.querySelectorAll('input[name="payment"]').forEach(function (radio) {
-    radio.addEventListener('change', function () {
-      hide('card-form'); hide('spei-info');
-      if (radio.value === 'tarjeta')       show('card-form');
-      if (radio.value === 'transferencia') show('spei-info');
-    });
-  });
-
-  /* Formato automático de número de tarjeta */
-  var cardNum = document.getElementById('card-num');
-  if (cardNum) {
-    cardNum.addEventListener('input', function () {
-      var v = cardNum.value.replace(/\D/g, '').slice(0, 16);
-      cardNum.value = v.replace(/(.{4})/g, '$1 ').trim();
-    });
-  }
-  var cardExp = document.getElementById('card-exp');
-  if (cardExp) {
-    cardExp.addEventListener('input', function () {
-      var v = cardExp.value.replace(/\D/g, '').slice(0, 4);
-      if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2);
-      cardExp.value = v;
-    });
-  }
-
   /* ── Paso 2 → 3: llenar resumen de confirmación ── */
   document.getElementById('btn-step2').addEventListener('click', function () {
     var method  = document.querySelector('input[name="payment"]:checked').value;
@@ -187,10 +161,8 @@ document.addEventListener('DOMContentLoaded', async function () {
       '';
 
     /* Bloque de pago */
-    var icons = { efectivo: '💵', tarjeta: '💳', transferencia: '🏦' };
-    var names = { efectivo: 'Efectivo (paga al recoger)', tarjeta: 'Tarjeta de crédito / débito', transferencia: 'Transferencia / SPEI' };
     document.getElementById('confirm-payment').innerHTML =
-      '<h4>💳 Método de pago</h4><p>' + icons[method] + ' ' + names[method] + '</p>';
+      '<h4>💵 Método de pago</h4><p>💵 Efectivo (paga al recoger)</p>';
 
     /* Lista de items */
     var itemsEl = document.getElementById('confirm-items');
