@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
     // Construimos la consulta SQL dinámicamente según los filtros recibidos.
     // Empezamos con la base: solo productos activos (activo=1 significa
     // que no han sido "eliminados". Ver el DELETE más abajo para entender.)
-    let sql    = 'SELECT id, nombre, categoria, precio, imagen, destacado, proveedor, fecha_creacion FROM productos WHERE activo = 1';
+    let sql    = 'SELECT id, nombre, categoria, precio, imagen, destacado, proveedor, stock, stock_minimo, fecha_creacion FROM productos WHERE activo = 1';
     const vals = [];
     // vals guarda los valores que reemplazarán los ? en la consulta.
     // Esto es CRUCIAL para seguridad: nunca concatenamos strings directamente
@@ -106,11 +106,11 @@ router.get('/:id', async (req, res) => {
    RUTA: POST /api/productos
    PROPÓSITO: Agregar un producto nuevo al catálogo.
    ACCESO: Solo administradores (adminMiddleware lo garantiza)
-   RECIBE: { nombre, categoria, precio, imagen, destacado, proveedor }
+   RECIBE: { nombre, categoria, precio, imagen, destacado, proveedor, stock, stock_minimo }
    DEVUELVE: El producto recién creado con su ID asignado por MySQL
 ---------------------------------------------------------------- */
 router.post('/', adminMiddleware, async (req, res) => {
-  const { nombre, categoria, precio, imagen, destacado, proveedor } = req.body;
+  const { nombre, categoria, precio, imagen, destacado, proveedor, stock, stock_minimo } = req.body;
 
   if (!nombre || !categoria || !precio)
     return res.status(400).json({ error: 'Nombre, categoría y precio son obligatorios.' });
@@ -121,11 +121,13 @@ router.post('/', adminMiddleware, async (req, res) => {
     if (!cat.length)
       return res.status(400).json({ error: 'La categoría especificada no existe.' });
     const [result] = await db.query(
-      'INSERT INTO productos (nombre, categoria, precio, imagen, destacado, proveedor) VALUES (?,?,?,?,?,?)',
+      'INSERT INTO productos (nombre, categoria, precio, imagen, destacado, proveedor, stock, stock_minimo) VALUES (?,?,?,?,?,?,?,?)',
       [nombre, categoria, precio,
        imagen || null,       // si no mandaron imagen, guardamos NULL
        destacado ? 1 : 0,    // MySQL usa 1/0 para booleanos (true/false)
-       proveedor || null]    // proveedor es opcional
+       proveedor || null,    // proveedor es opcional
+       stock === undefined || stock === null || stock === '' ? 0 : +stock,
+       stock_minimo === undefined || stock_minimo === null || stock_minimo === '' ? 5 : +stock_minimo]
     );
 
     // Después de insertar, consultamos el producto para devolverlo completo
@@ -152,7 +154,7 @@ router.post('/', adminMiddleware, async (req, res) => {
    Usamos PUT porque el formulario de edición siempre manda todos los campos.
 ---------------------------------------------------------------- */
 router.put('/:id', adminMiddleware, async (req, res) => {
-  const { nombre, categoria, precio, imagen, destacado, proveedor } = req.body;
+  const { nombre, categoria, precio, imagen, destacado, proveedor, stock, stock_minimo } = req.body;
   try {
     // Verificar que la categoría existe
     if (categoria) {
@@ -161,8 +163,11 @@ router.put('/:id', adminMiddleware, async (req, res) => {
         return res.status(400).json({ error: 'La categoría especificada no existe.' });
     }
     await db.query(
-      'UPDATE productos SET nombre=?, categoria=?, precio=?, imagen=?, destacado=?, proveedor=? WHERE id=?',
-      [nombre, categoria, precio, imagen || null, destacado ? 1 : 0, proveedor || null, req.params.id]
+      'UPDATE productos SET nombre=?, categoria=?, precio=?, imagen=?, destacado=?, proveedor=?, stock=?, stock_minimo=? WHERE id=?',
+      [nombre, categoria, precio, imagen || null, destacado ? 1 : 0, proveedor || null,
+       stock === undefined || stock === null || stock === '' ? 0 : +stock,
+       stock_minimo === undefined || stock_minimo === null || stock_minimo === '' ? 5 : +stock_minimo,
+       req.params.id]
     );
     // WHERE id=? limita la actualización al producto específico.
     // Sin WHERE, actualizaría TODOS los productos, lo que sería un desastre.
@@ -172,6 +177,38 @@ router.put('/:id', adminMiddleware, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al actualizar producto.' });
+  }
+});
+
+/* ----------------------------------------------------------------
+   RUTA: PATCH /api/productos/:id/stock
+   PROPÓSITO: Ajuste RÁPIDO de inventario (botones +/- de la tabla del
+   admin), sin tener que abrir el modal completo de edición.
+   ACCESO: Solo administradores
+   RECIBE: { delta } → un número entero, positivo para sumar
+           (ej: llegó mercancía) o negativo para restar (ej: producto
+           dañado/perdido). El descuento automático por VENTAS pasa
+           por otro camino: ver validarYDescontarStock en pedidos.js.
+   DEVUELVE: El producto con el stock ya actualizado.
+---------------------------------------------------------------- */
+router.patch('/:id/stock', adminMiddleware, async (req, res) => {
+  const delta = parseInt(req.body.delta, 10);
+  if (!Number.isInteger(delta))
+    return res.status(400).json({ error: 'delta debe ser un número entero.' });
+
+  try {
+    // GREATEST(...,0) evita que el stock quede en negativo si alguien
+    // resta más de lo que hay disponible.
+    await db.query(
+      'UPDATE productos SET stock = GREATEST(stock + ?, 0) WHERE id = ?',
+      [delta, req.params.id]
+    );
+    const [rows] = await db.query('SELECT * FROM productos WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado.' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al ajustar el stock.' });
   }
 });
 

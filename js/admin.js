@@ -56,25 +56,55 @@ document.addEventListener('DOMContentLoaded', function () {
         .filter(function (o) { return o.estado === 'pendiente_entregar' || o.estado === 'entregado'; })
         .reduce(function (s, o) { return s + _calcTotal(o); }, 0);
 
+      /* Stock bajo: tiene existencias pero ya llegó (o pasó) su umbral de alerta.
+         Agotado: no queda ni una pieza. Ambos casos van en la misma tarjeta
+         de alerta para que el admin los vea de un vistazo. */
+      var bajoStock = productos.filter(function (p) { return p.stock > 0 && p.stock <= p.stock_minimo; });
+      var agotados  = productos.filter(function (p) { return p.stock <= 0; });
+
       var cards = [
         { icon: '🍬', value: productos.length, label: 'Productos' },
         { icon: '📦', value: confirmados,       label: 'Pedidos confirmados' },
         { icon: '⏳', value: inconclusos,       label: 'Pedidos inconclusos' },
         { icon: '👥', value: clientes.length,   label: 'Clientes' },
         { icon: '💰', value: fmt(revenue),      label: 'Ingresos totales', raw: true },
+        { icon: '⚠️', value: bajoStock.length + agotados.length, label: 'Stock bajo / agotado', click: true },
       ];
 
       var wrap = document.getElementById('stat-cards');
       wrap.innerHTML = '';
       cards.forEach(function (c) {
         var div = document.createElement('div');
-        div.className = 'stat-card';
+        div.className = 'stat-card' + (c.click ? ' clickable' : '');
         div.innerHTML =
           '<span class="stat-icon">' + c.icon + '</span>' +
           '<span class="stat-value">' + c.value + '</span>' +
           '<span class="stat-label">' + c.label + '</span>';
+        if (c.click) {
+          div.addEventListener('click', function () {
+            _stockFiltroActivo = true;
+            document.getElementById('btn-filter-stock').classList.add('active');
+            document.querySelector('.admin-nav-btn[data-section="productos"]').click();
+          });
+        }
         wrap.appendChild(div);
       });
+
+      /* Lista de alerta de inventario en el dashboard */
+      var dashStock = document.getElementById('dash-stock');
+      var alerta = agotados.concat(bajoStock).slice(0, 6);
+      if (!alerta.length) {
+        dashStock.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">Todo el inventario está en buen nivel.</p>';
+      } else {
+        dashStock.innerHTML = alerta.map(function (p) {
+          var badge = p.stock <= 0
+            ? '<span class="stock-badge agotado">Agotado</span>'
+            : '<span class="stock-badge bajo">Bajo (' + p.stock + ')</span>';
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid #f3eeff;font-size:0.85rem;">' +
+            '<span>' + p.nombre + '</span>' + badge +
+            '</div>';
+        }).join('');
+      }
 
       /* últimos 5 pedidos */
       var dashOrders = document.getElementById('dash-orders');
@@ -112,9 +142,19 @@ document.addEventListener('DOMContentLoaded', function () {
   ══════════════════════════════════════ */
   var prodSearchInput = document.getElementById('prod-search');
   var prodFilterCat   = document.getElementById('prod-filter-cat');
+  var btnFilterStock  = document.getElementById('btn-filter-stock');
 
   prodSearchInput.addEventListener('input', renderProductos);
   prodFilterCat.addEventListener('change', renderProductos);
+
+  /* Activado desde la tarjeta "Stock bajo / agotado" del dashboard,
+     o al hacer clic directamente en este botón del toolbar. */
+  var _stockFiltroActivo = false;
+  btnFilterStock.addEventListener('click', function () {
+    _stockFiltroActivo = !_stockFiltroActivo;
+    btnFilterStock.classList.toggle('active', _stockFiltroActivo);
+    renderProductos();
+  });
 
   var _allProductos  = [];
   var _allCategorias = [];
@@ -164,16 +204,17 @@ document.addEventListener('DOMContentLoaded', function () {
       var catFilt = prodFilterCat.value;
 
       var rows = _allProductos.filter(function (p) {
-        var matchQ   = !query   || p.nombre.toLowerCase().includes(query);
-        var matchCat = !catFilt || p.categoria === catFilt;
-        return matchQ && matchCat;
+        var matchQ     = !query   || p.nombre.toLowerCase().includes(query);
+        var matchCat   = !catFilt || p.categoria === catFilt;
+        var matchStock = !_stockFiltroActivo || p.stock <= p.stock_minimo;
+        return matchQ && matchCat && matchStock;
       });
 
       var tbody = document.getElementById('prod-tbody');
       tbody.innerHTML = '';
 
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-light);">Sin resultados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-light);">Sin resultados.</td></tr>';
         document.getElementById('prod-count').textContent = '';
         return;
       }
@@ -185,6 +226,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<td><strong>' + p.nombre + '</strong></td>' +
           '<td><span class="admin-badge">' + p.categoria + '</span></td>' +
           '<td><strong>' + fmt(p.precio) + '</strong></td>' +
+          '<td>' + _stockCellHtml(p) + '</td>' +
           '<td>' + (p.destacado ? '⭐' : '—') + '</td>' +
           '<td style="color:var(--text-light);font-size:0.82rem;">' + (p.proveedor || '—') + '</td>' +
           '<td><div class="td-actions">' +
@@ -202,8 +244,70 @@ document.addEventListener('DOMContentLoaded', function () {
       tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
         btn.addEventListener('click', function () { askDelete(+btn.dataset.id); });
       });
+      tbody.querySelectorAll('.stock-adjust button').forEach(function (btn) {
+        btn.addEventListener('click', function () { ajustarStockRapido(+btn.dataset.id, +btn.dataset.delta); });
+      });
+      tbody.querySelectorAll('.stock-manual-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var input = tbody.querySelector('.stock-manual-input[data-id="' + btn.dataset.id + '"]');
+          _ajustarStockManual(+btn.dataset.id, input);
+        });
+      });
+      tbody.querySelectorAll('.stock-manual-input').forEach(function (input) {
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); _ajustarStockManual(+input.dataset.id, input); }
+        });
+      });
     } catch (e) {
       console.error('Productos error:', e);
+    }
+  }
+
+  /* Celda de la columna Stock: número + badge de color + botones +/-
+     para ajustar rápido sin abrir el modal completo. */
+  function _stockCellHtml(p) {
+    var badge = p.stock <= 0
+      ? '<span class="stock-badge agotado">Agotado</span>'
+      : p.stock <= p.stock_minimo
+        ? '<span class="stock-badge bajo">Bajo</span>'
+        : '<span class="stock-badge ok">' + p.stock + '</span>';
+    return '<div class="stock-cell">' +
+      '<div class="stock-cell-top">' +
+        (p.stock <= 0 || p.stock <= p.stock_minimo ? '<strong>' + p.stock + '</strong> ' : '') + badge +
+      '</div>' +
+      '<div class="stock-adjust">' +
+        '<button data-id="' + p.id + '" data-delta="-1" title="Quitar 1">−</button>' +
+        '<button data-id="' + p.id + '" data-delta="1"  title="Agregar 1">+</button>' +
+        '<button data-id="' + p.id + '" data-delta="10" title="Agregar 10">+10</button>' +
+      '</div>' +
+      '<div class="stock-manual">' +
+        '<input type="number" class="stock-manual-input" data-id="' + p.id + '" placeholder="Cantidad">' +
+        '<button class="stock-manual-btn" data-id="' + p.id + '" title="Agregar esta cantidad al stock">Agregar</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* Lee el <input> de cantidad manual y aplica el ajuste.
+     Acepta positivos (llegó mercancía) o negativos (mermas/pérdidas). */
+  function _ajustarStockManual(id, inputEl) {
+    var delta = parseInt(inputEl.value, 10);
+    if (!Number.isInteger(delta) || delta === 0) {
+      showToast('Escribe una cantidad distinta de 0.');
+      return;
+    }
+    inputEl.value = '';
+    ajustarStockRapido(id, delta);
+  }
+
+  /* Ajuste rápido de stock desde la tabla (botones +/-). */
+  async function ajustarStockRapido(id, delta) {
+    try {
+      var updated = await apiAjustarStock(id, delta);
+      var idx = _allProductos.findIndex(function (p) { return p.id === id; });
+      if (idx !== -1) _allProductos[idx] = updated;
+      renderProductos();
+    } catch (e) {
+      showToast(e.message);
     }
   }
 
@@ -220,6 +324,8 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('pf-price').value      = '';
       document.getElementById('pf-image').value      = '';
       document.getElementById('pf-proveedor').value  = '';
+      document.getElementById('pf-stock').value      = 20;
+      document.getElementById('pf-stock-min').value  = 5;
       document.getElementById('pf-featured').checked = false;
       _populatePfCatSelect('');
     } else {
@@ -231,6 +337,8 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('pf-price').value      = product.precio;
       document.getElementById('pf-image').value      = product.imagen || '';
       document.getElementById('pf-proveedor').value  = product.proveedor || '';
+      document.getElementById('pf-stock').value      = product.stock;
+      document.getElementById('pf-stock-min').value  = product.stock_minimo;
       document.getElementById('pf-featured').checked = !!product.destacado;
       _populatePfCatSelect(product.categoria);
     }
@@ -245,28 +353,34 @@ document.addEventListener('DOMContentLoaded', function () {
   prodModalOverlay.addEventListener('click', function (e) { if (e.target === prodModalOverlay) closeProdModal(); });
 
   document.getElementById('prod-modal-save').addEventListener('click', async function () {
-    var nombre    = document.getElementById('pf-name').value.trim();
-    var precio    = parseFloat(document.getElementById('pf-price').value);
-    var categoria = document.getElementById('pf-cat').value;
-    var imagen    = document.getElementById('pf-image').value.trim();
-    var proveedor = document.getElementById('pf-proveedor').value.trim();
-    var destacado = document.getElementById('pf-featured').checked;
-    var errEl     = document.getElementById('pf-err');
-    var editId    = prodEditId.value ? +prodEditId.value : null;
+    var nombre      = document.getElementById('pf-name').value.trim();
+    var precio      = parseFloat(document.getElementById('pf-price').value);
+    var categoria   = document.getElementById('pf-cat').value;
+    var imagen      = document.getElementById('pf-image').value.trim();
+    var proveedor   = document.getElementById('pf-proveedor').value.trim();
+    var stock       = parseInt(document.getElementById('pf-stock').value, 10);
+    var stockMinimo = parseInt(document.getElementById('pf-stock-min').value, 10);
+    var destacado   = document.getElementById('pf-featured').checked;
+    var errEl       = document.getElementById('pf-err');
+    var editId      = prodEditId.value ? +prodEditId.value : null;
 
     if (!nombre)               { errEl.textContent = 'El nombre es obligatorio.'; return; }
     if (!precio || precio <= 0){ errEl.textContent = 'El precio debe ser mayor a 0.'; return; }
     if (!categoria)            { errEl.textContent = 'Selecciona una categoría.'; return; }
+    if (isNaN(stock) || stock < 0)          { errEl.textContent = 'El stock no puede ser negativo.'; return; }
+    if (isNaN(stockMinimo) || stockMinimo < 0) { errEl.textContent = 'La alerta de stock bajo no puede ser negativa.'; return; }
     errEl.textContent = '';
+
+    var datos = { nombre, categoria, precio, imagen, destacado, proveedor, stock: stock, stock_minimo: stockMinimo };
 
     try {
       if (editId !== null) {
-        var updated = await apiEditarProducto(editId, { nombre, categoria, precio, imagen, destacado, proveedor });
+        var updated = await apiEditarProducto(editId, datos);
         var idx = _allProductos.findIndex(function (p) { return p.id === editId; });
         if (idx !== -1) _allProductos[idx] = updated;
         showToast('Producto actualizado ✓');
       } else {
-        var created = await apiCrearProducto({ nombre, categoria, precio, imagen, destacado, proveedor });
+        var created = await apiCrearProducto(datos);
         _allProductos.push(created);
         showToast('Producto agregado ✓');
       }

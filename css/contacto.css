@@ -17,7 +17,7 @@
   padding: 2rem;
 }
 .contact-form-section h2 {
-  font-family: 'Fredoka One', cursive;
+  font-family: var(--font-display); font-weight: 600;
   font-size: 1.5rem;
   color: var(--purple);
   margin-bottom: 1.5rem;
@@ -29,7 +29,7 @@
 .form-group select,
 .form-group textarea {
   padding: 0.6rem 0.9rem;
-  border: 2px solid #f0d0e0;
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   font-family: 'Nunito', sans-serif;
   font-size: 0.95rem;
@@ -54,7 +54,7 @@
   padding: 3rem 1rem;
 }
 .success-icon { font-size: 3.5rem; margin-bottom: 1rem; }
-.form-success h3 { font-family: 'Fredoka One', cursive; font-size: 1.6rem; color: var(--teal); margin-bottom: 0.5rem; }
+.form-success h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.6rem; color: var(--teal); margin-bottom: 0.5rem; }
 .form-success p  { color: var(--text-light); margin-bottom: 1.5rem; }
 
 /* ===== INFO CARDS ===== */
@@ -99,7 +99,7 @@
   margin: 0 auto;
 }
 .map-section h2 {
-  font-family: 'Fredoka One', cursive;
+  font-family: var(--font-display); font-weight: 600;
   font-size: 1.6rem;
   color: var(--pink);
   margin-bottom: 1rem;

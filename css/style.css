@@ -1,25 +1,29 @@
 ﻿/* ===== VARIABLES ===== */
 :root {
-  --pink:       #f472b6;
-  --pink-dark:  #db2777;
-  --yellow:     #fbbf24;
-  --purple:     #a78bfa;
-  --purple-dark:#7c3aed;
-  --teal:       #34d399;
-  --bg:         #fdf4ff;
-  --text:       #3b2f4a;
-  --text-light: #8b7aa0;
+  --pink:       #d94c85;
+  --pink-dark:  #ad3468;
+  --yellow:     #e2a13d;
+  --purple:     #7c5cad;
+  --purple-dark:#5a4183;
+  --teal:       #2fae87;
+  --bg:         #fdf9f6;
+  --text:       #362a3d;
+  --text-light: #8a7d94;
   --white:      #ffffff;
-  --shadow:     0 4px 20px rgba(167,139,250,0.14);
-  --radius:     16px;
+  --border:     #efe2e8;
+  --shadow:     0 4px 24px rgba(60,30,60,0.08);
+  --shadow-lg:  0 16px 48px rgba(60,30,60,0.14);
+  --radius:     14px;
   --radius-sm:  8px;
+  --font-display: 'Fraunces', serif;
+  --font-body:  'Nunito', sans-serif;
 }
 
 /* ===== RESET ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -27,27 +31,75 @@ body {
 a { text-decoration: none; color: inherit; }
 img { max-width: 100%; display: block; }
 ul { list-style: none; }
+.ic { width: 18px; height: 18px; flex-shrink: 0; }
+.ic path, .ic circle, .ic line, .ic rect, .ic polyline { vector-effect: non-scaling-stroke; }
 
 /* ===== NAVBAR ===== */
 .navbar {
   position: sticky;
   top: 0;
   z-index: 200;
-  background: linear-gradient(135deg, #fff0fa 0%, #f5f0ff 100%);
-  box-shadow: 0 2px 16px rgba(167,139,250,0.18);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 20px rgba(60,30,60,0.05);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.8rem 2rem;
+  gap: 1.5rem;
+  padding: 0.7rem 2rem;
 }
 .nav-brand {
-  font-family: 'Fredoka One', cursive;
-  font-size: 1.6rem;
-  color: var(--pink);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: var(--text);
   white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
-/* Hamburger button — always visible */
+/* Links visible on desktop, hidden on mobile (drawer takes over) */
+.nav-links {
+  display: none;
+  align-items: center;
+  gap: 0.4rem;
+  margin-right: auto;
+  margin-left: 1.5rem;
+}
+.nav-links a {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-light);
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius-sm);
+  transition: color 0.2s, background 0.2s;
+}
+.nav-links a:hover  { color: var(--pink); background: rgba(217,76,133,0.07); }
+.nav-links a.active { color: var(--pink); }
+.nav-icon-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--text);
+  transition: background 0.2s, color 0.2s;
+}
+.nav-icon-btn:hover { background: rgba(217,76,133,0.08); color: var(--pink); }
+.nav-icon-btn .cart-count {
+  position: absolute;
+  top: 2px; right: 2px;
+  margin: 0;
+  font-size: 0.65rem;
+  padding: 0 4px;
+  min-width: 15px;
+  text-align: center;
+  line-height: 15px;
+}
+
+/* Hamburger button — visible on mobile; on desktop it opens the account/orders drawer */
 .nav-toggle {
   background: none;
   border: none;
@@ -58,6 +110,7 @@ ul { list-style: none; }
   gap: 5px;
   padding: 4px;
   z-index: 310;
+  margin-left: 0.2rem;
 }
 .nav-toggle span {
   display: block;
@@ -96,7 +149,7 @@ ul { list-style: none; }
   bottom: 0;
   width: 300px;
   z-index: 300;
-  background: linear-gradient(160deg, #f9a8d4 0%, #c4b5fd 50%, #6ee7b7 100%);
+  background: linear-gradient(160deg, #4a3163 0%, #2f2246 100%);
   transform: translateX(100%);
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -109,31 +162,46 @@ ul { list-style: none; }
   transform: translateX(0);
 }
 .drawer-header {
-  font-family: 'Fredoka One', cursive;
-  font-size: 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.4rem;
   color: #fff;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid rgba(255,255,255,0.3);
+  border-bottom: 1px solid rgba(255,255,255,0.18);
 }
-.nav-drawer a {
-  color: #fff;
-  font-size: 1.15rem;
+.nav-drawer a,
+.nav-drawer button {
+  color: rgba(255,255,255,0.88);
+  font-size: 1.02rem;
   font-weight: 700;
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 1rem;
   border-radius: var(--radius-sm);
   transition: background 0.2s;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.7rem;
 }
 .nav-drawer a:hover,
+.nav-drawer button:hover,
 .nav-drawer a.active {
-  background: rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+/* .drawer-logout-btn (el botón "Salir") es un <button>: necesita estos
+   resets de botón nativo para verse IGUAL que los enlaces del drawer,
+   que ya heredan su estilo de ".nav-drawer a, .nav-drawer button" arriba. */
+.drawer-logout-btn {
+  background: none;
+  border: none;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
 }
 .drawer-cart-count {
-  background: #fff;
-  color: var(--pink);
+  background: rgba(255,255,255,0.92);
+  color: var(--pink-dark);
   border-radius: 50px;
   font-size: 0.75rem;
   padding: 1px 8px;
@@ -141,26 +209,66 @@ ul { list-style: none; }
   font-weight: 700;
 }
 
+/* Sección "Categorías" del drawer (accesos rápidos, estilo cuenta Amazon) */
+.drawer-cats-title {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.4);
+  padding: 0.9rem 1rem 0.4rem;
+}
+.drawer-cat-item {
+  color: rgba(255,255,255,0.85);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.drawer-cat-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.drawer-cat-item .chev { margin-left: auto; width: 15px; height: 15px; opacity: 0.5; }
+
+/* ===== ÍCONO DE CATEGORÍA (compartido) =====
+   Genera el HTML la función renderCatIcon() de js/cat-icon.js, usada en
+   MUCHOS lugares (grid de categorías del inicio, filtros del catálogo,
+   drawer, panel admin). El campo "icono" de una categoría puede ser un
+   emoji O una URL de imagen — por eso estas reglas van aquí, en el CSS
+   global, y NO en un CSS de una sola página: si vivieran en un CSS
+   específico (ej. index.css), en cualquier otra página el <img> no
+   tendría límite de tamaño y se saldría del botón/tarjeta que lo
+   contiene (así se rompió el ícono de "Refrescos" en el catálogo).
+   Si agregas una categoría nueva con imagen, esto ya la contiene sola. */
+.cat-icon { font-size: 2.5rem; line-height: 1; }
+.cat-icon--img { vertical-align: middle; }
+.cat-icon__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+}
+
 /* ===== PAGE HEADER ===== */
 .page-header {
-  background: linear-gradient(135deg, #f9a8d4 0%, #c4b5fd 60%, #93c5fd 100%);
+  background: linear-gradient(120deg, #4a3163 0%, #6b3f63 100%);
   color: var(--white);
   text-align: center;
-  padding: 3rem 1rem 2rem;
+  padding: 3.2rem 1rem 2.2rem;
 }
 .page-header h1 {
-  font-family: 'Fredoka One', cursive;
-  font-size: 2.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 2.4rem;
   margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
 }
-.page-header p { font-size: 1.1rem; opacity: 0.9; }
+.page-header p { font-size: 1.05rem; opacity: 0.85; font-weight: 300; }
 
 /* ===== BUTTONS ===== */
 .btn {
   display: inline-block;
   padding: 0.75rem 1.8rem;
   border-radius: 50px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
@@ -168,15 +276,15 @@ ul { list-style: none; }
   transition: transform 0.15s, box-shadow 0.15s, background 0.2s;
   text-align: center;
 }
-.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+.btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 .btn:active { transform: translateY(0); }
-.btn-primary   { background: linear-gradient(135deg, #f9a8d4, #c4b5fd); color: #fff; }
-.btn-primary:hover { background: linear-gradient(135deg, #f472b6, #a78bfa); }
-.btn-secondary { background: linear-gradient(135deg, #fde68a, #fcd34d); color: var(--text); }
-.btn-secondary:hover { background: linear-gradient(135deg, #fbbf24, #f59e0b); }
-.btn-white     { background: rgba(255,255,255,0.92); color: var(--pink); }
+.btn-primary   { background: var(--pink); color: #fff; }
+.btn-primary:hover { background: var(--pink-dark); }
+.btn-secondary { background: var(--yellow); color: #4a2f0e; }
+.btn-secondary:hover { background: #c98a2e; }
+.btn-white     { background: rgba(255,255,255,0.95); color: var(--pink); }
 .btn-outline   { background: transparent; color: var(--pink); border: 2px solid var(--pink); }
-.btn-outline:hover { background: linear-gradient(135deg, #f9a8d4, #c4b5fd); color: #fff; border-color: transparent; }
+.btn-outline:hover { background: var(--pink); color: #fff; border-color: transparent; }
 .btn-full      { width: 100%; display: block; }
 
 /* ===== PRODUCT CARD ===== */
@@ -194,12 +302,12 @@ ul { list-style: none; }
   display: flex;
   flex-direction: column;
 }
-.product-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.12); }
+.product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
 .product-card .card-img-wrap {
   width: 100%;
   height: 180px;
   overflow: hidden;
-  background: linear-gradient(135deg, #fce7f3, #ede9fe);
+  background: #faf3ee;
   position: relative;
 }
 .product-card .card-img {
@@ -218,21 +326,22 @@ ul { list-style: none; }
   font-size: 4rem;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fff5fb, #f3ecff);
+  background: #faf3ee;
 }
 .product-card .card-body { padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
 .product-card .card-name { font-weight: 700; font-size: 1rem; }
 .product-card .card-cat  { font-size: 0.8rem; color: var(--text-light); text-transform: capitalize; }
 .product-card .card-price {
-  font-family: 'Fredoka One', cursive;
-  font-size: 1.3rem;
-  color: var(--pink);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--pink-dark);
   margin-top: auto;
 }
 .product-card .card-actions { padding: 0 1rem 1rem; }
 .product-card .btn-add {
   width: 100%;
-  background: linear-gradient(135deg, #f9a8d4, #c4b5fd);
+  background: var(--pink);
   color: #fff;
   border: none;
   padding: 0.6rem;
@@ -241,11 +350,11 @@ ul { list-style: none; }
   cursor: pointer;
   transition: background 0.2s, transform 0.15s;
 }
-.product-card .btn-add:hover { background: linear-gradient(135deg, #f472b6, #a78bfa); transform: scale(1.02); }
+.product-card .btn-add:hover { background: var(--pink-dark); transform: scale(1.02); }
 
 /* ===== FOOTER ===== */
 .footer {
-  background: #1e1e2e;
+  background: #201830;
   color: #ccc;
   padding: 3rem 3rem 0;
   margin-top: 4rem;
@@ -260,9 +369,10 @@ ul { list-style: none; }
 
 /* Col 1 — Marca */
 .footer-col--marca .footer-brand-name {
-  font-family: 'Fredoka One', cursive;
-  color: var(--pink);
-  font-size: 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: #fff;
+  font-size: 1.4rem;
   margin-bottom: 0.3rem;
 }
 .footer-col--marca .footer-slogan {
@@ -295,18 +405,19 @@ ul { list-style: none; }
 
 /* Col 2 & 3 — Nav y Contacto */
 .footer-col h5 {
-  font-family: 'Fredoka One', cursive;
-  font-size: 1.1rem;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.85rem;
   color: var(--yellow);
   margin-bottom: 1rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
-.footer-col ul { display: flex; flex-direction: column; gap: 0.55rem; }
-.footer-col ul li { font-size: 0.93rem; color: #bbb; display: flex; align-items: center; gap: 0.5rem; }
+.footer-col ul { display: flex; flex-direction: column; gap: 0.6rem; }
+.footer-col ul li { font-size: 0.93rem; color: #bbb; display: flex; align-items: center; gap: 0.65rem; }
 .footer-col ul li a { color: #bbb; transition: color 0.2s; }
 .footer-col ul li a:hover { color: var(--pink); }
-.footer-col ul li span { font-size: 1rem; }
+.footer-col ul li span { display: inline-flex; color: #8a7d94; }
 
 /* Bottom bar */
 .footer-bottom {
@@ -330,6 +441,9 @@ ul { list-style: none; }
 }
 
 /* ===== RESPONSIVE ===== */
+@media (min-width: 901px) {
+  .nav-links { display: flex; }
+}
 @media (max-width: 900px) {
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .footer-col--marca { grid-column: 1 / -1; }
@@ -340,6 +454,7 @@ ul { list-style: none; }
   .footer-col--marca { grid-column: auto; }
   .products-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
   .navbar { padding: 0.8rem 1rem; }
+  .nav-brand { font-size: 1.25rem; }
 }
 
 /* ===== DARK MODE ===== */
@@ -348,22 +463,30 @@ ul { list-style: none; }
   --white:      #261d3e;   /* tarjetas violeta oscuro */
   --text:       #ecdeff;   /* lavanda claro */
   --text-light: #b09dcc;   /* lavanda medio */
+  --border:     #3a2d58;
   --shadow:     0 4px 20px rgba(0,0,0,0.5);
-  --pink:       #f0abcf;   /* rosa pastel suave */
-  --purple:     #c4b0f5;   /* violeta pastel */
-  --teal:       #6ee7b7;   /* menta pastel */
-  --yellow:     #fde68a;
+  --shadow-lg:  0 16px 48px rgba(0,0,0,0.55);
+  --pink:       #e88bb3;   /* rosa pastel suave */
+  --pink-dark:  #f2a7c6;
+  --purple:     #a893d6;   /* violeta pastel */
+  --purple-dark:#c4b0f5;
+  --teal:       #52c9a0;   /* menta pastel */
+  --yellow:     #e0ac52;
 }
 [data-theme="dark"] .navbar {
-  background: linear-gradient(135deg, #1c1530 0%, #231944 100%);
+  background: #201830;
+  border-color: var(--border);
   box-shadow: 0 2px 16px rgba(0,0,0,0.5);
 }
+[data-theme="dark"] .nav-links a { color: var(--text-light); }
+[data-theme="dark"] .nav-links a:hover, [data-theme="dark"] .nav-links a.active { color: var(--pink); }
+[data-theme="dark"] .nav-brand { color: var(--text); }
 [data-theme="dark"] .nav-toggle span { background: var(--pink); }
 [data-theme="dark"] .footer { background: #130e22; }
 [data-theme="dark"] .footer-grid { border-color: #332551; }
 [data-theme="dark"] .footer-bottom { color: #6b5a88; }
 [data-theme="dark"] .page-header {
-  background: linear-gradient(135deg, #3d1f4e 0%, #2d1f5e 60%, #1e2a55 100%);
+  background: linear-gradient(120deg, #2a2040 0%, #3a2540 100%);
 }
 [data-theme="dark"] .product-card,
 [data-theme="dark"] .cat-card,
@@ -381,7 +504,7 @@ ul { list-style: none; }
 [data-theme="dark"] .prod-modal { background: var(--white); }
 [data-theme="dark"] .product-card .card-img-wrap,
 [data-theme="dark"] .prod-modal-img-wrap {
-  background: linear-gradient(135deg, #2e1f42, #231944);
+  background: #2e2542;
 }
 [data-theme="dark"] .coupon-box input,
 [data-theme="dark"] .form-group input,
@@ -442,7 +565,7 @@ ul { list-style: none; }
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 50px;
   color: #bbb;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
@@ -450,7 +573,7 @@ ul { list-style: none; }
   line-height: 1;
 }
 .dark-toggle:hover {
-  background: rgba(244,114,182,0.18);
+  background: rgba(217,76,133,0.18);
   border-color: var(--pink);
   color: #fff;
 }
@@ -527,7 +650,7 @@ ul { list-style: none; }
 .prod-modal-img-wrap {
   width: 100%;
   height: 220px;
-  background: linear-gradient(135deg, #fff5fb, #f3ecff);
+  background: #faf3ee;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -537,9 +660,10 @@ ul { list-style: none; }
 .prod-modal-img { max-height: 190px; max-width: 90%; object-fit: contain; padding: 0.5rem; }
 .prod-modal-body { padding: 1.4rem 1.5rem 1.6rem; }
 .prod-modal-cat { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--purple); letter-spacing: 0.08em; margin-bottom: 0.35rem; }
-.prod-modal-name { font-family: 'Fredoka One', cursive; font-size: 1.5rem; color: var(--text); margin-bottom: 0.5rem; line-height: 1.2; }
+.prod-modal-name { font-family: var(--font-display); font-weight: 600; font-size: 1.45rem; color: var(--text); margin-bottom: 0.5rem; line-height: 1.2; }
 .prod-modal-desc { font-size: 0.9rem; color: var(--text-light); line-height: 1.65; margin-bottom: 1rem; }
-.prod-modal-price { font-family: 'Fredoka One', cursive; font-size: 1.9rem; color: var(--pink); margin-bottom: 1.2rem; }
+.prod-modal-price { font-family: var(--font-display); font-weight: 600; font-size: 1.8rem; color: var(--pink-dark); margin-bottom: 1.2rem; }
+.prod-modal-stock-note { font-size: 0.85rem; font-weight: 700; color: #c2410c; margin: -0.8rem 0 1rem; }
 .prod-modal-actions { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center; }
 .prod-modal-fav {
   background: none;
@@ -578,6 +702,29 @@ ul { list-style: none; }
   padding: 0;
 }
 .card-fav:hover { transform: scale(1.25); background: rgba(255,255,255,0.98); }
+
+/* ===== AGOTADO (sin stock) ===== */
+.card-out-badge {
+  position: absolute;
+  top: 7px; left: 7px;
+  background: rgba(60,30,30,0.85);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border-radius: 50px;
+  z-index: 2;
+}
+.product-card .btn-add:disabled,
+.prod-modal-actions .btn:disabled {
+  background: #d8d0d4;
+  color: #8a7d94;
+  cursor: not-allowed;
+  transform: none;
+}
+.product-card .btn-add:disabled:hover { background: #d8d0d4; transform: none; }
 
 /* ===== CART BADGE BOUNCE ===== */
 @keyframes cartBounce {

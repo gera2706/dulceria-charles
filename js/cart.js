@@ -182,6 +182,13 @@ function addToCart(productId) {
   // getAllProducts() devuelve los productos cargados (del caché o del array estático)
   if (!product) return; // si el producto no existe, no hacemos nada
 
+  // Si el producto trae info de stock y ya no queda, no lo dejamos agregar
+  // (el botón ya debería estar deshabilitado, esto es un respaldo extra).
+  if (product.stock !== undefined && product.stock <= 0) {
+    showToast(product.name + ' está agotado');
+    return;
+  }
+
   var cart     = getCart();
   var existing = cart.find(function(i) { return i.id === productId; });
 
@@ -359,6 +366,7 @@ function injectProductModal() {
         '<h2 class="prod-modal-name" id="prod-modal-name"></h2>' +
         '<p class="prod-modal-desc" id="prod-modal-desc"></p>' +
         '<p class="prod-modal-price" id="prod-modal-price"></p>' +
+        '<p class="prod-modal-stock-note hidden" id="prod-modal-stock-note"></p>' +
         '<div class="prod-modal-actions">' +
           '<button class="btn btn-primary" id="prod-modal-add">&#128722; Agregar al carrito</button>' +
           '<button class="prod-modal-fav" id="prod-modal-fav">&#9825;</button>' +
@@ -395,6 +403,21 @@ function openProductModal(productId) {
   document.getElementById('prod-modal-name').textContent  = product.name;
   document.getElementById('prod-modal-desc').textContent  = PROD_DESCS[product.category] || 'Producto de calidad de Dulceria Charles.';
   document.getElementById('prod-modal-price').textContent = '$' + product.price;
+
+  /* Estado de stock: agotado deshabilita el botón, bajo muestra un aviso */
+  var outOfStock = product.stock !== undefined && product.stock <= 0;
+  var lowStock    = !outOfStock && product.stock !== undefined && product.stock_minimo !== undefined && product.stock <= product.stock_minimo;
+  var addBtn = document.getElementById('prod-modal-add');
+  addBtn.disabled = outOfStock;
+  addBtn.innerHTML = outOfStock ? 'Agotado' : '&#128722; Agregar al carrito';
+
+  var stockNote = document.getElementById('prod-modal-stock-note');
+  if (lowStock) {
+    stockNote.textContent = '¡Últimas ' + product.stock + ' piezas!';
+    stockNote.classList.remove('hidden');
+  } else {
+    stockNote.classList.add('hidden');
+  }
 
   var favBtn = document.getElementById('prod-modal-fav');
   _updateModalFavBtn(favBtn, isFavorite(productId));
@@ -497,6 +520,9 @@ document.addEventListener('DOMContentLoaded', function() {
   /* 5. Inicializar el drawer de autenticación (definido en auth.js) */
   initAuthDrawer();
 
+  /* 5b. Cargar la sección "Categorías" del drawer (definida en auth.js) */
+  if (typeof initDrawerCategories === 'function') initDrawerCategories();
+
   /* 6. Cargar favoritos desde la API si hay sesión activa */
   if (isLoggedIn() && typeof loadFavorites === 'function') {
     loadFavorites(); // carga en segundo plano, no bloquea la página
@@ -556,6 +582,10 @@ function buildProductCard(product) {
   // Si tiene decimales (53.50) lo mostramos con 2 decimales
   var fav    = isFavorite(product.id); // ¿ya es favorito?
 
+  // product.stock puede venir undefined en algún caso viejo/no migrado;
+  // en ese caso lo tratamos como "hay existencia" para no romper nada.
+  var outOfStock = product.stock !== undefined && product.stock <= 0;
+
   /* Construimos el HTML de la tarjeta como string.
      Incluye: imagen, botón de favorito, nombre, categoría, precio y botón de carrito */
   card.innerHTML =
@@ -566,6 +596,7 @@ function buildProductCard(product) {
       '<button class="card-fav' + (fav ? ' active' : '') + '" data-id="' + product.id + '">' +
         (fav ? '&#10084;&#65039;' : '&#9825;') +
       '</button>' +
+      (outOfStock ? '<span class="card-out-badge">Agotado</span>' : '') +
     '</div>' +
     '<div class="card-body">' +
       '<p class="card-name">'  + product.name     + '</p>' +
@@ -573,7 +604,9 @@ function buildProductCard(product) {
       '<p class="card-price">$' + price            + '</p>' +
     '</div>' +
     '<div class="card-actions">' +
-      '<button class="btn-add">Agregar al carrito</button>' +
+      (outOfStock
+        ? '<button class="btn-add" disabled>Agotado</button>'
+        : '<button class="btn-add">Agregar al carrito</button>') +
     '</div>';
 
   /* Clic en la imagen → abre el modal de detalle del producto

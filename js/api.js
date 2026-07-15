@@ -146,6 +146,21 @@ async function apiRegistro(nombre, email, password, remember) {
   return data.user;
 }
 
+/* Actualiza el nombre/email (y opcionalmente la contraseña) del
+   usuario logueado. El servidor devuelve un token NUEVO ya con los
+   datos actualizados; lo guardamos igual que en login/registro para
+   que el saludo del menú se actualice sin tener que cerrar sesión. */
+async function apiActualizarPerfil(datos) {
+  const data = await apiFetch('/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify(datos)
+  });
+  const remember = !!localStorage.getItem('dc_token'); // si ya estaba en localStorage, mantenemos "recuérdame"
+  saveToken(data.token, remember);
+  _saveSession(data.user, remember);
+  return data.user;
+}
+
 /* Cierra la sesión: borra todos los datos del usuario del navegador
    y redirige al inicio. No necesita llamar al servidor. */
 function apiLogout() {
@@ -184,6 +199,12 @@ async function apiGetProducto(id)        { return apiFetch('/productos/' + id); 
 async function apiCrearProducto(datos)   { return apiFetch('/productos',      { method: 'POST',   body: JSON.stringify(datos) }); }
 async function apiEditarProducto(id, datos) { return apiFetch('/productos/' + id, { method: 'PUT', body: JSON.stringify(datos) }); }
 async function apiEliminarProducto(id)   { return apiFetch('/productos/' + id, { method: 'DELETE' }); }
+
+/* Ajuste rápido de inventario: delta positivo suma, negativo resta.
+   Usado por los botones +/- de la tabla de Productos (admin). */
+async function apiAjustarStock(id, delta) {
+  return apiFetch('/productos/' + id + '/stock', { method: 'PATCH', body: JSON.stringify({ delta }) });
+}
 
 /* ================================================================
    PEDIDOS

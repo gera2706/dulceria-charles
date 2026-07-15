@@ -31,6 +31,48 @@ async function insertarItems(conn, pedidoId, items) {
   }
 }
 
+/* ── Función auxiliar: valida y descuenta stock ────────────────
+   Se llama DENTRO de una transacción, justo antes de confirmar un
+   pedido como pagado. Por cada ítem:
+     1. Bloquea la fila del producto con FOR UPDATE, para que dos
+        compras simultáneas no puedan vender el mismo stock dos veces.
+     2. Si no alcanza el stock, lanza un error (con status 409) que
+        cancela TODA la transacción — el pedido nunca queda confirmado
+        a medias ni el stock queda en negativo.
+     3. Si alcanza, lo descuenta.
+   items: array de { producto_id, cantidad }.
+────────────────────────────────────────────────────────────── */
+async function validarYDescontarStock(conn, items) {
+  for (const item of items) {
+    const productoId = item.producto_id;
+    const cantidad    = item.cantidad;
+    if (!productoId) continue; // ítem sin producto asociado (no debería pasar, pero no truena)
+
+    const [rows] = await conn.query(
+      'SELECT nombre, stock FROM productos WHERE id = ? FOR UPDATE', [productoId]
+    );
+    if (!rows.length) continue; // el producto fue eliminado; no bloqueamos el pedido por eso
+
+    if (rows[0].stock < cantidad) {
+      const err = new Error('No hay suficiente stock de "' + rows[0].nombre + '" (quedan ' + rows[0].stock + ').');
+      err.status = 409; // "Conflicto": el pedido ya no se puede cumplir con lo que hay disponible
+      throw err;
+    }
+
+    await conn.query('UPDATE productos SET stock = stock - ? WHERE id = ?', [cantidad, productoId]);
+  }
+}
+
+/* ── Función auxiliar: devuelve al stock los items de un pedido ──
+   Se usa cuando un pedido YA confirmado (que ya había descontado
+   stock) se cancela: las piezas regresan al inventario. ──────── */
+async function restaurarStock(conn, items) {
+  for (const item of items) {
+    if (!item.producto_id) continue;
+    await conn.query('UPDATE productos SET stock = stock + ? WHERE id = ?', [item.cantidad, item.producto_id]);
+  }
+}
+
 /* ── Función auxiliar: agrupar filas de JOIN en pedidos+items ──
    Convierte el resultado plano de un LEFT JOIN en un array de
    pedidos, cada uno con su array de items anidado.
@@ -91,8 +133,32 @@ router.post('/inconcluso', authMiddleware, async (req, res) => {
 ---------------------------------------------------------------- */
 router.put('/:id/completar', authMiddleware, async (req, res) => {
   const { metodo_pago, nombre_envio, telefono, subtotal, descuento, cupon, total } = req.body;
+  const conn = await db.getConnection();
   try {
-    await db.query(
+    await conn.beginTransaction();
+
+    // FOR UPDATE bloquea el pedido mientras decidimos si hay que descontar
+    // stock. También sirve para confirmar que el pedido es de este usuario.
+    const [pedidoRows] = await conn.query(
+      'SELECT estado FROM pedidos WHERE id = ? AND usuario_id = ? FOR UPDATE',
+      [req.params.id, req.user.id]
+    );
+    if (!pedidoRows.length) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Pedido no encontrado.' });
+    }
+
+    // Solo descontamos stock si el pedido sigue "pendiente_finalizar".
+    // Si ya estaba confirmado (ej: el usuario reenvió el formulario dos
+    // veces), NO volvemos a descontar — ya se descontó la primera vez.
+    if (pedidoRows[0].estado === 'pendiente_finalizar') {
+      const [items] = await conn.query(
+        'SELECT producto_id, cantidad FROM pedido_items WHERE pedido_id = ?', [req.params.id]
+      );
+      await validarYDescontarStock(conn, items);
+    }
+
+    await conn.query(
       `UPDATE pedidos
        SET estado='pendiente_entregar', metodo_pago=?, nombre_envio=?,
            telefono=?, subtotal=?, descuento=?, cupon=?, total=?
@@ -101,10 +167,16 @@ router.put('/:id/completar', authMiddleware, async (req, res) => {
        subtotal, descuento || 0, cupon || null, total,
        req.params.id, req.user.id]
     );
+
+    await conn.commit();
     res.json({ ok: true });
   } catch (err) {
+    await conn.rollback();
+    if (err.status === 409) return res.status(409).json({ error: err.message });
     console.error(err);
     res.status(500).json({ error: 'Error al completar pedido.' });
+  } finally {
+    conn.release();
   }
 });
 
@@ -122,10 +194,17 @@ router.post('/', authMiddleware, async (req, res) => {
   const conn = await db.getConnection();
   try {
     await conn.beginTransaction();
+
+    // Este pedido nace directamente como "confirmado" (no pasó por
+    // /inconcluso), así que aquí SÍ descontamos stock siempre.
+    await validarYDescontarStock(conn, items.map(function (i) {
+      return { producto_id: i.id || i.producto_id, cantidad: i.qty || i.cantidad };
+    }));
+
     const [result] = await conn.query(
       `INSERT INTO pedidos
-        (usuario_id, subtotal, descuento, cupon, total, metodo_pago, nombre_envio, telefono)
-       VALUES (?,?,?,?,?,?,?,?)`,
+        (usuario_id, subtotal, descuento, cupon, total, metodo_pago, nombre_envio, telefono, estado)
+       VALUES (?,?,?,?,?,?,?,?,'pendiente_entregar')`,
       [req.user.id, subtotal, descuento || 0, cupon || null, total,
        metodo_pago || null, nombre_envio || null, telefono || null]
     );
@@ -134,6 +213,7 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(201).json({ ok: true, pedidoId: result.insertId });
   } catch (err) {
     await conn.rollback();
+    if (err.status === 409) return res.status(409).json({ error: err.message });
     console.error(err);
     res.status(500).json({ error: 'Error al guardar el pedido.' });
   } finally {
@@ -222,11 +302,39 @@ router.patch('/:id/estado', adminMiddleware, async (req, res) => {
   const { estado } = req.body;
   if (!ESTADOS_VALIDOS.includes(estado))
     return res.status(400).json({ error: 'Estado inválido.' });
+
+  const conn = await db.getConnection();
   try {
-    await db.query('UPDATE pedidos SET estado = ? WHERE id = ?', [estado, req.params.id]);
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query('SELECT estado FROM pedidos WHERE id = ? FOR UPDATE', [req.params.id]);
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Pedido no encontrado.' });
+    }
+    const estadoAnterior = rows[0].estado;
+
+    // Si se cancela un pedido que YA había descontado stock (estaba
+    // pagado/confirmado o incluso ya entregado), regresamos las piezas
+    // al inventario. Si venía de "pendiente_finalizar", nunca se
+    // descontó nada, así que no hay nada que restaurar.
+    const yaDescontado = ['pendiente_entregar', 'entregado'].includes(estadoAnterior);
+    if (estado === 'cancelado' && yaDescontado) {
+      const [items] = await conn.query(
+        'SELECT producto_id, cantidad FROM pedido_items WHERE pedido_id = ?', [req.params.id]
+      );
+      await restaurarStock(conn, items);
+    }
+
+    await conn.query('UPDATE pedidos SET estado = ? WHERE id = ?', [estado, req.params.id]);
+    await conn.commit();
     res.json({ ok: true });
   } catch (err) {
+    await conn.rollback();
+    console.error(err);
     res.status(500).json({ error: 'Error al actualizar estado.' });
+  } finally {
+    conn.release();
   }
 });
 

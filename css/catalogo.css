@@ -20,7 +20,7 @@
   top: 80px;
 }
 .sidebar h3 {
-  font-family: 'Fredoka One', cursive;
+  font-family: var(--font-display); font-weight: 600;
   color: var(--purple);
   font-size: 1.1rem;
   margin: 1rem 0 0.6rem;
@@ -52,7 +52,7 @@ input[type="range"] { width: 100%; accent-color: var(--pink); }
 .search-input {
   width: 100%;
   padding: 0.5rem 0.8rem;
-  border: 2px solid #e8d5f5;
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   font-family: 'Nunito', sans-serif;
   font-size: 0.95rem;
@@ -74,7 +74,7 @@ input[type="range"] { width: 100%; accent-color: var(--pink); }
 #results-count { color: var(--text-light); font-size: 0.95rem; }
 #sort-select {
   padding: 0.4rem 0.8rem;
-  border: 2px solid #e8d5f5;
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   font-family: 'Nunito', sans-serif;
   font-size: 0.9rem;

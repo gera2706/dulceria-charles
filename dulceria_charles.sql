@@ -1,9 +1,20 @@
 -- ============================================================
 --  DULCERÍA CHARLES — Esquema de base de datos
 --  MySQL 8.x  |  Ejecutar en MySQL Workbench
+--
+--  Este es el ÚNICO archivo .sql del proyecto. Al ejecutarlo completo
+--  (Ctrl+Shift+Enter en Workbench) BORRA la base de datos si ya
+--  existía y la vuelve a crear desde cero, siempre con el esquema
+--  más reciente (incluye stock, proveedor, etc.).
+--
+--  ⚠️ ADVERTENCIA: esto BORRA todo lo que haya en dulceria_charles
+--  (usuarios, pedidos, productos que hayas agregado tú). Úsalo solo
+--  cuando quieras reiniciar la base de datos desde cero.
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS dulceria_charles
+DROP DATABASE IF EXISTS dulceria_charles;
+
+CREATE DATABASE dulceria_charles
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 USE dulceria_charles;
@@ -30,6 +41,8 @@ CREATE TABLE IF NOT EXISTS productos (
   destacado       TINYINT(1)    DEFAULT 0,
   activo          TINYINT(1)    DEFAULT 1,
   proveedor       VARCHAR(150),
+  stock           INT           NOT NULL DEFAULT 20,
+  stock_minimo    INT           NOT NULL DEFAULT 5,
   fecha_creacion  DATETIME      DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_activo_cat (activo, categoria),
   INDEX idx_destacado  (destacado)
@@ -97,11 +110,11 @@ CREATE TABLE IF NOT EXISTS favoritos (
 --  DATOS INICIALES
 -- ============================================================
 
--- Admin  (password: Charles2026!)
--- IMPORTANTE: Cambiar la contraseña inmediatamente después de instalar.
+-- Admin  (password: admin123)
+-- IMPORTANTE: Cambiar la contraseña antes de producción real.
 INSERT INTO usuarios (nombre, email, password, rol) VALUES
 ('Administrador', 'admin@dulceriacharles.com',
- '$2a$10$rqwGpNCIKKwQHsdl15PMYe3Op0Xg/CyK.EAwuSscFwo4LI758axc.', 'admin');
+ '$2a$10$.lVaHAere803JSviyRCNneVSVnEKnyPCzt2sDr7pqVoy50//wVS2i', 'admin');
 
 -- Cupones
 INSERT INTO cupones (codigo, tipo, valor, descripcion) VALUES

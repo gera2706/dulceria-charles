@@ -5,7 +5,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem 1rem 4rem;
-  background: linear-gradient(135deg, #fce7f3 0%, #ede9fe 50%, #dbeafe 100%);
+  background: linear-gradient(120deg, #f7e9ee 0%, #efe6f2 100%);
 }
 
 .auth-card {
@@ -20,7 +20,7 @@
 
 .auth-logo {
   text-align: center;
-  font-family: 'Fredoka One', cursive;
+  font-family: var(--font-display); font-weight: 600;
   font-size: 1.6rem;
   color: var(--pink);
   margin-bottom: 0.2rem;
@@ -28,7 +28,7 @@
 .auth-logo span { font-size: 2rem; display: block; margin-bottom: 0.2rem; }
 
 .auth-title {
-  font-family: 'Fredoka One', cursive;
+  font-family: var(--font-display); font-weight: 600;
   font-size: 1.45rem;
   color: var(--purple);
   text-align: center;
@@ -55,7 +55,7 @@
 }
 .auth-group input {
   padding: 0.65rem 0.9rem;
-  border: 2px solid #e8d5f5;
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   font-family: 'Nunito', sans-serif;
   font-size: 0.97rem;
@@ -92,7 +92,7 @@
 .auth-btn {
   width: 100%;
   padding: 0.75rem;
-  background: linear-gradient(135deg, #f9a8d4, #c4b5fd);
+  background: var(--pink);
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -104,7 +104,7 @@
   margin-top: 0.5rem;
 }
 .auth-btn:hover {
-  background: linear-gradient(135deg, #f472b6, #a78bfa);
+  background: var(--pink-dark);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(167,139,250,0.3);
 }
@@ -125,6 +125,22 @@
 }
 .auth-global-err.visible { display: block; }
 
+/* mensaje de éxito (ej: "Mi cuenta" tras guardar cambios) */
+.auth-global-ok {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: var(--radius-sm);
+  color: #15803d;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  display: none;
+}
+.auth-global-ok.visible { display: block; }
+[data-theme="dark"] .auth-global-ok { background: #10281c; border-color: #1f5c42; color: #6ee7b7; }
+
 /* divider */
 .auth-divider {
   display: flex; align-items: center; gap: 0.8rem;
@@ -132,7 +148,7 @@
   color: var(--text-light); font-size: 0.82rem;
 }
 .auth-divider::before,
-.auth-divider::after { content:''; flex:1; border-top:1px solid #e8d5f5; }
+.auth-divider::after { content:''; flex:1; border-top:1px solid var(--border); }
 
 /* switch link */
 .auth-switch {
@@ -148,61 +164,9 @@
 }
 .auth-switch a:hover { color: var(--purple); }
 
-/* ===== DRAWER AUTH STYLES ===== */
-.drawer-user-tag {
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.28);
-  border-radius: 12px;
-  padding: 0.8rem 1rem;
-  margin: 0.2rem 0 0.4rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.drawer-user-avatar {
-  width: 38px; height: 38px;
-  background: rgba(255,255,255,0.25);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.2rem;
-  flex-shrink: 0;
-}
-.drawer-user-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.drawer-user-name { font-size: 0.92rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.drawer-role-badge {
-  font-size: 0.62rem;
-  font-weight: 700;
-  padding: 1px 8px;
-  border-radius: 50px;
-  display: inline-block;
-  width: fit-content;
-}
-.drawer-role-badge.admin   { background: rgba(251,191,36,0.35); color: #fef3c7; }
-.drawer-role-badge.cliente { background: rgba(110,231,183,0.3); color: #d1fae5; }
-
-.drawer-logout-btn {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: rgba(255,255,255,0.85);
-  font-family: 'Nunito', sans-serif;
-  font-weight: 600;
-  font-size: 0.9rem;
-  padding: 0.55rem 1rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
-  margin-top: 0.2rem;
-  transition: background 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.drawer-logout-btn:hover { background: rgba(244,114,182,0.25); color: #fff; }
-
 /* ===== DARK MODE ===== */
 [data-theme="dark"] .auth-wrapper {
-  background: linear-gradient(135deg, #1c1530, #1e1a3a, #1a2040);
+  background: linear-gradient(120deg, #2a2040 0%, #3a2540 100%);
 }
 [data-theme="dark"] .auth-card  { background: var(--white); }
 [data-theme="dark"] .auth-group input {

@@ -190,6 +190,78 @@ router.get('/me', authMiddleware, (req, res) => {
 });
 
 /* ----------------------------------------------------------------
+   RUTA: PUT /api/auth/me
+   PROPÓSITO: Que el usuario logueado edite su propio nombre/email
+   y, opcionalmente, su contraseña. (Distinto de las rutas de
+   /usuarios, que son solo para que un ADMIN gestione a otros).
+   ACCESO: Requiere estar logueado (cualquier rol)
+   RECIBE: { nombre, email, passwordActual?, passwordNueva? }
+   DEVUELVE: { token, user } → un token NUEVO con los datos
+             actualizados, para que el frontend lo reemplace y el
+             saludo/nombre se actualice sin tener que reiniciar sesión.
+---------------------------------------------------------------- */
+router.put('/me', authMiddleware, async (req, res) => {
+  const { nombre, email, passwordActual, passwordNueva } = req.body;
+
+  if (!nombre || !email)
+    return res.status(400).json({ error: 'Nombre y correo son obligatorios.' });
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email))
+    return res.status(400).json({ error: 'El correo no tiene un formato válido.' });
+
+  try {
+    const emailLimpio = email.toLowerCase().trim();
+
+    // ¿El correo ya lo usa OTRA cuenta? (excluimos la propia con id != ?)
+    const [existe] = await db.query(
+      'SELECT id FROM usuarios WHERE email = ? AND id != ?', [emailLimpio, req.user.id]
+    );
+    if (existe.length)
+      return res.status(409).json({ error: 'Ya existe una cuenta con ese correo.' });
+
+    // Si el usuario quiere cambiar su contraseña, validamos la actual primero
+    let nuevoHash = null;
+    if (passwordNueva) {
+      if (!passwordActual)
+        return res.status(400).json({ error: 'Ingresa tu contraseña actual para cambiarla.' });
+      if (passwordNueva.length < 6)
+        return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+
+      const [rows] = await db.query('SELECT password FROM usuarios WHERE id = ?', [req.user.id]);
+      if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+      const match = await bcrypt.compare(passwordActual, rows[0].password);
+      if (!match) return res.status(401).json({ error: 'Tu contraseña actual es incorrecta.' });
+
+      nuevoHash = await bcrypt.hash(passwordNueva, 10);
+    }
+
+    if (nuevoHash) {
+      await db.query(
+        'UPDATE usuarios SET nombre = ?, email = ?, password = ? WHERE id = ?',
+        [nombre.trim(), emailLimpio, nuevoHash, req.user.id]
+      );
+    } else {
+      await db.query(
+        'UPDATE usuarios SET nombre = ?, email = ? WHERE id = ?',
+        [nombre.trim(), emailLimpio, req.user.id]
+      );
+    }
+
+    // El token viejo tiene el nombre/email ANTIGUOS. Generamos uno nuevo
+    // para que el frontend lo reemplace y todo quede sincronizado.
+    const user  = { id: req.user.id, nombre: nombre.trim(), email: emailLimpio, rol: req.user.rol };
+    const token = _signToken(user);
+
+    res.json({ token, user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar el perfil.' });
+  }
+});
+
+/* ----------------------------------------------------------------
    FUNCIÓN PRIVADA: _signToken
    Genera un token JWT que dura 7 días.
    El prefijo _ es una convención para indicar que es de uso

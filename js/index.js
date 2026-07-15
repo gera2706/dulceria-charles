@@ -48,12 +48,14 @@ document.addEventListener('DOMContentLoaded', function () {
        que espera buildProductCard (name/price) */
     productos.forEach(function (p) {
       var card = buildProductCard({
-        id:       p.id,
-        name:     p.nombre,
-        category: p.categoria,
-        price:    parseFloat(p.precio), // parseFloat porque MySQL devuelve strings
-        image:    p.imagen || '',
-        featured: !!p.destacado
+        id:           p.id,
+        name:         p.nombre,
+        category:     p.categoria,
+        price:        parseFloat(p.precio), // parseFloat porque MySQL devuelve strings
+        image:        p.imagen || '',
+        featured:     !!p.destacado,
+        stock:        p.stock,
+        stock_minimo: p.stock_minimo
       });
       grid.appendChild(card);
     });

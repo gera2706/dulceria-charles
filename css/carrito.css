@@ -28,18 +28,18 @@
   object-fit: cover;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
-  background: linear-gradient(135deg, #fce7f3, #ede9fe);
+  background: #faf3ee;
 }
 .cart-item-info  { flex: 1; }
 .cart-item-info h4 { font-weight: 700; margin-bottom: 0.2rem; }
 .cart-item-info p  { font-size: 0.85rem; color: var(--text-light); text-transform: capitalize; }
-.cart-item-price   { font-family: 'Fredoka One', cursive; color: var(--pink); font-size: 1.2rem; min-width: 70px; text-align: right; }
+.cart-item-price   { font-family: var(--font-display); font-weight: 600; color: var(--pink); font-size: 1.2rem; min-width: 70px; text-align: right; }
 
 .qty-controls {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #fce7f3, #ede9fe);
+  background: #faf3ee;
   border-radius: 50px;
   padding: 0.2rem 0.5rem;
 }
@@ -76,7 +76,7 @@
   box-shadow: var(--shadow);
 }
 .empty-icon { font-size: 4rem; margin-bottom: 1rem; }
-.cart-empty h3 { font-family: 'Fredoka One', cursive; font-size: 1.5rem; margin-bottom: 0.5rem; }
+.cart-empty h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; margin-bottom: 0.5rem; }
 .cart-empty p  { color: var(--text-light); margin-bottom: 1.5rem; }
 
 /* ===== SUMMARY ===== */
@@ -93,16 +93,16 @@
   flex-direction: column;
   gap: 0.8rem;
 }
-.cart-summary h3 { font-family: 'Fredoka One', cursive; font-size: 1.3rem; color: var(--purple); }
+.cart-summary h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; color: var(--purple); }
 .summary-row { display: flex; justify-content: space-between; font-size: 0.95rem; }
 .total-row   { font-size: 1.2rem; font-weight: 700; color: var(--pink); }
-hr { border: none; border-top: 1px solid #e8d5f5; }
+hr { border: none; border-top: 1px solid var(--border); }
 
 .coupon-box { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .coupon-box input {
   flex: 1;
   padding: 0.5rem 0.8rem;
-  border: 2px solid #e8d5f5;
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   font-family: 'Nunito', sans-serif;
   font-size: 0.9rem;
@@ -136,7 +136,7 @@ hr { border: none; border-top: 1px solid #e8d5f5; }
   to   { transform: scale(1);   opacity: 1; }
 }
 .modal-icon { font-size: 3.5rem; margin-bottom: 1rem; }
-.modal h2   { font-family: 'Fredoka One', cursive; font-size: 1.8rem; margin-bottom: 0.6rem; color: var(--pink); }
+.modal h2   { font-family: var(--font-display); font-weight: 600; font-size: 1.8rem; margin-bottom: 0.6rem; color: var(--pink); }
 .modal p    { color: var(--text-light); margin-bottom: 1.5rem; }
 
 /* ===== SHIPPING PROGRESS BAR ===== */
@@ -145,7 +145,7 @@ hr { border: none; border-top: 1px solid #e8d5f5; }
 }
 .sp-bar-wrap {
   height: 8px;
-  background: #e8d5f5;
+  background: var(--border);
   border-radius: 50px;
   overflow: hidden;
   margin-bottom: 0.4rem;

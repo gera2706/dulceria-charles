@@ -12,7 +12,7 @@
 .admin-sidebar {
   width: 230px;
   flex-shrink: 0;
-  background: linear-gradient(160deg, #2a1e42 0%, #1e1630 100%);
+  background: linear-gradient(160deg, #4a3163 0%, #2f2246 100%);
   padding: 1.5rem 0;
   display: flex;
   flex-direction: column;
@@ -23,7 +23,7 @@
   overflow-y: auto;
 }
 .admin-sidebar-title {
-  font-family: 'Fredoka One', cursive;
+  font-family: var(--font-display); font-weight: 600;
   color: rgba(255,255,255,0.4);
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -66,7 +66,7 @@
 .admin-section.active { display: block; }
 
 .admin-section-title {
-  font-family: 'Fredoka One', cursive;
+  font-family: var(--font-display); font-weight: 600;
   font-size: 1.6rem;
   color: var(--purple);
   margin-bottom: 1.5rem;
@@ -93,12 +93,21 @@
 }
 .stat-icon  { font-size: 1.8rem; }
 .stat-value {
-  font-family: 'Fredoka One', cursive;
+  font-family: var(--font-display); font-weight: 600;
   font-size: 2rem;
   color: var(--pink);
   line-height: 1;
 }
 .stat-label { font-size: 0.85rem; color: var(--text-light); font-weight: 700; }
+.stat-card.clickable { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+.stat-card.clickable:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+/* ── Grid de widgets del dashboard (pedidos / clientes / stock) ── */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
 
 /* ── Toolbar ── */
 .admin-toolbar {
@@ -111,7 +120,7 @@
 }
 .admin-search {
   padding: 0.5rem 0.9rem;
-  border: 2px solid #e8d5f5;
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   font-family: 'Nunito', sans-serif;
   font-size: 0.92rem;
@@ -120,6 +129,11 @@
   transition: border-color 0.2s;
 }
 .admin-search:focus { border-color: var(--pink); }
+#btn-filter-stock.active {
+  background: #fef3e2 !important;
+  color: #c2410c !important;
+  border-color: #f2b25c !important;
+}
 
 /* ── Buttons ── */
 .btn-admin-add {
@@ -127,7 +141,7 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.55rem 1.2rem;
-  background: linear-gradient(135deg, #f9a8d4, #c4b5fd);
+  background: var(--pink);
   color: #fff;
   border: none;
   border-radius: 50px;
@@ -137,7 +151,7 @@
   cursor: pointer;
   transition: background 0.2s, transform 0.15s;
 }
-.btn-admin-add:hover { background: linear-gradient(135deg, #f472b6, #a78bfa); transform: translateY(-1px); }
+.btn-admin-add:hover { background: var(--pink-dark); transform: translateY(-1px); }
 .btn-admin-sm {
   padding: 0.3rem 0.75rem;
   border: none;
@@ -149,9 +163,9 @@
   transition: opacity 0.2s, transform 0.15s;
 }
 .btn-admin-sm:hover { opacity: 0.85; transform: scale(1.04); }
-.btn-edit   { background: linear-gradient(135deg, #fde68a, #fbbf24); color: #78350f; }
-.btn-delete { background: linear-gradient(135deg, #fca5a5, #f87171); color: #7f1d1d; }
-.btn-save   { background: linear-gradient(135deg, #6ee7b7, #34d399); color: #064e3b; }
+.btn-edit   { background: #e8b34a; color: #78350f; }
+.btn-delete { background: #e2685f; color: #7f1d1d; }
+.btn-save   { background: var(--teal); color: #064e3b; }
 
 /* ── Table ── */
 .admin-table-wrap {
@@ -166,7 +180,7 @@
   font-size: 0.88rem;
 }
 .admin-table th {
-  background: linear-gradient(135deg, #fdf0fb, #ede9fe);
+  background: #f7eef1;
   color: var(--purple);
   font-weight: 700;
   padding: 0.75rem 1rem;
@@ -175,7 +189,7 @@
 }
 .admin-table td {
   padding: 0.7rem 1rem;
-  border-bottom: 1px solid #f3eeff;
+  border-bottom: 1px solid var(--border);
   vertical-align: middle;
   color: var(--text);
 }
@@ -185,7 +199,7 @@
   width: 44px; height: 44px;
   object-fit: contain;
   border-radius: 8px;
-  background: linear-gradient(135deg, #fce7f3, #ede9fe);
+  background: #faf3ee;
   padding: 2px;
 }
 .td-actions { display: flex; gap: 0.4rem; white-space: nowrap; align-items: center; }
@@ -202,6 +216,62 @@
   background: rgba(251,191,36,0.2);
   color: #92400e;
 }
+
+/* ── Inventario: celda de stock en la tabla de Productos ── */
+.stock-cell { display: flex; flex-direction: column; gap: 0.35rem; min-width: 150px; }
+.stock-cell-top { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.stock-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.6rem;
+  border-radius: 50px;
+  white-space: nowrap;
+}
+.stock-badge.ok      { background: rgba(47,174,135,0.15); color: #0d6b4d; }
+.stock-badge.bajo    { background: rgba(226,161,63,0.2);  color: #92400e; }
+.stock-badge.agotado { background: rgba(226,104,95,0.2);  color: #7f1d1d; }
+.stock-adjust { display: flex; gap: 0.25rem; }
+.stock-adjust button {
+  width: 24px; height: 24px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s;
+}
+.stock-adjust button:hover { background: #f7eef1; border-color: var(--pink); color: var(--pink-dark); }
+.stock-adjust button:nth-child(3) { width: auto; padding: 0 0.4rem; }
+
+/* Ajuste manual: escribe cualquier cantidad (positiva o negativa) y se
+   suma al stock actual — útil para reabastecimientos o mermas. */
+.stock-manual { display: flex; gap: 0.3rem; }
+.stock-manual-input {
+  width: 72px;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--white);
+}
+.stock-manual-input:focus { outline: none; border-color: var(--pink); }
+.stock-manual-btn {
+  padding: 0.25rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--purple);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.stock-manual-btn:hover { background: var(--purple-dark); }
 
 /* ── Modal form ── */
 .admin-modal-overlay {
@@ -228,7 +298,7 @@
 }
 .admin-modal-overlay.open .admin-modal { transform: scale(1) translateY(0); }
 .admin-modal h3 {
-  font-family: 'Fredoka One', cursive;
+  font-family: var(--font-display); font-weight: 600;
   font-size: 1.35rem;
   color: var(--purple);
   margin-bottom: 1.4rem;
@@ -250,7 +320,7 @@
 .admin-form-group select,
 .admin-form-group textarea {
   padding: 0.6rem 0.9rem;
-  border: 2px solid #e8d5f5;
+  border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   font-family: 'Nunito', sans-serif;
   font-size: 0.93rem;
@@ -292,7 +362,7 @@
   transform: scale(0.9); transition: transform 0.22s;
 }
 .confirm-dialog.open .confirm-box { transform: scale(1); }
-.confirm-box h4 { font-family:'Fredoka One',cursive; color:var(--pink); font-size:1.2rem; margin-bottom:0.5rem; }
+.confirm-box h4 { font-family:var(--font-display); font-weight:600; color:var(--pink-dark); font-size:1.2rem; margin-bottom:0.5rem; }
 .confirm-box p  { color: var(--text-light); font-size:0.9rem; margin-bottom:1.4rem; }
 .confirm-actions { display: flex; gap: 0.8rem; justify-content: center; }
 
@@ -315,7 +385,7 @@
 
 /* ── Dark mode ── */
 [data-theme="dark"] .admin-main   { background: var(--bg); }
-[data-theme="dark"] .admin-table th { background: linear-gradient(135deg, #2a1e42, #1e1630); }
+[data-theme="dark"] .admin-table th { background: #2e2542; }
 [data-theme="dark"] .admin-table tr:hover td { background: #2a1e42; }
 [data-theme="dark"] .admin-table td { border-color: #3a2d58; }
 [data-theme="dark"] .admin-form-group input,
