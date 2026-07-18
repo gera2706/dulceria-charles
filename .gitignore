@@ -5,8 +5,8 @@ backend/node_modules/
 backend/.env
 
 # Imágenes subidas por el admin (demasiado pesadas para Git)
-img/categorias/
-img/productos_upload/
+public/img/categorias/
+public/img/productos_upload/
 
 # Logs
 *.log

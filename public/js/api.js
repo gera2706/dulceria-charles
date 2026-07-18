@@ -206,6 +206,10 @@ async function apiAjustarStock(id, delta) {
   return apiFetch('/productos/' + id + '/stock', { method: 'PATCH', body: JSON.stringify({ delta }) });
 }
 
+/* Papelera: productos con soft-delete (activo=0) y su reactivación. */
+async function apiGetPapelera()          { return apiFetch('/productos/papelera'); }
+async function apiReactivarProducto(id)  { return apiFetch('/productos/' + id + '/reactivar', { method: 'PATCH' }); }
+
 /* ================================================================
    PEDIDOS
 ================================================================ */
@@ -248,18 +252,6 @@ async function apiCambiarEstadoPedido(id, estado) {
 async function apiGetFavoritos()              { return apiFetch('/favoritos'); }
 async function apiAgregarFavorito(productoId) { return apiFetch('/favoritos/' + productoId, { method: 'POST' }); }
 async function apiQuitarFavorito(productoId)  { return apiFetch('/favoritos/' + productoId, { method: 'DELETE' }); }
-
-/* ================================================================
-   CUPONES
-================================================================ */
-
-/* Verifica si un código de descuento es válido y calcula el ahorro */
-async function apiValidarCupon(codigo, subtotal) {
-  return apiFetch('/cupones/validar', {
-    method: 'POST',
-    body: JSON.stringify({ codigo, subtotal })
-  });
-}
 
 /* ================================================================
    USUARIOS (solo para el panel admin)

@@ -72,6 +72,11 @@ router.delete('/:id', adminMiddleware, async (req, res) => {
     await db.query('DELETE FROM usuarios WHERE id = ?', [req.params.id]);
     res.json({ ok: true });
   } catch (err) {
+    // El usuario tiene pedidos asociados (FK pedidos.usuario_id sin ON
+    // DELETE): antes esto caía al 500 genérico de abajo sin explicar
+    // por qué falló. Ahora se distingue ese caso con un mensaje claro.
+    if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.code === 'ER_ROW_IS_REFERENCED')
+      return res.status(409).json({ error: 'No se puede eliminar: este usuario tiene pedidos registrados.' });
     res.status(500).json({ error: 'Error al eliminar usuario.' });
   }
 });

@@ -29,6 +29,15 @@ CREATE TABLE IF NOT EXISTS usuarios (
   fecha_registro DATETIME      DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- ── CATEGORÍAS ────────────────────────────────────────────
+-- icono acepta un emoji ("🍬") o una ruta/URL de imagen
+-- (ej: "img/categorias/refrescos.jpg"), ver js/cat-icon.js.
+CREATE TABLE IF NOT EXISTS categorias (
+  id     INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(50)  NOT NULL UNIQUE,
+  icono  VARCHAR(500) DEFAULT '🍬'
+) ENGINE=InnoDB;
+
 -- ── PRODUCTOS ─────────────────────────────────────────────
 -- categoria es VARCHAR para que las categorías dinámicas del admin funcionen.
 -- No usar ENUM aquí porque rompe al crear categorías nuevas desde el panel.
@@ -48,25 +57,26 @@ CREATE TABLE IF NOT EXISTS productos (
   INDEX idx_destacado  (destacado)
 ) ENGINE=InnoDB;
 
--- ── CUPONES ───────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS cupones (
-  id          INT AUTO_INCREMENT PRIMARY KEY,
-  codigo      VARCHAR(50)   NOT NULL UNIQUE,
-  tipo        ENUM('percent','fixed') NOT NULL,
-  valor       DECIMAL(10,2) NOT NULL,
-  descripcion VARCHAR(200),
-  activo      TINYINT(1)    DEFAULT 1
+-- ── CONFIGURACIÓN ─────────────────────────────────────────
+-- Diccionario clave → valor para los datos de contacto/pickup del
+-- sitio (backend/routes/config.js). Antes solo existía en el script
+-- suelto backend/migrations/setup_config.js y nunca se integró aquí,
+-- lo que rompía contacto.html, el panel admin y el pickup en pago.js
+-- en cualquier instalación nueva de la BD (mismo tipo de bug que ya
+-- había pasado con la tabla categorias).
+CREATE TABLE IF NOT EXISTS configuracion (
+  clave VARCHAR(100) PRIMARY KEY,
+  valor TEXT
 ) ENGINE=InnoDB;
 
 -- ── PEDIDOS ───────────────────────────────────────────────
 -- Modelo pickup: el cliente recoge en tienda, no hay dirección de envío.
 -- Estados alineados con el backend (routes/pedidos.js).
+-- No tiene columnas de cupón/descuento: el proyecto no maneja cupones.
 CREATE TABLE IF NOT EXISTS pedidos (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   usuario_id    INT           NOT NULL,
   subtotal      DECIMAL(10,2) NOT NULL,
-  descuento     DECIMAL(10,2) DEFAULT 0,
-  cupon         VARCHAR(50),
   total         DECIMAL(10,2) NOT NULL,
   estado        ENUM('pendiente_finalizar','pendiente_entregar','entregado','cancelado')
                 DEFAULT 'pendiente_finalizar',
@@ -116,17 +126,28 @@ INSERT INTO usuarios (nombre, email, password, rol) VALUES
 ('Administrador', 'admin@dulceriacharles.com',
  '$2a$10$.lVaHAere803JSviyRCNneVSVnEKnyPCzt2sDr7pqVoy50//wVS2i', 'admin');
 
--- Cupones
-INSERT INTO cupones (codigo, tipo, valor, descripcion) VALUES
-('CHOCO20',       'percent', 20,  '20% de descuento en chocolates'),
-('BIENVENIDO',    'fixed',   30,  '$30 de descuento'),
-('CHARLES10',     'percent', 10,  '10% de descuento'),
-('DULCE10',       'percent', 10,  '10% de descuento'),
-('CHARLES20',     'percent', 20,  '20% de descuento'),
-('NAVIDAD25',     'percent', 25,  '25% de descuento navideño'),
-('PRIMERACOMPRA', 'percent', 15,  '15% bienvenida primera compra'),
-('SWEET50',       'fixed',   50,  '$50 de descuento'),
-('CHARLES100',    'fixed',   100, '$100 de descuento');
+-- Categorías
+INSERT INTO categorias (nombre, icono) VALUES
+('bombones',   '🍡'),
+('botanas',    '🍿'),
+('chocolates', '🍫'),
+('enchilados', '🌶️'),
+('gomitas',    '🐻'),
+('mazapanes',  '🥜'),
+('paletas',    '🍭'),
+('refrescos',  '🥤');
+
+-- Configuración (datos de contacto/pickup, ver backend/routes/config.js)
+INSERT INTO configuracion (clave, valor) VALUES
+('contacto_direccion', 'C. Niños Héroes 304'),
+('contacto_ciudad',    'Durango, Dgo.'),
+('contacto_horario',   'Lunes a Viernes: 9:00 – 20:00|Sábados: 10:00 – 18:00|Domingos: 11:00 – 15:00'),
+('contacto_telefono',  '+52 55 1234 5678'),
+('contacto_email',     'hola@dulceriacharles.com'),
+('contacto_instagram', '#'),
+('contacto_facebook',  '#'),
+('contacto_whatsapp',  '#'),
+('contacto_twitter',   '#');
 
 -- Productos
 INSERT INTO productos (id, nombre, categoria, precio, imagen, destacado) VALUES

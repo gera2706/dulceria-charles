@@ -42,32 +42,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.warn('No se pudo cargar info de pickup:', e.message);
   }
 
-  /* ── Resumen lateral ── */
-  function renderSummary() {
-    var cart  = getCart();
-    var wrap  = document.getElementById('summary-items');
-    var total = 0;
-    wrap.innerHTML = '';
-
-    cart.forEach(function (item) {
-      total += item.price * item.qty;
-      var div = document.createElement('div');
-      div.className = 'sum-item';
-      div.innerHTML =
-        '<img src="' + (item.image || '') + '" alt="' + item.name + '" ' +
-          'onerror="this.onerror=null;this.style.display=\'none\'">' +
-        '<span class="sum-item-name">' + item.name + '</span>' +
-        '<span class="sum-item-qty">x' + item.qty + '</span>' +
-        '<span class="sum-item-price">' + fmt(item.price * item.qty) + '</span>';
-      wrap.appendChild(div);
-    });
-
-    document.getElementById('sum-total').textContent = fmt(total);
-    return { total };
-  }
-
-  renderSummary();
-
   /* ── RETOMAR PEDIDO INCONCLUSO desde pedidos.html ──
      Si viene con ?retomar=ID en la URL, restauramos el pedido y el carrito. */
   var retomar = new URLSearchParams(window.location.search).get('retomar');
@@ -90,7 +64,6 @@ document.addEventListener('DOMContentLoaded', async function () {
             };
           });
           saveCart(itemsRestaurados);
-          renderSummary();
         }
       } catch (e) {
         console.warn('No se pudo restaurar el carrito:', e.message);
@@ -98,19 +71,54 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
   }
 
+  /* ── Carrito de esta sesión de checkout ──────────────────────
+     FIX (auditoría, hallazgo crítico): guardarInconcluso() más abajo
+     vacía el carrito del storage (saveCart([])) en cuanto lo guarda
+     en la BD, porque a partir de ahí el pedido YA vive en la BD, no
+     en el navegador. El problema era que renderSummary()/paso 2/
+     confirmar volvían a llamar getCart() DESPUÉS de eso, así que
+     encontraban el carrito vacío y el pedido terminaba confirmándose
+     con total $0. Ahora se captura una sola copia del carrito aquí
+     (después de la restauración de "retomar" pero antes de que
+     guardarInconcluso lo vacíe) y esa copia — no el storage — es la
+     que se usa en todo el resto del flujo de checkout. ──────────── */
+  var checkoutCart = getCart();
+
+  /* ── Resumen lateral ── */
+  function renderSummary() {
+    var wrap  = document.getElementById('summary-items');
+    var total = 0;
+    wrap.innerHTML = '';
+
+    checkoutCart.forEach(function (item) {
+      total += item.price * item.qty;
+      var div = document.createElement('div');
+      div.className = 'sum-item';
+      div.innerHTML =
+        '<img src="' + escapeHtml(item.image || '') + '" alt="' + escapeHtml(item.name) + '" ' +
+          'onerror="this.onerror=null;this.style.display=\'none\'">' +
+        '<span class="sum-item-name">' + escapeHtml(item.name) + '</span>' +
+        '<span class="sum-item-qty">x' + item.qty + '</span>' +
+        '<span class="sum-item-price">' + fmt(item.price * item.qty) + '</span>';
+      wrap.appendChild(div);
+    });
+
+    document.getElementById('sum-total').textContent = fmt(total);
+    return { total };
+  }
+
+  renderSummary();
+
   /* ── Guardar pedido como "pendiente_finalizar" al entrar ── */
   (async function guardarInconcluso() {
     if (!isLoggedIn()) return;
     if (sessionStorage.getItem('dc_pedido_id')) return;
-    var cart = getCart();
-    if (!cart.length) return;
-    var total = cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
+    if (!checkoutCart.length) return;
     try {
-      var res = await apiPedidoInconcluso({
-        items: cart, subtotal: total, descuento: 0, cupon: null, total
-      });
+      var res = await apiPedidoInconcluso({ items: checkoutCart });
       sessionStorage.setItem('dc_pedido_id', res.pedidoId);
-      saveCart([]);  /* vaciar carrito — el pedido ya está en la BD */
+      saveCart([]);  /* vaciar el storage — el pedido ya está en la BD.
+                        checkoutCart (la copia local) sigue intacta. */
     } catch (e) {
       console.warn('No se pudo guardar pedido:', e.message);
     }
@@ -150,14 +158,13 @@ document.addEventListener('DOMContentLoaded', async function () {
   /* ── Paso 2 → 3: llenar resumen de confirmación ── */
   document.getElementById('btn-step2').addEventListener('click', function () {
     var method  = document.querySelector('input[name="payment"]:checked').value;
-    var totales = renderSummary();
-    var cart    = getCart();
+    renderSummary();
 
     /* Bloque de contacto y pickup */
     document.getElementById('confirm-contact').innerHTML =
       '<h4>📍 Recoger en tienda</h4>' +
       '<p>' + (document.getElementById('pickup-direccion').textContent || '—') + '</p>' +
-      '<p><strong>' + val('nombre') + '</strong> &nbsp;·&nbsp; +52 ' + val('telefono') + '</p>' +
+      '<p><strong>' + escapeHtml(val('nombre')) + '</strong> &nbsp;·&nbsp; +52 ' + escapeHtml(val('telefono')) + '</p>' +
       '';
 
     /* Bloque de pago */
@@ -167,13 +174,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     /* Lista de items */
     var itemsEl = document.getElementById('confirm-items');
     itemsEl.innerHTML = '';
-    cart.forEach(function (item) {
+    checkoutCart.forEach(function (item) {
       var div = document.createElement('div');
       div.className = 'confirm-item';
       div.innerHTML =
-        '<img src="' + (item.image || '') + '" alt="' + item.name + '" ' +
+        '<img src="' + escapeHtml(item.image || '') + '" alt="' + escapeHtml(item.name) + '" ' +
           'onerror="this.onerror=null;this.style.display=\'none\'">' +
-        '<div class="confirm-item-info"><strong>' + item.name + '</strong><span>x' + item.qty + '</span></div>' +
+        '<div class="confirm-item-info"><strong>' + escapeHtml(item.name) + '</strong><span>x' + item.qty + '</span></div>' +
         '<span class="confirm-item-price">' + fmt(item.price * item.qty) + '</span>';
       itemsEl.appendChild(div);
     });
@@ -188,8 +195,6 @@ document.addEventListener('DOMContentLoaded', async function () {
   /* ── CONFIRMAR PEDIDO ── */
   document.getElementById('btn-confirm').addEventListener('click', async function () {
     var btn    = this;
-    var cart   = getCart();
-    var total  = cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0);
     var method = document.querySelector('input[name="payment"]:checked').value;
 
     btn.disabled    = true;
@@ -202,12 +207,11 @@ document.addEventListener('DOMContentLoaded', async function () {
       var datosContacto = {
         metodo_pago:  method,
         nombre_envio: val('nombre'),
-        telefono:     val('telefono'),
-        subtotal:     total,
-        descuento:    0,
-        cupon:        null,
-        total
+        telefono:     val('telefono')
       };
+      /* El precio/total ya NO se manda desde aquí: el servidor los
+         recalcula siempre desde los precios reales en la BD (ver
+         backend/routes/pedidos.js, construirItemsValidados). */
 
       if (pedidoId) {
         /* Actualizar el inconcluso existente a "pendiente_entregar" */
@@ -215,7 +219,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         orderNum = pedidoId;
       } else {
         /* Crear pedido completo si no había inconcluso */
-        var res = await apiCrearPedido(Object.assign({ items: cart }, datosContacto));
+        var res = await apiCrearPedido(Object.assign({ items: checkoutCart }, datosContacto));
         orderNum = res.pedidoId;
       }
 

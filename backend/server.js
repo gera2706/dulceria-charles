@@ -68,12 +68,19 @@ app.use('/api/auth/registro', rateLimit({ windowMs: 60*60*1000, max: 5,   messag
 /* ── ARCHIVOS ESTÁTICOS DEL FRONTEND ──────────────────────────
    Le dice a Express que sirva los archivos del frontend.
    __dirname = carpeta donde está este archivo (backend/)
-   '..' = un nivel arriba = carpeta raíz del proyecto
+   '..', 'public' = un nivel arriba, carpeta public/ del proyecto
    Esto hace que http://localhost:3000/index.html devuelva index.html,
    http://localhost:3000/css/style.css devuelva el CSS, etc.
    Con esto, UN SOLO servidor sirve tanto el frontend como la API.
+
+   IMPORTANTE (fix de seguridad): antes esto apuntaba a la raíz del
+   proyecto (path.join(__dirname, '..')), lo que exponía backend/
+   completo (db.js, server.js, .env.example) y dulceria_charles.sql
+   (con el hash del admin) como archivos estáticos descargables sin
+   autenticarse. El frontend se movió a public/ y ahora SOLO esa
+   carpeta se sirve como estático.
 ────────────────────────────────────────────────────────────── */
-app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 /* ── RUTAS DE LA API ──────────────────────────────────────────
    Cada línea conecta un prefijo de URL con su archivo de rutas.
@@ -87,7 +94,8 @@ app.use('/api/auth',       require('./routes/auth'));        // /api/auth/login,
 app.use('/api/productos',  require('./routes/productos'));   // /api/productos, /api/productos/5
 app.use('/api/pedidos',    require('./routes/pedidos'));     // /api/pedidos, /api/pedidos/mios
 app.use('/api/favoritos',  require('./routes/favoritos'));   // /api/favoritos
-app.use('/api/cupones',    require('./routes/cupones'));     // /api/cupones/validar
+// Nota: el proyecto no maneja cupones de descuento — la ruta /api/cupones
+// (y su tabla en la BD) se eliminaron a propósito, no falta agregarla.
 app.use('/api/usuarios',   require('./routes/usuarios'));    // /api/usuarios
 app.use('/api/config',     require('./routes/config'));      // /api/config/contacto
 app.use('/api/categorias', require('./routes/categorias'));
@@ -107,7 +115,20 @@ app.use((req, res) => {
     return res.status(404).json({ error: 'Endpoint no encontrado.' });
   }
   // Para rutas del frontend como /admin.html, /catalogo.html, etc.
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
+/* ── RED DE SEGURIDAD: promesas rechazadas sin manejar ────────
+   Express 4 no captura errores async lanzados fuera de un try/catch
+   dentro de un handler (ej: si db.getConnection() falla). Sin este
+   handler, ese rechazo se propaga como una excepción no manejada
+   del proceso de Node y puede tumbar el servidor completo para
+   TODOS los usuarios. Ya se revisaron y protegieron con try/catch
+   las rutas transaccionales de pedidos.js, pero este handler queda
+   como red de seguridad ante cualquier caso que se nos escape.
+────────────────────────────────────────────────────────────── */
+process.on('unhandledRejection', (reason) => {
+  console.error('Promesa rechazada sin manejar:', reason);
 });
 
 /* ── INICIAR EL SERVIDOR ──────────────────────────────────────

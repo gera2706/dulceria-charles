@@ -36,15 +36,15 @@
       div.className = 'cart-item';
 
       var imgHtml = item.image
-        ? '<img class="cart-item-img" src="' + item.image + '" alt="' + item.name + '" ' +
+        ? '<img class="cart-item-img" src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '" ' +
             'onerror="this.onerror=null;this.src=\'\';this.style.background=\'#f3ecff\'">'
         : '<div class="cart-item-img" style="background:#f3ecff;display:flex;align-items:center;justify-content:center;font-size:1.8rem;">&#127852;</div>';
 
       div.innerHTML =
         imgHtml +
         '<div class="cart-item-info">' +
-          '<h4>' + item.name + '</h4>' +
-          '<p>' + item.category + '</p>' +
+          '<h4>' + escapeHtml(item.name) + '</h4>' +
+          '<p>' + escapeHtml(item.category) + '</p>' +
         '</div>' +
         '<div class="qty-controls">' +
           '<button class="qty-btn minus" data-id="' + item.id + '">&#8722;</button>' +

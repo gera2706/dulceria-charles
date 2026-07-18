@@ -53,14 +53,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     return;
   }
 
-  /* ── Calcular totales ── */
-  var total = parseFloat(pedido.total || 0);
-  /* Si el total en BD es 0, calculamos desde items */
-  if (!total && pedido.items && pedido.items.length) {
-    total = pedido.items.reduce(function (s, i) {
-      return s + parseFloat(i.precio || i.price || 0) * (i.cantidad || i.qty || 1);
-    }, 0);
-  }
+  /* ── Calcular totales (calcTotalPedido está en js/cart.js) ── */
+  var total = calcTotalPedido(pedido);
   var estadoInfo = ESTADO_INFO[pedido.estado] || { label: pedido.estado, color: '#999' };
 
   /* ── Info de la tienda ── */
@@ -72,7 +66,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   var items = pedido.items || [];
 
   var itemsRows = items.map(function (item) {
-    var nombre = item.nombre || item.name || '—';
+    var nombre = escapeHtml(item.nombre || item.name || '—');
     var precio = parseFloat(item.precio || item.price || 0);
     var qty    = item.cantidad || item.qty || 1;
     return '<div class="item-row">' +
@@ -113,8 +107,8 @@ document.addEventListener('DOMContentLoaded', async function () {
 
         /* Datos de contacto */
         '<div class="section-label">Datos de contacto</div>' +
-        '<div class="info-row"><span class="lbl">Nombre</span><span>' + (pedido.nombre_envio || '—') + '</span></div>' +
-        '<div class="info-row"><span class="lbl">Teléfono</span><span>+52 ' + (pedido.telefono || '—') + '</span></div>' +
+        '<div class="info-row"><span class="lbl">Nombre</span><span>' + escapeHtml(pedido.nombre_envio || '—') + '</span></div>' +
+        '<div class="info-row"><span class="lbl">Teléfono</span><span>+52 ' + escapeHtml(pedido.telefono || '—') + '</span></div>' +
         '<div class="info-row"><span class="lbl">Pago</span><span>' +
           (PAGO_ICONS[pedido.metodo_pago] || '💵') + ' ' + (PAGO_NAMES[pedido.metodo_pago] || pedido.metodo_pago || '—') +
         '</span></div>' +

@@ -34,6 +34,19 @@ document.addEventListener('DOMContentLoaded', () => {
       ok = false;
     }
 
+    // Teléfono es opcional, pero si se llena debe tener un formato razonable
+    // (solo dígitos/espacios/+/-, entre 7 y 15 caracteres).
+    const telEl  = document.getElementById('telefono');
+    const telErr = document.getElementById('error-telefono');
+    if (telEl.value.trim() && !/^[\d\s+()-]{7,20}$/.test(telEl.value.trim())) {
+      telErr.textContent = 'Ingresa un teléfono válido.';
+      telEl.classList.add('invalid');
+      ok = false;
+    } else if (telErr) {
+      telErr.textContent = '';
+      telEl.classList.remove('invalid');
+    }
+
     return ok;
   }
 

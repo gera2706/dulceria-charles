@@ -29,6 +29,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Panel Admin — Dulcería Charles</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%8D%AC</text></svg>" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/admin.css" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -154,6 +155,7 @@
             </select>
             <button class="btn-admin-add" id="btn-filter-stock" style="background:none;color:var(--text);border:2px solid var(--border);">⚠️ Solo bajo stock</button>
             <button class="btn-admin-add" id="btn-manage-cats" style="background:var(--purple);">🏷️ Categorías</button>
+            <button class="btn-admin-add" id="btn-trash" style="background:none;color:var(--text);border:2px solid var(--border);">🗑️ Papelera</button>
             <button class="btn-admin-add" id="btn-add-prod">＋ Agregar producto</button>
           </div>
         </div>
@@ -442,6 +444,18 @@
     </div>
   </div>
 
+  <!-- ══ MODAL PAPELERA (productos con soft-delete, activo=0) ══ -->
+  <div class="admin-modal-overlay" id="trash-modal-overlay">
+    <div class="admin-modal" style="max-width:480px;">
+      <button class="admin-modal-close" id="trash-modal-close">✕</button>
+      <h3>🗑️ Papelera de productos</h3>
+      <p style="color:var(--text-light);font-size:0.85rem;margin-bottom:0.8rem;">Productos eliminados. Se pueden restaurar en cualquier momento.</p>
+      <div id="trash-list" style="max-height:360px;overflow-y:auto;border-top:1px solid #f0eaff;padding-top:0.8rem;">
+        <p style="color:var(--text-light);font-size:0.88rem;">Cargando…</p>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ CONFIRM DELETE ══ -->
   <div class="confirm-dialog" id="confirm-dialog">
     <div class="confirm-box">
@@ -457,7 +471,7 @@
   <!-- ============================================================
        SCRIPTS — Orden de carga importante:
        1. api.js   → funciones de comunicación con el servidor
-       2. data.js  → datos de productos y cupones
+       2. data.js  → datos de productos (fallback estático)
        3. auth.js  → define isLoggedIn(), isAdmin(), getSession()
 
        GUARD DE SEGURIDAD: Inmediatamente después de cargar auth.js

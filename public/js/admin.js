@@ -6,17 +6,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function fmt(n) { return '$' + (isNaN(n) ? '0' : Number.isInteger(+n) ? +n : parseFloat(n).toFixed(2)); }
 
-  /* Calcula el total de un pedido. Si el campo total es 0 (datos viejos),
-     lo suma desde los items para mostrarlo correctamente. */
-  function _calcTotal(o) {
-    var t = parseFloat(o.total || 0);
-    if (!t && o.items && o.items.length) {
-      t = o.items.reduce(function (s, i) {
-        return s + parseFloat(i.precio || i.price || 0) * (i.cantidad || i.qty || 1);
-      }, 0);
-    }
-    return t;
-  }
+  // El cálculo de total-con-respaldo-desde-items vive en calcTotalPedido()
+  // (js/cart.js), compartida con pedidos.js y comprobante.js.
 
   /* ══ Navegación lateral ══ */
   var navBtns = document.querySelectorAll('.admin-nav-btn');
@@ -54,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
          excluimos pendiente_finalizar (no pagaron) y cancelado */
       var revenue = pedidos
         .filter(function (o) { return o.estado === 'pendiente_entregar' || o.estado === 'entregado'; })
-        .reduce(function (s, o) { return s + _calcTotal(o); }, 0);
+        .reduce(function (s, o) { return s + calcTotalPedido(o); }, 0);
 
       /* Stock bajo: tiene existencias pero ya llegó (o pasó) su umbral de alerta.
          Agotado: no queda ni una pieza. Ambos casos van en la misma tarjeta
@@ -101,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ? '<span class="stock-badge agotado">Agotado</span>'
             : '<span class="stock-badge bajo">Bajo (' + p.stock + ')</span>';
           return '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid #f3eeff;font-size:0.85rem;">' +
-            '<span>' + p.nombre + '</span>' + badge +
+            '<span>' + escapeHtml(p.nombre) + '</span>' + badge +
             '</div>';
         }).join('');
       }
@@ -114,8 +105,8 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         dashOrders.innerHTML = ultimos.map(function (o) {
           return '<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid #f3eeff;font-size:0.85rem;">' +
-            '<span><strong>#' + o.id + '</strong> — ' + (o.cliente_nombre || '—') + '</span>' +
-            '<span style="color:var(--pink);font-weight:700;">' + fmt(_calcTotal(o)) + '</span>' +
+            '<span><strong>#' + o.id + '</strong> — ' + escapeHtml(o.cliente_nombre || '—') + '</span>' +
+            '<span style="color:var(--pink);font-weight:700;">' + fmt(calcTotalPedido(o)) + '</span>' +
             '</div>';
         }).join('');
       }
@@ -127,8 +118,8 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         dashUsers.innerHTML = clientes.slice(0, 5).map(function (u) {
           return '<div style="display:flex;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid #f3eeff;font-size:0.85rem;">' +
-            '<span>' + u.nombre + '</span>' +
-            '<span style="color:var(--text-light);">' + u.email + '</span>' +
+            '<span>' + escapeHtml(u.nombre) + '</span>' +
+            '<span style="color:var(--text-light);">' + escapeHtml(u.email) + '</span>' +
             '</div>';
         }).join('');
       }
@@ -222,13 +213,13 @@ document.addEventListener('DOMContentLoaded', function () {
       rows.forEach(function (p) {
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td><img src="' + (p.imagen || '') + '" alt="' + p.nombre + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" onerror="this.style.opacity=0.3"></td>' +
-          '<td><strong>' + p.nombre + '</strong></td>' +
-          '<td><span class="admin-badge">' + p.categoria + '</span></td>' +
+          '<td><img src="' + escapeHtml(p.imagen || '') + '" alt="' + escapeHtml(p.nombre) + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" onerror="this.style.opacity=0.3"></td>' +
+          '<td><strong>' + escapeHtml(p.nombre) + '</strong></td>' +
+          '<td><span class="admin-badge">' + escapeHtml(p.categoria) + '</span></td>' +
           '<td><strong>' + fmt(p.precio) + '</strong></td>' +
           '<td>' + _stockCellHtml(p) + '</td>' +
           '<td>' + (p.destacado ? '⭐' : '—') + '</td>' +
-          '<td style="color:var(--text-light);font-size:0.82rem;">' + (p.proveedor || '—') + '</td>' +
+          '<td style="color:var(--text-light);font-size:0.82rem;">' + escapeHtml(p.proveedor || '—') + '</td>' +
           '<td><div class="td-actions">' +
             '<button class="btn-admin-sm btn-edit"   data-id="' + p.id + '">✏️ Editar</button>' +
             '<button class="btn-admin-sm btn-delete" data-id="' + p.id + '">🗑️ Eliminar</button>' +
@@ -468,11 +459,11 @@ document.addEventListener('DOMContentLoaded', function () {
         tr.style.cursor = 'pointer';
         tr.innerHTML =
           '<td><strong>#' + o.id + '</strong></td>' +
-          '<td>' + (o.cliente_nombre || '—') + '<br><small style="color:var(--text-light);">' + (o.cliente_email || '') + '</small></td>' +
+          '<td>' + escapeHtml(o.cliente_nombre || '—') + '<br><small style="color:var(--text-light);">' + escapeHtml(o.cliente_email || '') + '</small></td>' +
           '<td style="white-space:nowrap;">' + (o.fecha ? new Date(o.fecha).toLocaleDateString('es-MX') : '—') + '</td>' +
           '<td>' + badge + '<br>' + select + '</td>' +
           '<td>' + (pagoLabel[o.metodo_pago] || o.metodo_pago || '—') + '</td>' +
-          '<td><strong style="color:var(--pink);">' + fmt(_calcTotal(o)) + '</strong></td>' +
+          '<td><strong style="color:var(--pink);">' + fmt(calcTotalPedido(o)) + '</strong></td>' +
           '<td style="text-align:center;">▼</td>';
 
         /* fila de detalle (oculta por defecto) */
@@ -484,7 +475,7 @@ document.addEventListener('DOMContentLoaded', function () {
               var precio = parseFloat(i.precio || i.price || 0);
               var qty    = i.cantidad || i.qty || 1;
               return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.83rem;border-bottom:1px solid #f3eeff;">' +
-                '<span>' + (i.nombre || i.name || '—') + ' <span style="color:var(--text-light);">x' + qty + '</span></span>' +
+                '<span>' + escapeHtml(i.nombre || i.name || '—') + ' <span style="color:var(--text-light);">x' + qty + '</span></span>' +
                 '<span style="font-weight:700;">' + fmt(precio * qty) + '</span>' +
               '</div>';
             }).join('')
@@ -494,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<td colspan="7" style="background:#faf7ff;padding:0.8rem 1.2rem;">' +
             '<div style="font-size:0.78rem;font-weight:700;color:var(--purple);margin-bottom:0.4rem;">🍬 Productos del pedido</div>' +
             itemsHtml +
-            (o.nombre_envio ? '<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--text-light);">👤 ' + o.nombre_envio + (o.telefono ? ' · +52 ' + o.telefono : '') + '</div>' : '') +
+            (o.nombre_envio ? '<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--text-light);">👤 ' + escapeHtml(o.nombre_envio) + (o.telefono ? ' · +52 ' + escapeHtml(o.telefono) : '') + '</div>' : '') +
           '</td>';
 
         tr.addEventListener('click', function (e) {
@@ -544,13 +535,13 @@ document.addEventListener('DOMContentLoaded', function () {
         var tr = document.createElement('tr');
         var rolColor = u.rol === 'admin' ? '#8b5cf6' : '#ec4899';
         tr.innerHTML =
-          '<td><strong>' + u.nombre + '</strong></td>' +
-          '<td>' + u.email + '</td>' +
-          '<td><span style="background:' + rolColor + '20;color:' + rolColor + ';padding:2px 10px;border-radius:50px;font-size:0.8rem;font-weight:700;">' + u.rol + '</span></td>' +
+          '<td><strong>' + escapeHtml(u.nombre) + '</strong></td>' +
+          '<td>' + escapeHtml(u.email) + '</td>' +
+          '<td><span style="background:' + rolColor + '20;color:' + rolColor + ';padding:2px 10px;border-radius:50px;font-size:0.8rem;font-weight:700;">' + escapeHtml(u.rol) + '</span></td>' +
           '<td>' + (u.fecha_registro ? new Date(u.fecha_registro).toLocaleDateString('es-MX') : '—') + '</td>' +
           '<td>' +
             (u.rol !== 'admin'
-              ? '<button class="btn-admin-sm btn-edit" data-uid="' + u.id + '" data-nombre="' + u.nombre + '">👑 Hacer admin</button>'
+              ? '<button class="btn-admin-sm btn-edit" data-uid="' + u.id + '" data-nombre="' + escapeHtml(u.nombre) + '">👑 Hacer admin</button>'
               : '<span style="color:var(--text-light);font-size:0.8rem;">—</span>') +
           '</td>';
         tbody.appendChild(tr);
@@ -623,15 +614,15 @@ document.addEventListener('DOMContentLoaded', function () {
         row.style.cssText = 'display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0;border-bottom:1px solid #f3eeff;';
         row.innerHTML =
           '<span style="font-size:1.2rem;width:28px;text-align:center;overflow:hidden;border-radius:6px;">' + renderCatIcon(cat.icono || '🍬', '28px') + '</span>' +
-          '<span style="flex:1;font-size:0.9rem;font-weight:600;text-transform:capitalize;">' + cat.nombre + '</span>' +
+          '<span style="flex:1;font-size:0.9rem;font-weight:600;text-transform:capitalize;">' + escapeHtml(cat.nombre) + '</span>' +
           /* Inputs de edición (ocultos por defecto) */
-          '<input type="text" data-catid="' + cat.id + '" class="cat-edit-icon" value="' + (cat.icono||'🍬') + '" ' +
+          '<input type="text" data-catid="' + cat.id + '" class="cat-edit-icon" value="' + escapeHtml(cat.icono||'🍬') + '" ' +
             'style="display:none;width:44px;padding:0.3rem 0.4rem;border:1px solid #ddd;border-radius:6px;font-size:1rem;text-align:center;" />' +
-          '<input type="text" data-catid="' + cat.id + '" class="cat-edit-input" value="' + cat.nombre + '" ' +
+          '<input type="text" data-catid="' + cat.id + '" class="cat-edit-input" value="' + escapeHtml(cat.nombre) + '" ' +
             'style="display:none;flex:1;padding:0.3rem 0.6rem;border:1px solid #ddd;border-radius:6px;font-size:0.85rem;" />' +
           '<button class="btn-admin-sm btn-edit   cat-btn-edit"   data-catid="' + cat.id + '">✏️</button>' +
           '<button class="btn-admin-sm btn-edit   cat-btn-save"   data-catid="' + cat.id + '" style="display:none;background:#10b981;color:#fff;">💾</button>' +
-          '<button class="btn-admin-sm btn-delete cat-btn-delete" data-catid="' + cat.id + '" data-nombre="' + cat.nombre + '">🗑️</button>';
+          '<button class="btn-admin-sm btn-delete cat-btn-delete" data-catid="' + cat.id + '" data-nombre="' + escapeHtml(cat.nombre) + '">🗑️</button>';
         listEl.appendChild(row);
       });
 
@@ -765,6 +756,58 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   /* ══════════════════════════════════════
+     PAPELERA (productos con soft-delete, activo=0)
+  ══════════════════════════════════════ */
+  var trashOverlay = document.getElementById('trash-modal-overlay');
+
+  function openTrashModal() {
+    trashOverlay.classList.add('open');
+    renderTrashList();
+  }
+  function closeTrashModal() { trashOverlay.classList.remove('open'); }
+
+  document.getElementById('btn-trash').addEventListener('click', openTrashModal);
+  document.getElementById('trash-modal-close').addEventListener('click', closeTrashModal);
+  trashOverlay.addEventListener('click', function (e) { if (e.target === trashOverlay) closeTrashModal(); });
+
+  async function renderTrashList() {
+    var listEl = document.getElementById('trash-list');
+    listEl.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">Cargando…</p>';
+    try {
+      var productos = await apiGetPapelera();
+      if (!productos.length) {
+        listEl.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">La papelera está vacía.</p>';
+        return;
+      }
+      listEl.innerHTML = '';
+      productos.forEach(function (p) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0;border-bottom:1px solid #f3eeff;';
+        row.innerHTML =
+          '<img src="' + escapeHtml(p.imagen || '') + '" alt="' + escapeHtml(p.nombre) + '" style="width:36px;height:36px;object-fit:cover;border-radius:6px;flex-shrink:0;" onerror="this.style.opacity=0.3">' +
+          '<span style="flex:1;font-size:0.88rem;font-weight:600;">' + escapeHtml(p.nombre) + '</span>' +
+          '<button class="btn-admin-sm btn-edit trash-btn-restore" data-id="' + p.id + '">♻️ Restaurar</button>';
+        listEl.appendChild(row);
+      });
+      listEl.querySelectorAll('.trash-btn-restore').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          try {
+            await apiReactivarProducto(+btn.dataset.id);
+            showToast('Producto restaurado ✓');
+            _allProductos = []; // forzar recarga para que vuelva a aparecer en la tabla
+            renderTrashList();
+            renderProductos();
+          } catch (e) {
+            alert('Error: ' + e.message);
+          }
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = '<p style="color:#e74c3c;font-size:0.88rem;">Error al cargar la papelera.</p>';
+    }
+  }
+
+  /* ══════════════════════════════════════
      CONFIGURACIÓN
   ══════════════════════════════════════ */
   async function renderConfiguracion() {
@@ -833,14 +876,10 @@ document.addEventListener('DOMContentLoaded', function () {
     return data.url; // devuelve "img/categorias/nombre.jpg"
   }
 
-  /* ══ Toast ══ */
-  function showToast(msg) {
-    var t = document.createElement('div');
-    t.style.cssText = 'position:fixed;bottom:1.5rem;right:1.5rem;background:#333;color:#fff;padding:0.7rem 1.2rem;border-radius:10px;font-size:0.9rem;z-index:9999;animation:fadeIn 0.3s ease;';
-    t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(function () { t.remove(); }, 3000);
-  }
+  /* Toast: se usa la función global showToast() de js/cart.js (que ya
+     se carga antes que admin.js en admin.html) — antes había una
+     segunda implementación local aquí, con estilo distinto, que
+     ocultaba a la global dentro de este archivo sin motivo. */
 
   /* ══ Init ══ */
   loadCategorias();

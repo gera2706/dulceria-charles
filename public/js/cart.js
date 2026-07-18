@@ -30,6 +30,44 @@
 ================================================================ */
 
 /* ================================================================
+   SECCIÓN: ESCAPE DE HTML (seguridad)
+   Convierte texto a HTML seguro escapando los caracteres que
+   podrían romper el marcado o inyectar <script>/onerror/etc.
+   Se usa en TODOS los lugares donde se inserta texto que viene de
+   datos (nombre de cliente, de producto, de pedido...) dentro de
+   innerHTML. Sin esto, alguien podría registrarse con un nombre como
+   "<img src=x onerror=...>" y ejecutar JS en el navegador de quien
+   vea ese nombre (ej: el admin viendo la lista de pedidos/usuarios).
+================================================================ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* ================================================================
+   SECCIÓN: TOTAL DE UN PEDIDO (con respaldo desde items)
+   Si el campo total de un pedido viene en 0 (datos viejos o algún
+   caso límite), lo recalculamos sumando sus items. Esta lógica
+   estaba duplicada casi línea por línea en pedidos.js, comprobante.js
+   y admin.js — ahora vive en un solo lugar.
+   pedido: objeto con { total, items: [{precio/price, cantidad/qty}] }
+================================================================ */
+function calcTotalPedido(pedido) {
+  var t = parseFloat(pedido.total || 0);
+  if (!t && pedido.items && pedido.items.length) {
+    t = pedido.items.reduce(function (s, i) {
+      return s + parseFloat(i.precio || i.price || 0) * (i.cantidad || i.qty || 1);
+    }, 0);
+  }
+  return t;
+}
+
+/* ================================================================
    SECCIÓN: CARRITO DE COMPRAS
 ================================================================ */
 
@@ -537,15 +575,17 @@ document.addEventListener('DOMContentLoaded', function() {
     drawer.classList.add('open');
     overlay.classList.add('open');
     toggle.classList.add('open');
-    drawer.setAttribute('aria-hidden', 'false'); // accesibilidad: el drawer es visible
-    document.body.style.overflow = 'hidden';     // bloquear scroll del fondo
+    drawer.setAttribute('aria-hidden', 'false');   // accesibilidad: el drawer es visible
+    toggle.setAttribute('aria-label', 'Cerrar menú'); // antes quedaba fijo en "Abrir menú"
+    document.body.style.overflow = 'hidden';       // bloquear scroll del fondo
   }
 
   function closeDrawer() {
     drawer.classList.remove('open');
     overlay.classList.remove('open');
     toggle.classList.remove('open');
-    drawer.setAttribute('aria-hidden', 'true');  // accesibilidad: el drawer está oculto
+    drawer.setAttribute('aria-hidden', 'true');    // accesibilidad: el drawer está oculto
+    toggle.setAttribute('aria-label', 'Abrir menú');
     document.body.style.overflow = '';
   }
 
@@ -590,7 +630,7 @@ function buildProductCard(product) {
      Incluye: imagen, botón de favorito, nombre, categoría, precio y botón de carrito */
   card.innerHTML =
     '<div class="card-img-wrap">' +
-      '<img class="card-img" src="' + imgSrc + '" alt="' + product.name + '" ' +
+      '<img class="card-img" src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(product.name) + '" ' +
         'onerror="this.onerror=null;this.src=\'\';this.closest(\'.card-img-wrap\').classList.add(\'no-img\')">' +
         // onerror: si la imagen no carga, agrega la clase no-img para mostrar un fondo de color
       '<button class="card-fav' + (fav ? ' active' : '') + '" data-id="' + product.id + '">' +
@@ -599,8 +639,8 @@ function buildProductCard(product) {
       (outOfStock ? '<span class="card-out-badge">Agotado</span>' : '') +
     '</div>' +
     '<div class="card-body">' +
-      '<p class="card-name">'  + product.name     + '</p>' +
-      '<p class="card-cat">'   + product.category + '</p>' +
+      '<p class="card-name">'  + escapeHtml(product.name)     + '</p>' +
+      '<p class="card-cat">'   + escapeHtml(product.category) + '</p>' +
       '<p class="card-price">$' + price            + '</p>' +
     '</div>' +
     '<div class="card-actions">' +

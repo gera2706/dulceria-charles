@@ -78,23 +78,6 @@
   margin-bottom: 1.5rem;
 }
 
-/* ===== LOCATION BUTTON ===== */
-.btn-location {
-  width: 100%;
-  padding: 0.7rem;
-  background: #f2edf9;
-  border: 2px dashed #c4b5fd;
-  border-radius: var(--radius-sm);
-  color: var(--purple);
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
-  margin-bottom: 1.4rem;
-  transition: background 0.2s, border-color 0.2s;
-}
-.btn-location:hover { background: #e9defa; border-color: var(--purple); }
-
 /* ===== FORM ===== */
 .form-row {
   display: flex;
@@ -209,35 +192,6 @@
 }
 .payment-opt input:checked + .opt-content .opt-check { opacity: 1; }
 
-/* Card form */
-.card-form {
-  background: #faf3f6;
-  border-radius: var(--radius);
-  padding: 1.4rem;
-  margin-bottom: 1rem;
-  border: 1px solid var(--border);
-  animation: fadeUp 0.25s ease;
-}
-.card-secure {
-  font-size: 0.83rem;
-  color: var(--teal);
-  font-weight: 700;
-  margin-top: 0.5rem;
-}
-
-/* SPEI info */
-.spei-info {
-  background: #eefaf4;
-  border: 1px solid #a7f3d0;
-  border-radius: var(--radius);
-  padding: 1.2rem 1.4rem;
-  margin-bottom: 1rem;
-  font-size: 0.92rem;
-  line-height: 1.7;
-  animation: fadeUp 0.25s ease;
-}
-.spei-note { color: var(--teal); font-weight: 700; margin-top: 0.4rem; font-size: 0.85rem; }
-
 /* ===== CONFIRM BLOCKS ===== */
 .confirm-block {
   background: #faf3f6;
@@ -329,23 +283,6 @@
 .sum-total { font-size: 1.1rem; font-weight: 700; color: var(--pink); }
 hr { border: none; border-top: 1px solid var(--border); }
 
-/* ===== SUCCESS MODAL ===== */
-.success-modal { text-align: center; }
-.modal-confetti { font-size: 2.5rem; animation: spin 1s ease; display: block; margin-bottom: 0.3rem; }
-@keyframes spin { from { transform: rotate(-20deg) scale(0.5); } to { transform: rotate(0) scale(1); } }
-.modal-icon  { font-size: 3rem; margin-bottom: 0.5rem; }
-.success-modal h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.8rem; color: var(--pink); margin-bottom: 0.5rem; }
-.success-modal p  { color: var(--text-light); margin-bottom: 0.8rem; font-size: 0.95rem; }
-.modal-order {
-  background: #f7eef1;
-  border-radius: 50px;
-  padding: 0.5rem 1.2rem;
-  font-size: 0.9rem;
-  color: var(--purple);
-  margin-bottom: 1.5rem;
-  display: inline-block;
-}
-
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
   .checkout-layout { flex-direction: column; padding: 1.5rem; }
@@ -363,14 +300,3 @@ hr { border: none; border-top: 1px solid var(--border); }
   font-weight: 600;
   margin-top: 0.2rem;
 }
-.free-shipping-badge {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--teal);
-  background: rgba(6,214,160,0.1);
-  border-radius: 50px;
-  padding: 0.3rem 0.8rem;
-  text-align: center;
-  min-height: 1.2em;
-}
-.confirm-shipping { color: var(--teal); font-weight: 700; font-size: 0.88rem; margin-top: 0.3rem; }

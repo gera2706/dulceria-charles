@@ -78,13 +78,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     var estadoInfo   = ESTADO_INFO[order.estado] || { label: order.estado, color: '#999' };
     var isInconcluso = order.estado === 'pendiente_finalizar'; // pedidos sin completar
 
-    /* Total a mostrar en el encabezado — calculado desde items si el campo es 0 */
-    var headerTotal = parseFloat(order.total || 0);
-    if (!headerTotal && (order.items || []).length) {
-      headerTotal = (order.items || []).reduce(function (s, i) {
-        return s + parseFloat(i.precio || i.price || 0) * (i.cantidad || i.qty || 1);
-      }, 0);
-    }
+    /* Total a mostrar en el encabezado — calculado desde items si el campo es 0
+       (calcTotalPedido está en js/cart.js, compartida con admin.js/comprobante.js) */
+    var headerTotal = calcTotalPedido(order);
 
     /* Creamos la tarjeta del pedido */
     var card = document.createElement('div');
@@ -117,7 +113,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     var items = order.items || [];
     var itemsHtml = items.length
       ? items.map(function (item) {
-          var nombre = item.nombre || item.name || '—';
+          var nombre = escapeHtml(item.nombre || item.name || '—');
           var precio = parseFloat(item.precio || item.price || 0);
           var qty    = item.cantidad || item.qty || 1;
           return '<div class="pedido-item">' +
@@ -128,12 +124,7 @@ document.addEventListener('DOMContentLoaded', async function () {
       : '<p style="color:var(--text-light);font-size:0.85rem;">Sin detalle de productos.</p>';
 
     /* Si el total en BD es 0 (pedido de prueba), calculamos desde los items */
-    var totalReal = parseFloat(order.total || 0);
-    if (!totalReal && items.length) {
-      totalReal = items.reduce(function (s, i) {
-        return s + parseFloat(i.precio || i.price || 0) * (i.cantidad || i.qty || 1);
-      }, 0);
-    }
+    var totalReal = calcTotalPedido(order);
 
     var totalsHtml =
       '<div class="pedido-totals">' +
@@ -157,8 +148,8 @@ document.addEventListener('DOMContentLoaded', async function () {
       body.innerHTML =
         '<div class="pedido-section">' +
           '<h4>📍 Recoger en tienda</h4>' +
-          '<p><strong>' + (order.nombre_envio || '—') + '</strong>' +
-            (order.telefono ? ' &nbsp;·&nbsp; +52 ' + order.telefono : '') + '</p>' +
+          '<p><strong>' + escapeHtml(order.nombre_envio || '—') + '</strong>' +
+            (order.telefono ? ' &nbsp;·&nbsp; +52 ' + escapeHtml(order.telefono) : '') + '</p>' +
         '</div>' +
         '<div class="pedido-section">' +
           '<h4>💳 Método de pago</h4>' +

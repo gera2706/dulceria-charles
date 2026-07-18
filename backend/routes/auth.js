@@ -41,6 +41,18 @@ const jwt     = require('jsonwebtoken');
 const db      = require('../db');
 // Nuestra conexión a la base de datos
 
+const rateLimit = require('express-rate-limit');
+// Limita intentos de PUT /me: sin esto, alguien con una sesión válida
+// podía probar la contraseña actual de la cuenta sin límite de
+// intentos (fuerza bruta contra passwordActual). Solo se aplica a
+// esta ruta — GET /me se llama en cada carga de página y no debe
+// limitarse.
+const meLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { error: 'Demasiados intentos. Espera unos minutos.' }
+});
+
 /* ----------------------------------------------------------------
    RUTA: POST /api/auth/registro
    PROPÓSITO: Crear una cuenta nueva en el sistema.
@@ -200,7 +212,7 @@ router.get('/me', authMiddleware, (req, res) => {
              actualizados, para que el frontend lo reemplace y el
              saludo/nombre se actualice sin tener que reiniciar sesión.
 ---------------------------------------------------------------- */
-router.put('/me', authMiddleware, async (req, res) => {
+router.put('/me', authMiddleware, meLimiter, async (req, res) => {
   const { nombre, email, passwordActual, passwordNueva } = req.body;
 
   if (!nombre || !email)

@@ -79,6 +79,27 @@ router.get('/', async (req, res) => {
 });
 
 /* ----------------------------------------------------------------
+   RUTA: GET /api/productos/papelera
+   PROPÓSITO: Listar los productos con soft-delete (activo=0) para
+   que el admin pueda revisarlos y, si quiere, reactivarlos (ver
+   PATCH /:id/reactivar más abajo). Antes no existía forma de ver ni
+   deshacer un soft-delete desde el panel.
+   ACCESO: Solo administradores.
+   IMPORTANTE: se define ANTES de GET /:id para que Express no
+   interprete "papelera" como si fuera un :id.
+---------------------------------------------------------------- */
+router.get('/papelera', adminMiddleware, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT id, nombre, categoria, precio, imagen, stock FROM productos WHERE activo = 0 ORDER BY id DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener la papelera.' });
+  }
+});
+
+/* ----------------------------------------------------------------
    RUTA: GET /api/productos/:id
    PROPÓSITO: Devolver UN solo producto por su ID.
    ACCESO: Público
@@ -155,13 +176,18 @@ router.post('/', adminMiddleware, async (req, res) => {
 ---------------------------------------------------------------- */
 router.put('/:id', adminMiddleware, async (req, res) => {
   const { nombre, categoria, precio, imagen, destacado, proveedor, stock, stock_minimo } = req.body;
+
+  // Misma validación que POST / — antes PUT permitía guardar nombre=null
+  // o fallaba con 500 si faltaba categoria (bind param undefined).
+  if (!nombre || !categoria || !precio)
+    return res.status(400).json({ error: 'Nombre, categoría y precio son obligatorios.' });
+
   try {
     // Verificar que la categoría existe
-    if (categoria) {
-      const [cat] = await db.query('SELECT id FROM categorias WHERE nombre = ?', [categoria]);
-      if (!cat.length)
-        return res.status(400).json({ error: 'La categoría especificada no existe.' });
-    }
+    const [cat] = await db.query('SELECT id FROM categorias WHERE nombre = ?', [categoria]);
+    if (!cat.length)
+      return res.status(400).json({ error: 'La categoría especificada no existe.' });
+
     await db.query(
       'UPDATE productos SET nombre=?, categoria=?, precio=?, imagen=?, destacado=?, proveedor=?, stock=?, stock_minimo=? WHERE id=?',
       [nombre, categoria, precio, imagen || null, destacado ? 1 : 0, proveedor || null,
@@ -234,6 +260,23 @@ router.delete('/:id', adminMiddleware, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Error al eliminar producto.' });
+  }
+});
+
+/* ----------------------------------------------------------------
+   RUTA: PATCH /api/productos/:id/reactivar
+   PROPÓSITO: Deshacer un soft-delete (activo = 0 → 1), para que un
+   producto eliminado por error vuelva a aparecer en el catálogo.
+   ACCESO: Solo administradores.
+---------------------------------------------------------------- */
+router.patch('/:id/reactivar', adminMiddleware, async (req, res) => {
+  try {
+    await db.query('UPDATE productos SET activo = 1 WHERE id = ?', [req.params.id]);
+    const [rows] = await db.query('SELECT * FROM productos WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado.' });
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al reactivar producto.' });
   }
 });
 
