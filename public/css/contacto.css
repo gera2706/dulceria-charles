@@ -77,20 +77,8 @@
 .info-icon { font-size: 1.8rem; }
 .info-card h4 { font-weight: 700; font-size: 0.95rem; color: var(--purple); }
 .info-card p  { font-size: 0.9rem; color: var(--text-light); line-height: 1.5; }
-
-.social-links { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.3rem; }
-.social-btn {
-  padding: 0.35rem 0.9rem;
-  border-radius: 50px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: #fff;
-  transition: opacity 0.2s;
-}
-.social-btn:hover { opacity: 0.85; }
-.instagram { background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
-.facebook  { background: #1877f2; }
-.whatsapp  { background: #25d366; }
+.info-card p a { color: var(--pink); font-weight: 700; transition: color 0.2s; }
+.info-card p a:hover { color: var(--pink-dark); }
 
 /* ===== MAP ===== */
 .map-section {

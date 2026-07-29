@@ -16,10 +16,7 @@ async function run() {
     ('contacto_horario',   'Lunes a Viernes: 9:00 – 20:00|Sábados: 10:00 – 18:00|Domingos: 11:00 – 15:00'),
     ('contacto_telefono',  '+52 55 1234 5678'),
     ('contacto_email',     'hola@dulceriacharles.com'),
-    ('contacto_instagram', '#'),
-    ('contacto_facebook',  '#'),
-    ('contacto_whatsapp',  '#'),
-    ('contacto_twitter',   '#')
+    ('contacto_whatsapp',  '#')
   `);
 
   console.log('✅ Tabla configuracion creada con datos iniciales');

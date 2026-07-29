@@ -144,10 +144,7 @@ INSERT INTO configuracion (clave, valor) VALUES
 ('contacto_horario',   'Lunes a Viernes: 9:00 – 20:00|Sábados: 10:00 – 18:00|Domingos: 11:00 – 15:00'),
 ('contacto_telefono',  '+52 55 1234 5678'),
 ('contacto_email',     'hola@dulceriacharles.com'),
-('contacto_instagram', '#'),
-('contacto_facebook',  '#'),
-('contacto_whatsapp',  '#'),
-('contacto_twitter',   '#');
+('contacto_whatsapp',  '#');
 
 -- Productos
 INSERT INTO productos (id, nombre, categoria, precio, imagen, destacado) VALUES

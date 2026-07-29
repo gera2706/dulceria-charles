@@ -201,13 +201,17 @@ async function toggleFavorite(id) {
     if (added) {
       favs.push(id);
       DC_FAV_CACHE = favs;
-      apiAgregarFavorito(id).catch(console.warn);
-      // .catch(console.warn) → si la API falla, solo imprime un aviso
-      // pero no rompe la UI (el corazón ya cambió visualmente)
+      // Antes esto no se esperaba (fire-and-forget): en favoritos.html el
+      // evento dc:favtoggle (más abajo) dispara un re-render que vuelve a
+      // pedir la lista a la API, y si esa petición ganaba la carrera contra
+      // este POST/DELETE, el re-render mostraba el estado VIEJO del server
+      // (el producto "quitado" seguía apareciendo hasta un segundo clic).
+      // Al esperar aquí, cuando se dispara el evento la BD ya quedó al día.
+      try { await apiAgregarFavorito(id); } catch (e) { console.warn(e); }
     } else {
       favs.splice(idx, 1); // splice(posición, cuántos eliminar) → borra 1 elemento
       DC_FAV_CACHE = favs;
-      apiQuitarFavorito(id).catch(console.warn);
+      try { await apiQuitarFavorito(id); } catch (e) { console.warn(e); }
     }
   } else {
     // Visitante: solo guardamos en sessionStorage (sin API)
@@ -619,8 +623,13 @@ async function initFooterContacto() {
       dirEl.href = dir ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(dir) : '#';
     }
     if (horEl) {
-      var horLineas = (cfg.contacto_horario || '').split('|');
-      horEl.textContent = horLineas[0] || '—';
+      // contacto_horario guarda varias líneas separadas por "|" (ej. Lun-Vie,
+      // Sábados, Domingos). Antes solo se mostraba horLineas[0] (la primera),
+      // así que el footer se veía como si solo se abriera de lunes a viernes.
+      // innerHTML + <br> porque necesitamos un salto de línea real dentro
+      // del <span>, un textContent con \n no se ve como salto de línea.
+      var horLineas = (cfg.contacto_horario || '').split('|').map(escapeHtml);
+      horEl.innerHTML = horLineas.length ? horLineas.join('<br>') : '—';
     }
     if (telEl) {
       telEl.textContent = cfg.contacto_telefono || '—';
@@ -633,13 +642,13 @@ async function initFooterContacto() {
 
     // contacto_whatsapp guarda el link listo para usar (ej: https://wa.me/52...),
     // igual que como ya lo usa contacto.html. Por defecto vale "#" (sin
-    // configurar), así que solo activamos el ícono/burbuja si es un valor real.
+    // configurar todavía).
     var waLink = cfg.contacto_whatsapp && cfg.contacto_whatsapp !== '#' ? cfg.contacto_whatsapp : null;
     if (waEl && waLink) waEl.href = waLink;
-    if (waBubble) {
-      if (waLink) { waBubble.href = waLink; waBubble.classList.add('visible'); }
-      else { waBubble.classList.remove('visible'); }
-    }
+    // La burbuja se queda siempre visible (aunque no haya link configurado
+    // todavía) como espacio reservado para el futuro chatbot; si ya hay un
+    // WhatsApp real configurado, la usamos como link mientras tanto.
+    if (waBubble && waLink) waBubble.href = waLink;
   } catch (e) {
     console.warn('No se pudo cargar la info de contacto del footer:', e.message);
   }
@@ -649,16 +658,17 @@ async function initFooterContacto() {
    SECCIÓN: BURBUJA FLOTANTE DE WHATSAPP
    Botón flotante fijo en la esquina inferior derecha, en todas las
    páginas (se inyecta una sola vez, igual que el modal de producto).
-   Arranca oculta y solo se muestra si contacto_whatsapp está
-   configurado de verdad (ver initFooterContacto arriba, que llena
-   el href real y la revela).
+   Siempre visible desde que se inyecta: es el lugar reservado para
+   el futuro chatbot, así que no depende de que WhatsApp esté
+   configurado (ver initFooterContacto arriba, que solo llena el
+   href real cuando existe un número/link de verdad).
 ================================================================ */
 function injectWhatsAppBubble() {
   if (document.getElementById('wa-bubble')) return;
 
   var a = document.createElement('a');
   a.id        = 'wa-bubble';
-  a.className = 'wa-bubble';
+  a.className = 'wa-bubble visible';
   a.href      = '#';
   a.target    = '_blank';
   a.rel       = 'noopener';

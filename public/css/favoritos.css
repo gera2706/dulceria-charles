@@ -34,6 +34,28 @@
 .fav-empty .empty-icon { font-size: 4rem; margin-bottom: 1rem; display: block; }
 .fav-empty h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; color: var(--purple); margin-bottom: 0.5rem; }
 .fav-empty p  { color: var(--text-light); margin-bottom: 1.5rem; }
+.fav-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+.btn-keep-exploring {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 2px solid var(--pink);
+  color: var(--pink);
+  border-radius: 50px;
+  padding: 0.4rem 1rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+}
+.btn-keep-exploring:hover { background: var(--pink); color: #fff; transform: translateY(-1px); }
 .btn-clear-favs {
   background: none;
   border: 2px solid #fca5a5;

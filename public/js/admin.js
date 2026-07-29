@@ -858,10 +858,7 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('cfg-horario').value    = cfg.contacto_horario    || '';
       document.getElementById('cfg-telefono').value   = cfg.contacto_telefono   || '';
       document.getElementById('cfg-email').value      = cfg.contacto_email      || '';
-      document.getElementById('cfg-instagram').value  = cfg.contacto_instagram  || '';
-      document.getElementById('cfg-facebook').value   = cfg.contacto_facebook   || '';
       document.getElementById('cfg-whatsapp').value   = cfg.contacto_whatsapp   || '';
-      document.getElementById('cfg-twitter').value    = cfg.contacto_twitter    || '';
       msgEl.textContent = '';
     } catch (e) {
       msgEl.textContent = 'Error al cargar configuración.';
@@ -880,10 +877,7 @@ document.addEventListener('DOMContentLoaded', function () {
         contacto_horario:    document.getElementById('cfg-horario').value.trim(),
         contacto_telefono:   document.getElementById('cfg-telefono').value.trim(),
         contacto_email:      document.getElementById('cfg-email').value.trim(),
-        contacto_instagram:  document.getElementById('cfg-instagram').value.trim(),
-        contacto_facebook:   document.getElementById('cfg-facebook').value.trim(),
         contacto_whatsapp:   document.getElementById('cfg-whatsapp').value.trim(),
-        contacto_twitter:    document.getElementById('cfg-twitter').value.trim(),
       });
       msgEl.textContent = '✅ Cambios guardados correctamente.';
       msgEl.style.color = '#10b981';

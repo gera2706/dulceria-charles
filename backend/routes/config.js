@@ -51,10 +51,7 @@ router.put('/contacto', adminMiddleware, async (req, res) => {
     'contacto_horario',
     'contacto_telefono',
     'contacto_email',
-    'contacto_instagram',
-    'contacto_facebook',
-    'contacto_whatsapp',
-    'contacto_twitter'
+    'contacto_whatsapp'
   ];
   try {
     // Guardamos cada campo si viene en la petición

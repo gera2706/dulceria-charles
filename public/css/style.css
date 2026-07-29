@@ -832,3 +832,96 @@ ul { list-style: none; }
 .dc-confirm-actions { display: flex; gap: 0.7rem; justify-content: center; }
 .dc-confirm-actions .btn { padding: 0.55rem 1.3rem; font-size: 0.9rem; }
 
+/* ================================================================
+   TRANSICIONES Y ANIMACIONES GLOBALES
+   El sitio ya traía transiciones sueltas en varios componentes
+   (botones, tarjetas, drawer, modal). Esta sección agrega las que
+   faltaban (fundido de entrada, subrayado del menú, blur de fondo
+   en los modales, foco accesible en formularios) y deja curvas de
+   aceleración/duraciones reutilizables como variables, todo usando
+   transform/opacity (no propiedades que disparan reflow) para no
+   afectar el rendimiento. Se respeta prefers-reduced-motion al final.
+================================================================ */
+:root {
+  --ease:     cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 0.25s;
+  --dur-med:  0.5s;
+}
+
+/* Fundido de entrada al cargar cada página */
+body { animation: dcFadeIn 0.5s var(--ease); }
+@keyframes dcFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Subrayado animado en los links del menú de escritorio */
+.nav-links a { position: relative; }
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  left: 0.8rem; right: 0.8rem; bottom: 0.3rem;
+  height: 2px;
+  background: var(--pink);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.nav-links a:hover::after,
+.nav-links a.active::after { transform: scaleX(1); }
+
+/* Ligero desenfoque del fondo al abrir modales/diálogos, además del
+   fundido de opacidad que ya tenían */
+.prod-modal-overlay,
+.dc-confirm-overlay {
+  transition: opacity var(--dur-fast) var(--ease), backdrop-filter var(--dur-fast) var(--ease);
+}
+.prod-modal-overlay.open,
+.dc-confirm-overlay.open { backdrop-filter: blur(5px); }
+
+/* Foco accesible con transición suave (teclado) en toda la página */
+.btn:focus-visible,
+.nav-links a:focus-visible,
+.nav-drawer a:focus-visible,
+.card-fav:focus-visible,
+.product-card .btn-add:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--pink);
+  outline-offset: 2px;
+  transition: outline-offset var(--dur-fast) var(--ease);
+}
+
+/* Anillo de foco consistente en TODOS los inputs de formulario del
+   sitio (antes solo lo tenía auth.css; contacto/pago/mi-cuenta solo
+   cambiaban el borde, sin el resplandor) */
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  box-shadow: 0 0 0 3px rgba(217,76,133,0.15);
+  transition: border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+}
+
+/* Un poco más de "vida" en los botones sin exagerar (hover/active) */
+.btn:hover { transform: translateY(-2px) scale(1.03); }
+.btn:active { transform: translateY(0) scale(0.98); }
+
+/* Micro-interacción: los íconos de categoría "respiran" un poco al
+   pasar el cursor sobre su tarjeta */
+.cat-card:hover .cat-icon { transform: scale(1.12) rotate(-4deg); }
+.cat-icon { transition: transform var(--dur-fast) var(--ease); display: inline-block; }
+
+/* Reduce/anula animaciones para quien activó "reducir movimiento"
+   en su sistema operativo (accesibilidad) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
