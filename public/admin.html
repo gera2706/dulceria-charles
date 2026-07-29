@@ -100,6 +100,12 @@
       <button class="admin-nav-btn" data-section="configuracion">
         <span class="nav-icon">⚙️</span><span>Configuración</span>
       </button>
+
+      <!-- Antes el admin no tenía forma de cambiar de tema: el botón
+           normalmente vive en el footer, y admin.html no tiene footer.
+           cart.js ya busca #dark-toggle en cualquier página, así que
+           con solo agregar el botón aquí queda funcionando. -->
+      <button class="dark-toggle" id="dark-toggle" title="Cambiar tema" style="margin:1.2rem auto 0;">🌙 Modo oscuro</button>
     </aside>
 
     <!-- ============================================================
