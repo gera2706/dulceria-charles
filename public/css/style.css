@@ -474,8 +474,8 @@ ul { list-style: none; }
 /* ===== DARK MODE ===== */
 [data-theme="dark"] {
   --bg:         #1c1530;   /* violeta profundo */
-  --white:      #fcfdfe;   /* titulo */
-  --dark-blue:  #16293b;   /* tarjetas */
+  --white:      #261d3e;   /* tarjetas violeta oscuro */
+  --dark-blue:  #16293b;   /* fondo del modal de producto */
   --text:       #ecdeff;   /* lavanda claro */
   --text-light: #b09dcc;   /* lavanda medio */
   --border:     #3a2d58;
@@ -515,7 +515,11 @@ ul { list-style: none; }
 [data-theme="dark"] .sidebar,
 [data-theme="dark"] .pedido-card,
 [data-theme="dark"] .pedidos-empty,
-[data-theme="dark"] .modal,
+[data-theme="dark"] .modal { background: var(--white); }
+/* El modal de producto usa un azul distinto al resto de las tarjetas
+   (antes esto compartía --white con TODO lo de arriba; se separó
+   para no romper el contraste de auth-card/confirm-items, que
+   también usan --white en otros archivos). */
 [data-theme="dark"] .prod-modal { background: var(--dark-blue); }
 [data-theme="dark"] .product-card .card-img-wrap,
 [data-theme="dark"] .prod-modal-img-wrap {
