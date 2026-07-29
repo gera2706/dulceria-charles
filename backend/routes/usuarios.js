@@ -32,6 +32,11 @@ router.get('/', adminMiddleware, async (req, res) => {
    Cambia el rol de un usuario (de "cliente" a "admin" o viceversa).
    Solo admins pueden hacerlo.
    Recibe: { rol: "admin" | "cliente" }
+   PROTECCIÓN: no se puede quitar el rol admin al ÚLTIMO administrador
+   del sistema (mismo tipo de protección que ya tenía el DELETE de
+   abajo) — si no, alguien podría quitarse a sí mismo o a cualquier
+   otro el rol de admin y dejar la tienda sin nadie que pueda volver
+   a dar permisos de admin, quedando el sistema bloqueado para siempre.
 ------------------------------------------------------------ */
 router.patch('/:id/rol', adminMiddleware, async (req, res) => {
   const { rol } = req.body;
@@ -41,6 +46,17 @@ router.patch('/:id/rol', adminMiddleware, async (req, res) => {
     return res.status(400).json({ error: 'Rol inválido.' });
 
   try {
+    if (rol === 'cliente') {
+      const [target] = await db.query('SELECT rol FROM usuarios WHERE id = ?', [req.params.id]);
+      if (!target.length) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+      if (target[0].rol === 'admin') {
+        const [admins] = await db.query("SELECT COUNT(*) AS n FROM usuarios WHERE rol = 'admin'");
+        if (admins[0].n <= 1)
+          return res.status(400).json({ error: 'No puedes quitarle el rol de admin al único administrador del sistema.' });
+      }
+    }
+
     await db.query('UPDATE usuarios SET rol = ? WHERE id = ?', [rol, req.params.id]);
     res.json({ ok: true });
   } catch (err) {

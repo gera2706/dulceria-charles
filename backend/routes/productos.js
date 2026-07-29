@@ -239,6 +239,28 @@ router.patch('/:id/stock', adminMiddleware, async (req, res) => {
 });
 
 /* ----------------------------------------------------------------
+   RUTA: PATCH /api/productos/:id/destacado
+   PROPÓSITO: Marcar/desmarcar un producto como destacado con un solo
+   clic en la columna "Dest." de la tabla del admin, sin tener que
+   abrir el modal completo de edición.
+   ACCESO: Solo administradores
+   RECIBE: { destacado } → true/false (o 1/0)
+   DEVUELVE: El producto con el campo destacado ya actualizado.
+---------------------------------------------------------------- */
+router.patch('/:id/destacado', adminMiddleware, async (req, res) => {
+  const destacado = req.body.destacado ? 1 : 0;
+  try {
+    await db.query('UPDATE productos SET destacado = ? WHERE id = ?', [destacado, req.params.id]);
+    const [rows] = await db.query('SELECT * FROM productos WHERE id = ?', [req.params.id]);
+    if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado.' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar destacado.' });
+  }
+});
+
+/* ----------------------------------------------------------------
    RUTA: DELETE /api/productos/:id
    PROPÓSITO: "Eliminar" un producto del catálogo.
    ACCESO: Solo administradores

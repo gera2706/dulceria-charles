@@ -218,7 +218,10 @@ document.addEventListener('DOMContentLoaded', function () {
           '<td><span class="admin-badge">' + escapeHtml(p.categoria) + '</span></td>' +
           '<td><strong>' + fmt(p.precio) + '</strong></td>' +
           '<td>' + _stockCellHtml(p) + '</td>' +
-          '<td>' + (p.destacado ? '⭐' : '—') + '</td>' +
+          '<td><button class="btn-star-toggle" data-id="' + p.id + '" title="' +
+            (p.destacado ? 'Quitar de destacados' : 'Marcar como destacado') +
+            '" style="background:none;border:none;cursor:pointer;font-size:1.15rem;line-height:1;padding:0.2rem;">' +
+            (p.destacado ? '⭐' : '☆') + '</button></td>' +
           '<td style="color:var(--text-light);font-size:0.82rem;">' + escapeHtml(p.proveedor || '—') + '</td>' +
           '<td><div class="td-actions">' +
             '<button class="btn-admin-sm btn-edit"   data-id="' + p.id + '">✏️ Editar</button>' +
@@ -247,6 +250,24 @@ document.addEventListener('DOMContentLoaded', function () {
       tbody.querySelectorAll('.stock-manual-input').forEach(function (input) {
         input.addEventListener('keydown', function (e) {
           if (e.key === 'Enter') { e.preventDefault(); _ajustarStockManual(+input.dataset.id, input); }
+        });
+      });
+
+      // Estrella clicable en la columna "Dest.": alterna destacado sin
+      // tener que abrir el modal de edición completo.
+      tbody.querySelectorAll('.btn-star-toggle').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          var id  = +btn.dataset.id;
+          var idx = _allProductos.findIndex(function (p) { return p.id === id; });
+          if (idx === -1) return;
+          var nuevoValor = !_allProductos[idx].destacado;
+          try {
+            var updated = await apiToggleDestacado(id, nuevoValor);
+            _allProductos[idx] = updated;
+            renderProductos();
+          } catch (e) {
+            showToast(e.message);
+          }
         });
       });
     } catch (e) {
@@ -541,18 +562,34 @@ document.addEventListener('DOMContentLoaded', function () {
           '<td>' + (u.fecha_registro ? new Date(u.fecha_registro).toLocaleDateString('es-MX') : '—') + '</td>' +
           '<td>' +
             (u.rol !== 'admin'
-              ? '<button class="btn-admin-sm btn-edit" data-uid="' + u.id + '" data-nombre="' + escapeHtml(u.nombre) + '">👑 Hacer admin</button>'
-              : '<span style="color:var(--text-light);font-size:0.8rem;">—</span>') +
+              ? '<button class="btn-admin-sm btn-edit btn-set-admin" data-uid="' + u.id + '" data-nombre="' + escapeHtml(u.nombre) + '">👑 Hacer admin</button>'
+              : '<button class="btn-admin-sm btn-delete btn-unset-admin" data-uid="' + u.id + '" data-nombre="' + escapeHtml(u.nombre) + '">🚫 Quitar admin</button>') +
           '</td>';
         tbody.appendChild(tr);
       });
 
-      tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
+      tbody.querySelectorAll('.btn-set-admin').forEach(function (btn) {
         btn.addEventListener('click', async function () {
           if (!confirm('¿Dar permisos de administrador a ' + btn.dataset.nombre + '?')) return;
           try {
             await apiCambiarRolUsuario(+btn.dataset.uid, 'admin');
             showToast(btn.dataset.nombre + ' ahora es administrador ✓');
+            renderUsuarios();
+          } catch (e) {
+            alert('Error: ' + e.message);
+          }
+        });
+      });
+
+      // Antes no existía forma de revertir "Hacer admin" desde la UI —
+      // era una acción de un solo sentido. Este botón usa el mismo
+      // endpoint (PATCH /usuarios/:id/rol) pero con rol:'cliente'.
+      tbody.querySelectorAll('.btn-unset-admin').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          if (!confirm('¿Quitar permisos de administrador a ' + btn.dataset.nombre + '? Pasará a ser cliente normal.')) return;
+          try {
+            await apiCambiarRolUsuario(+btn.dataset.uid, 'cliente');
+            showToast(btn.dataset.nombre + ' ya no es administrador ✓');
             renderUsuarios();
           } catch (e) {
             alert('Error: ' + e.message);

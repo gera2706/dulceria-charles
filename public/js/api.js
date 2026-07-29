@@ -210,6 +210,11 @@ async function apiAjustarStock(id, delta) {
 async function apiGetPapelera()          { return apiFetch('/productos/papelera'); }
 async function apiReactivarProducto(id)  { return apiFetch('/productos/' + id + '/reactivar', { method: 'PATCH' }); }
 
+/* Marcar/desmarcar destacado con un clic (columna "Dest." del admin). */
+async function apiToggleDestacado(id, destacado) {
+  return apiFetch('/productos/' + id + '/destacado', { method: 'PATCH', body: JSON.stringify({ destacado }) });
+}
+
 /* ================================================================
    PEDIDOS
 ================================================================ */
