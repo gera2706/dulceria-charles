@@ -418,10 +418,7 @@ ul { list-style: none; }
   text-decoration: none;
 }
 .social-icon:hover { transform: scale(1.15); opacity: 0.9; }
-.social-icon.ig  { background: linear-gradient(135deg,#f09433,#e6683c,#dc2743,#bc1888); }
-.social-icon.fb  { background: #1877f2; }
 .social-icon.wa  { background: #25d366; }
-.social-icon.tw  { background: #000; }
 
 /* Col 2 & 3 — Nav y Contacto */
 .footer-col h5 {
