@@ -503,6 +503,12 @@ ul { list-style: none; }
 [data-theme="dark"] .page-header {
   background: linear-gradient(120deg, #2a2040 0%, #3a2540 100%);
 }
+/* El hero de index.html (css/index.css) tenía fondo rosa claro fijo,
+   nunca se oscurecía en modo oscuro — el texto (var(--text), lavanda
+   claro) quedaba casi ilegible sobre ese fondo claro. */
+[data-theme="dark"] .hero {
+  background: linear-gradient(120deg, #241b3a 0%, #2f2140 100%);
+}
 [data-theme="dark"] .product-card,
 [data-theme="dark"] .cat-card,
 [data-theme="dark"] .cart-item,
