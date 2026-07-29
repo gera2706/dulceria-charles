@@ -19,7 +19,9 @@ function logout() {
   sessionStorage.removeItem('dc_session');
   localStorage.removeItem('dc_token');
   sessionStorage.removeItem('dc_token');
-  localStorage.removeItem('dc_cart');          /* limpiar carrito al cerrar sesión */
+  // El carrito YA NO se borra aquí: se guarda en una clave por usuario
+  // (dc_cart_<id>, ver cart.js) para que siga ahí la próxima vez que
+  // esta misma cuenta inicie sesión, sin mezclarse con la de otra.
   sessionStorage.removeItem('dc_pedido_id');   /* limpiar pedido inconcluso */
   window.location.href = 'index.html';
 }

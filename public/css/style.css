@@ -765,3 +765,32 @@ ul { list-style: none; }
 }
 .cart-badge-bounce { animation: cartBounce 0.42s ease; }
 
+/* ===== BURBUJA FLOTANTE DE WHATSAPP ===== */
+/* Arranca oculta (opacity/scale 0 + pointer-events off) y solo se
+   revela con la clase .visible cuando initFooterContacto() (cart.js)
+   confirma que hay un número/link de WhatsApp configurado de verdad. */
+.wa-bubble {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25d366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  z-index: 500;
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+}
+.wa-bubble.visible { opacity: 1; transform: scale(1); pointer-events: auto; }
+.wa-bubble:hover { transform: scale(1.08); box-shadow: 0 8px 26px rgba(0,0,0,0.38); }
+@media (max-width: 600px) {
+  .wa-bubble { width: 50px; height: 50px; bottom: 18px; right: 18px; }
+  .wa-bubble svg { width: 24px; height: 24px; }
+}
+

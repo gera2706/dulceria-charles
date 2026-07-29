@@ -30,14 +30,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     var horLineas = (cfg.contacto_horario || '').split('|');
     document.getElementById('pickup-horario').innerHTML = horLineas.join('<br>') || '—';
     document.getElementById('pickup-telefono').textContent = cfg.contacto_telefono || '—';
-
-    /* Footer del pago */
-    var fp = document.getElementById('footer-dir');
-    var fh = document.getElementById('footer-hor');
-    var ft = document.getElementById('footer-tel');
-    if (fp) fp.textContent = dir || '—';
-    if (fh) fh.textContent = horLineas[0] || '—';
-    if (ft) ft.textContent = cfg.contacto_telefono || '—';
+    // El footer de contacto ya no se llena aquí — lo hace initFooterContacto()
+    // en cart.js, compartido con el resto de páginas (ver footer-direccion/
+    // footer-horario/footer-telefono más abajo en este mismo archivo HTML).
   } catch (e) {
     console.warn('No se pudo cargar info de pickup:', e.message);
   }

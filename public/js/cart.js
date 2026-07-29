@@ -18,15 +18,19 @@
    una sola vez y queda disponible globalmente.
 
    ESTRATEGIA DE ALMACENAMIENTO DEL CARRITO:
-   ┌────────────────┬──────────────────┬──────────────────────────────┐
-   │ Tipo usuario   │ Dónde se guarda  │ Cuándo se borra              │
-   ├────────────────┼──────────────────┼──────────────────────────────┤
-   │ Visitante      │ sessionStorage   │ Al cerrar la pestaña         │
-   │ Registrado     │ localStorage     │ Solo al vaciar el carrito    │
-   └────────────────┴──────────────────┴──────────────────────────────┘
-   Esto imita el comportamiento de tiendas reales: si eres cliente
-   registrado, tu carrito persiste entre visitas. Si eres visitante,
-   se limpia al cerrar el navegador.
+   ┌────────────────┬────────────────────────────┬────────────────────┐
+   │ Tipo usuario   │ Dónde se guarda            │ Cuándo se borra    │
+   ├────────────────┼────────────────────────────┼────────────────────┤
+   │ Visitante      │ sessionStorage             │ Al cerrar pestaña  │
+   │ Registrado     │ localStorage, por usuario  │ Solo al vaciarlo   │
+   │                │ (clave dc_cart_<id>)       │ a mano             │
+   └────────────────┴────────────────────────────┴────────────────────┘
+   El carrito de cada cuenta se guarda en su PROPIA clave (dc_cart_<id
+   del usuario>), no en una sola clave compartida. Por eso: (1) el
+   carrito de un cliente registrado sigue ahí aunque cierre sesión y
+   vuelva a entrar después, y (2) si otra persona inicia sesión en la
+   misma computadora, nunca ve el carrito de la cuenta anterior — cada
+   quien tiene el suyo, aislado por id de usuario.
 ================================================================ */
 
 /* ================================================================
@@ -71,12 +75,20 @@ function calcTotalPedido(pedido) {
    SECCIÓN: CARRITO DE COMPRAS
 ================================================================ */
 
+/* Clave de localStorage del carrito del usuario logueado — una por
+   cuenta, para que el carrito persista al cerrar sesión SIN mezclarse
+   con el de otra cuenta que inicie sesión después en la misma compu. */
+function _cartKey() {
+  var u = getCurrentUser(); // auth.js
+  return u ? ('dc_cart_' + u.id) : null;
+}
+
 /* Lee el carrito guardado en el storage del navegador.
    Usa JSON.parse porque el storage solo guarda texto, no objetos.
    Si no hay carrito, devuelve un array vacío [] en lugar de null. */
 function getCart() {
   if (isLoggedIn()) {
-    return JSON.parse(localStorage.getItem('dc_cart') || '[]');
+    return JSON.parse(localStorage.getItem(_cartKey()) || '[]');
     // isLoggedIn() está en auth.js, devuelve true si hay sesión activa
   }
   return JSON.parse(sessionStorage.getItem('dc_cart') || '[]');
@@ -87,7 +99,7 @@ function getCart() {
    Después de guardar, actualiza el número del badge en la navbar. */
 function saveCart(c) {
   if (isLoggedIn()) {
-    localStorage.setItem('dc_cart', JSON.stringify(c));
+    localStorage.setItem(_cartKey(), JSON.stringify(c));
     sessionStorage.removeItem('dc_cart'); // limpiamos el otro storage por si quedó algo
   } else {
     sessionStorage.setItem('dc_cart', JSON.stringify(c));
@@ -104,7 +116,8 @@ function saveCart(c) {
 function migrateCartOnLogin() {
   var visitorCart = JSON.parse(sessionStorage.getItem('dc_cart') || '[]');
   if (visitorCart.length) {
-    var userCart = JSON.parse(localStorage.getItem('dc_cart') || '[]');
+    var key      = _cartKey(); // ya hay sesión activa cuando se llama esta función
+    var userCart = JSON.parse(localStorage.getItem(key) || '[]');
 
     visitorCart.forEach(function(item) {
       var existing = userCart.find(function(i) { return i.id === item.id; });
@@ -115,7 +128,7 @@ function migrateCartOnLogin() {
       }
     });
 
-    localStorage.setItem('dc_cart', JSON.stringify(userCart));
+    localStorage.setItem(key, JSON.stringify(userCart));
     sessionStorage.removeItem('dc_cart'); // limpiamos el carrito del visitante
   }
 }
@@ -172,6 +185,13 @@ function toggleFavorite(id) {
   var idx   = favs.indexOf(id);
   var added = idx === -1; // si no estaba en la lista → se va a agregar
 
+  // Quitar un favorito pide confirmación primero (fácil darle sin querer
+  // al corazón); agregar uno no la necesita, es una acción reversible
+  // de un clic. Si cancela, no se toca nada y sigue siendo favorito.
+  if (!added && !confirm('¿Quitar este producto de tus favoritos?')) {
+    return true;
+  }
+
   if (isLoggedIn()) {
     if (added) {
       favs.push(id);
@@ -189,6 +209,8 @@ function toggleFavorite(id) {
     if (added) favs.push(id); else favs.splice(idx, 1);
     sessionStorage.setItem('dc_favorites', JSON.stringify(favs));
   }
+
+  if (!added) showToast('Producto quitado de favoritos', '❤️');
   return added;
 }
 
@@ -310,8 +332,10 @@ async function updatePedidosBadge() {
    El "toast" es el pequeño mensaje que aparece en la esquina
    inferior izquierda cuando agregas algo al carrito.
    Se llama "toast" porque aparece y desaparece como una tostadora.
+   icon es opcional (por defecto 🛒); ej: showToast('...', '❤️') para
+   avisos de favoritos en vez del carrito.
 ================================================================ */
-function showToast(msg) {
+function showToast(msg, icon) {
   var toast = document.getElementById('dc-toast');
 
   // Si el elemento no existe aún, lo creamos dinámicamente
@@ -335,7 +359,7 @@ function showToast(msg) {
     document.body.appendChild(toast);
   }
 
-  toast.textContent     = '🛒 ' + msg;
+  toast.textContent     = (icon || '🛒') + ' ' + msg;
   toast.style.transform = 'translateX(0)';  // desliza hacia adentro
   toast.style.opacity   = '1';
 
@@ -497,6 +521,87 @@ function closeProductModal() {
 }
 
 /* ================================================================
+   SECCIÓN: FOOTER DE CONTACTO (dirección/horario/teléfono/email)
+   Antes esta info estaba escrita a mano en el footer de cada página
+   (texto fijo), así que cuando el admin la cambiaba en Configuración
+   el footer se quedaba desactualizado — solo pago.html la cargaba
+   dinámicamente, y con su propia copia de este mismo código.
+   Ahora una sola función llena el footer en TODAS las páginas que
+   tengan estos elementos (se busca por id; si una página no los
+   tiene, no hace nada) y de paso los deja como links de verdad
+   (dirección → Google Maps, teléfono → tel:, correo → mailto:).
+================================================================ */
+async function initFooterContacto() {
+  var dirEl  = document.getElementById('footer-direccion');
+  var horEl  = document.getElementById('footer-horario');
+  var telEl  = document.getElementById('footer-telefono');
+  var mailEl = document.getElementById('footer-email');
+  var waEl   = document.getElementById('footer-whatsapp');
+  var waBubble = document.getElementById('wa-bubble');
+  if (!dirEl && !horEl && !telEl && !mailEl && !waEl && !waBubble) return; // esta página no tiene nada de esto
+  if (typeof apiGetContacto !== 'function') return;  // por si api.js no cargó (no debería pasar)
+
+  try {
+    var cfg = await apiGetContacto();
+    var dir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? ', ' + cfg.contacto_ciudad : '');
+
+    if (dirEl) {
+      dirEl.textContent = dir || 'Ver dirección';
+      dirEl.href = dir ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(dir) : '#';
+    }
+    if (horEl) {
+      var horLineas = (cfg.contacto_horario || '').split('|');
+      horEl.textContent = horLineas[0] || '—';
+    }
+    if (telEl) {
+      telEl.textContent = cfg.contacto_telefono || '—';
+      telEl.href = cfg.contacto_telefono ? 'tel:' + cfg.contacto_telefono.replace(/[^\d+]/g, '') : '#';
+    }
+    if (mailEl) {
+      mailEl.textContent = cfg.contacto_email || '—';
+      mailEl.href = cfg.contacto_email ? 'mailto:' + cfg.contacto_email : '#';
+    }
+
+    // contacto_whatsapp guarda el link listo para usar (ej: https://wa.me/52...),
+    // igual que como ya lo usa contacto.html. Por defecto vale "#" (sin
+    // configurar), así que solo activamos el ícono/burbuja si es un valor real.
+    var waLink = cfg.contacto_whatsapp && cfg.contacto_whatsapp !== '#' ? cfg.contacto_whatsapp : null;
+    if (waEl && waLink) waEl.href = waLink;
+    if (waBubble) {
+      if (waLink) { waBubble.href = waLink; waBubble.classList.add('visible'); }
+      else { waBubble.classList.remove('visible'); }
+    }
+  } catch (e) {
+    console.warn('No se pudo cargar la info de contacto del footer:', e.message);
+  }
+}
+
+/* ================================================================
+   SECCIÓN: BURBUJA FLOTANTE DE WHATSAPP
+   Botón flotante fijo en la esquina inferior derecha, en todas las
+   páginas (se inyecta una sola vez, igual que el modal de producto).
+   Arranca oculta y solo se muestra si contacto_whatsapp está
+   configurado de verdad (ver initFooterContacto arriba, que llena
+   el href real y la revela).
+================================================================ */
+function injectWhatsAppBubble() {
+  if (document.getElementById('wa-bubble')) return;
+
+  var a = document.createElement('a');
+  a.id        = 'wa-bubble';
+  a.className = 'wa-bubble';
+  a.href      = '#';
+  a.target    = '_blank';
+  a.rel       = 'noopener';
+  a.title     = 'Escríbenos por WhatsApp';
+  a.innerHTML =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="28" height="28">' +
+    '<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>' +
+    '</svg>';
+  document.body.appendChild(a);
+}
+
+/* ================================================================
    SECCIÓN: SCROLL REVEAL
    Efecto de aparición suave de elementos al hacer scroll.
    Los elementos con la clase "reveal" en el HTML están inicialmente
@@ -554,6 +659,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   /* 4. Iniciar el efecto de scroll reveal */
   initReveal();
+
+  /* 4b. Inyectar la burbuja de WhatsApp y llenar el footer de contacto
+     (dirección/horario/tel/email/whatsapp) — la misma llamada activa
+     ambos, ver initFooterContacto(). */
+  injectWhatsAppBubble();
+  initFooterContacto();
 
   /* 5. Inicializar el drawer de autenticación (definido en auth.js) */
   initAuthDrawer();
