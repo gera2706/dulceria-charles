@@ -179,8 +179,13 @@ function isFavorite(id) { return getFavorites().indexOf(id) !== -1; }
    Si ya era favorito → lo quita. Si no era → lo agrega.
    Para usuarios registrados: actualiza el caché LOCAL inmediatamente
    (para que la UI responda rápido) y luego llama a la API en segundo plano.
-   Devuelve true si se AGREGÓ, false si se QUITÓ. */
-function toggleFavorite(id) {
+   Devuelve una Promise<boolean>: true si quedó como AGREGADO, false si
+   quedó como QUITADO (o si canceló el diálogo, sigue siendo favorito
+   → también true). Es async porque el diálogo de confirmación (más
+   abajo, dcConfirm) es una ventana propia del sitio, no el confirm()
+   nativo del navegador — hay que esperar a que la persona le dé clic
+   a un botón. */
+async function toggleFavorite(id) {
   var favs  = getFavorites();
   var idx   = favs.indexOf(id);
   var added = idx === -1; // si no estaba en la lista → se va a agregar
@@ -188,7 +193,7 @@ function toggleFavorite(id) {
   // Quitar un favorito pide confirmación primero (fácil darle sin querer
   // al corazón); agregar uno no la necesita, es una acción reversible
   // de un clic. Si cancela, no se toca nada y sigue siendo favorito.
-  if (!added && !confirm('¿Quitar este producto de tus favoritos?')) {
+  if (!added && !(await dcConfirm('¿Quitar este producto de tus favoritos?', 'Quitar'))) {
     return true;
   }
 
@@ -211,6 +216,14 @@ function toggleFavorite(id) {
   }
 
   if (!added) showToast('Producto quitado de favoritos', '❤️');
+
+  // Aviso para quien necesite reaccionar al cambio real (ej: favoritos.js
+  // recargando su lista) en vez de adivinar con un setTimeout si ya
+  // terminó — antes eso asumía que el confirm() nativo (síncrono) ya
+  // había bloqueado hasta que la persona respondiera; con el diálogo
+  // propio (async) esa suposición ya no aplica.
+  document.dispatchEvent(new CustomEvent('dc:favtoggle', { detail: { id: id, added: added } }));
+
   return added;
 }
 
@@ -373,6 +386,62 @@ function showToast(msg, icon) {
 }
 
 /* ================================================================
+   SECCIÓN: DIÁLOGO DE CONFIRMACIÓN PROPIO
+   Reemplaza al confirm() nativo del navegador (el recuadro feo que
+   dice "localhost:3000 dice...") por una ventana con el estilo del
+   sitio. Se inyecta una sola vez, igual que el modal de producto.
+   Uso: var ok = await dcConfirm('¿Seguro?', 'Quitar');
+================================================================ */
+function _injectConfirmDialog() {
+  if (document.getElementById('dc-confirm-overlay')) return;
+
+  var overlay = document.createElement('div');
+  overlay.id        = 'dc-confirm-overlay';
+  overlay.className = 'dc-confirm-overlay';
+  overlay.innerHTML =
+    '<div class="dc-confirm-box">' +
+      '<p class="dc-confirm-msg" id="dc-confirm-msg"></p>' +
+      '<div class="dc-confirm-actions">' +
+        '<button class="btn btn-outline" id="dc-confirm-cancel">Cancelar</button>' +
+        '<button class="btn btn-primary" id="dc-confirm-ok">Confirmar</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function dcConfirm(msg, okLabel) {
+  _injectConfirmDialog();
+  return new Promise(function (resolve) {
+    var overlay = document.getElementById('dc-confirm-overlay');
+    var msgEl   = document.getElementById('dc-confirm-msg');
+    var okBtn   = document.getElementById('dc-confirm-ok');
+    var noBtn   = document.getElementById('dc-confirm-cancel');
+
+    msgEl.textContent = msg;
+    okBtn.textContent = okLabel || 'Confirmar';
+
+    function finish(result) {
+      overlay.classList.remove('open');
+      okBtn.removeEventListener('click', onOk);
+      noBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlayClick);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    }
+    function onOk()       { finish(true); }
+    function onCancel()   { finish(false); }
+    function onOverlayClick(e) { if (e.target === overlay) finish(false); }
+    function onKeydown(e) { if (e.key === 'Escape') finish(false); }
+
+    okBtn.addEventListener('click', onOk);
+    noBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeydown);
+    overlay.classList.add('open');
+  });
+}
+
+/* ================================================================
    SECCIÓN: MODO OSCURO
    Guarda la preferencia del tema en localStorage para que
    persista entre páginas y sesiones.
@@ -485,8 +554,8 @@ function openProductModal(productId) {
   _updateModalFavBtn(favBtn, isFavorite(productId));
 
   // Al hacer clic en el corazón: alternar favorito y actualizar el botón
-  favBtn.onclick = function() {
-    var nowFav = toggleFavorite(productId);
+  favBtn.onclick = async function() {
+    var nowFav = await toggleFavorite(productId);
     _updateModalFavBtn(favBtn, nowFav);
     // También actualizamos el corazón en la tarjeta del catálogo (si está visible)
     var cardHeart = document.querySelector('.card-fav[data-id="' + productId + '"]');
@@ -770,9 +839,9 @@ function buildProductCard(product) {
 
   /* Clic en el corazón → toggle de favorito
      e.stopPropagation() evita que el clic "suba" al card-img-wrap y abra el modal */
-  card.querySelector('.card-fav').addEventListener('click', function(e) {
+  card.querySelector('.card-fav').addEventListener('click', async function(e) {
     e.stopPropagation();
-    var nowFav = toggleFavorite(product.id);
+    var nowFav = await toggleFavorite(product.id);
     this.innerHTML = nowFav ? '&#10084;&#65039;' : '&#9825;';
     this.title     = nowFav ? 'Quitar de favoritos' : 'Favorito';
     this.classList.toggle('active', nowFav);

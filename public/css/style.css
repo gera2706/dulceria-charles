@@ -794,3 +794,41 @@ ul { list-style: none; }
   .wa-bubble svg { width: 24px; height: 24px; }
 }
 
+/* ===== DIÁLOGO DE CONFIRMACIÓN PROPIO ===== */
+/* Reemplaza al confirm() nativo del navegador (que muestra el nombre
+   del sitio y se ve distinto en cada navegador) por uno con el
+   mismo estilo que el resto del sitio. Ver dcConfirm() en cart.js. */
+.dc-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,10,25,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.dc-confirm-overlay.open { opacity: 1; pointer-events: auto; }
+.dc-confirm-box {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 1.8rem;
+  max-width: 340px;
+  width: 90%;
+  text-align: center;
+  transform: scale(0.92);
+  transition: transform 0.2s ease;
+}
+.dc-confirm-overlay.open .dc-confirm-box { transform: scale(1); }
+.dc-confirm-msg {
+  font-size: 0.98rem;
+  color: var(--text);
+  margin-bottom: 1.4rem;
+  line-height: 1.5;
+}
+.dc-confirm-actions { display: flex; gap: 0.7rem; justify-content: center; }
+.dc-confirm-actions .btn { padding: 0.55rem 1.3rem; font-size: 0.9rem; }
+

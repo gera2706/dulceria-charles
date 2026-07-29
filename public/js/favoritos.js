@@ -37,14 +37,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     products.forEach(function (p) { grid.appendChild(buildProductCard(p)); });
   }
 
-  /* Quitar favorito → recargar vista */
-  document.addEventListener('click', function (e) {
-    if (e.target.closest('.card-fav')) setTimeout(render, 300);
-  });
+  /* Quitar favorito → recargar vista. Antes esto adivinaba con un
+     setTimeout(render, 300) asumiendo que el confirm() nativo (síncrono)
+     ya había terminado; ahora toggleFavorite() usa un diálogo propio
+     (asíncrono, tarda lo que la persona tarde en responder) y avisa con
+     este evento cuando de verdad terminó. */
+  document.addEventListener('dc:favtoggle', function () { render(); });
 
   /* Limpiar todos */
   clearBtn.addEventListener('click', async function () {
-    if (!confirm('¿Quitar todos los favoritos?')) return;
+    if (!(await dcConfirm('¿Quitar todos los favoritos?', 'Quitar todos'))) return;
     var ids = getFavorites().slice();
     for (var i = 0; i < ids.length; i++) {
       try { await apiQuitarFavorito(ids[i]); } catch(e) {}
