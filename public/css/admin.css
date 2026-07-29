@@ -393,6 +393,15 @@
 [data-theme="dark"] .admin-form-group textarea { background: #2e2249; border-color: #4a3870; color: var(--text); }
 [data-theme="dark"] .admin-search { background: #2e2249; border-color: #4a3870; color: var(--text); }
 [data-theme="dark"] .admin-table img { background: #2e2249; }
+/* .stock-badge y .role-badge usaban colores oscuros (#0d6b4d, #92400e,
+   #7f1d1d...) pensados para fondo blanco — en modo oscuro quedaban
+   casi ilegibles sobre las tarjetas oscuras. Versiones más brillantes
+   y con más opacidad de fondo para que resalten. */
+[data-theme="dark"] .stock-badge.ok      { background: rgba(52,211,153,0.25); color: #6ee7b7; }
+[data-theme="dark"] .stock-badge.bajo    { background: rgba(251,191,36,0.25); color: #fcd34d; }
+[data-theme="dark"] .stock-badge.agotado { background: rgba(248,113,113,0.25); color: #fca5a5; }
+[data-theme="dark"] .role-badge.admin    { background: rgba(251,191,36,0.25); color: #fcd34d; }
+[data-theme="dark"] .role-badge.cliente  { background: rgba(52,211,153,0.25); color: #6ee7b7; }
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
