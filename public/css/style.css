@@ -250,7 +250,13 @@ ul { list-style: none; }
 /* ===== PAGE HEADER ===== */
 .page-header {
   background: linear-gradient(120deg, #4a3163 0%, #6b3f63 100%);
-  color: var(--white);
+  /* Color de texto fijo en blanco (NO var(--white)): el fondo de este
+     banner siempre es morado oscuro, tanto en modo claro como en modo
+     oscuro (ver el override [data-theme="dark"] .page-header más abajo).
+     Usar var(--white) aquí rompía el contraste en modo oscuro, porque
+     ahí --white significa "superficie de tarjeta" (violeta oscuro),
+     no "blanco" — texto oscuro sobre fondo oscuro, casi ilegible. */
+  color: #fff;
   text-align: center;
   padding: 3.2rem 1rem 2.2rem;
 }
@@ -503,11 +509,15 @@ ul { list-style: none; }
 [data-theme="dark"] .page-header {
   background: linear-gradient(120deg, #2a2040 0%, #3a2540 100%);
 }
-/* El hero de index.html (css/index.css) tenía fondo rosa claro fijo,
-   nunca se oscurecía en modo oscuro — el texto (var(--text), lavanda
-   claro) quedaba casi ilegible sobre ese fondo claro. */
+/* El hero y el promo-banner de index.html (css/index.css) tenían
+   fondo claro fijo, nunca se oscurecía en modo oscuro — el texto
+   (var(--text), lavanda claro) quedaba casi ilegible sobre ese fondo
+   claro. Mismo arreglo para los dos. */
 [data-theme="dark"] .hero {
   background: linear-gradient(120deg, #241b3a 0%, #2f2140 100%);
+}
+[data-theme="dark"] .promo-banner {
+  background: linear-gradient(120deg, #2f2140 0%, #241b3a 100%);
 }
 [data-theme="dark"] .product-card,
 [data-theme="dark"] .cat-card,
