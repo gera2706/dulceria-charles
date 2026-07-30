@@ -594,6 +594,48 @@ function closeProductModal() {
 }
 
 /* ================================================================
+   SECCIÓN: CONFIG DE CONTACTO EN CACHÉ
+   apiGetContacto() la necesitan tanto initFooterContacto() como el
+   chatbot del sitio (ver más abajo). En vez de pedirla dos veces al
+   servidor en cada página, se pide una sola vez por carga de página
+   y se comparte la misma promesa entre ambos.
+================================================================ */
+var _contactoCfgPromise = null;
+function getContactoCfg() {
+  if (!_contactoCfgPromise) {
+    _contactoCfgPromise = (typeof apiGetContacto === 'function')
+      ? apiGetContacto().catch(function (e) {
+          console.warn('No se pudo cargar la info de contacto:', e.message);
+          return {}; // valores por defecto: el resto del código ya sabe mostrar "—"/placeholders
+        })
+      : Promise.resolve({});
+  }
+  return _contactoCfgPromise;
+}
+
+/* Link de WhatsApp a partir de la config de contacto.
+   Si el campo "WhatsApp" de Configuración no se llenó a propósito
+   (sigue en "#", el valor por defecto), se arma automáticamente con
+   el teléfono de contacto — en la mayoría de los negocios chicos es
+   el mismo número — para que el botón/ícono no se quede muerto solo
+   por no haber llenado ese campo aparte. Si de plano no hay ni
+   teléfono ni WhatsApp configurado, devuelve null. */
+function getWaLink(cfg) {
+  if (cfg.contacto_whatsapp && cfg.contacto_whatsapp !== '#') return cfg.contacto_whatsapp;
+  var digits = (cfg.contacto_telefono || '').replace(/\D/g, '');
+  return digits.length >= 10 ? 'https://wa.me/' + digits : null;
+}
+
+/* Link "tel:" para el teléfono de contacto. Abre el marcador nativo del
+   dispositivo con el número ya cargado — el cliente sigue siendo quien
+   decide si presiona "Llamar", esto solo evita que tenga que copiar/marcar
+   el número a mano. Se usa en todos los lugares donde el número aparece
+   al público (footer, página de Contacto, pickup del checkout, comprobante). */
+function telHref(phone) {
+  return phone ? 'tel:' + phone.replace(/[^\d+]/g, '') : null;
+}
+
+/* ================================================================
    SECCIÓN: FOOTER DE CONTACTO (dirección/horario/teléfono/email)
    Antes esta info estaba escrita a mano en el footer de cada página
    (texto fijo), así que cuando el admin la cambiaba en Configuración
@@ -610,74 +652,290 @@ async function initFooterContacto() {
   var telEl  = document.getElementById('footer-telefono');
   var mailEl = document.getElementById('footer-email');
   var waEl   = document.getElementById('footer-whatsapp');
-  var waBubble = document.getElementById('wa-bubble');
-  if (!dirEl && !horEl && !telEl && !mailEl && !waEl && !waBubble) return; // esta página no tiene nada de esto
-  if (typeof apiGetContacto !== 'function') return;  // por si api.js no cargó (no debería pasar)
+  if (!dirEl && !horEl && !telEl && !mailEl && !waEl) return; // esta página no tiene nada de esto
 
-  try {
-    var cfg = await apiGetContacto();
-    var dir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? ', ' + cfg.contacto_ciudad : '');
+  var cfg = await getContactoCfg();
+  var dir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? ', ' + cfg.contacto_ciudad : '');
 
-    if (dirEl) {
-      dirEl.textContent = dir || 'Ver dirección';
-      dirEl.href = dir ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(dir) : '#';
-    }
-    if (horEl) {
-      // contacto_horario guarda varias líneas separadas por "|" (ej. Lun-Vie,
-      // Sábados, Domingos). Antes solo se mostraba horLineas[0] (la primera),
-      // así que el footer se veía como si solo se abriera de lunes a viernes.
-      // innerHTML + <br> porque necesitamos un salto de línea real dentro
-      // del <span>, un textContent con \n no se ve como salto de línea.
-      var horLineas = (cfg.contacto_horario || '').split('|').map(escapeHtml);
-      horEl.innerHTML = horLineas.length ? horLineas.join('<br>') : '—';
-    }
-    if (telEl) {
-      telEl.textContent = cfg.contacto_telefono || '—';
-      telEl.href = cfg.contacto_telefono ? 'tel:' + cfg.contacto_telefono.replace(/[^\d+]/g, '') : '#';
-    }
-    if (mailEl) {
-      mailEl.textContent = cfg.contacto_email || '—';
-      mailEl.href = cfg.contacto_email ? 'mailto:' + cfg.contacto_email : '#';
-    }
-
-    // contacto_whatsapp guarda el link listo para usar (ej: https://wa.me/52...),
-    // igual que como ya lo usa contacto.html. Por defecto vale "#" (sin
-    // configurar todavía).
-    var waLink = cfg.contacto_whatsapp && cfg.contacto_whatsapp !== '#' ? cfg.contacto_whatsapp : null;
-    if (waEl && waLink) waEl.href = waLink;
-    // La burbuja se queda siempre visible (aunque no haya link configurado
-    // todavía) como espacio reservado para el futuro chatbot; si ya hay un
-    // WhatsApp real configurado, la usamos como link mientras tanto.
-    if (waBubble && waLink) waBubble.href = waLink;
-  } catch (e) {
-    console.warn('No se pudo cargar la info de contacto del footer:', e.message);
+  if (dirEl) {
+    dirEl.textContent = dir || 'Ver dirección';
+    dirEl.href = dir ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(dir) : '#';
   }
+  if (horEl) {
+    // contacto_horario guarda varias líneas separadas por "|" (ej. Lun-Vie,
+    // Sábados, Domingos). Antes solo se mostraba horLineas[0] (la primera),
+    // así que el footer se veía como si solo se abriera de lunes a viernes.
+    // innerHTML + <br> porque necesitamos un salto de línea real dentro
+    // del <span>, un textContent con \n no se ve como salto de línea.
+    var horLineas = (cfg.contacto_horario || '').split('|').map(escapeHtml);
+    horEl.innerHTML = horLineas.length ? horLineas.join('<br>') : '—';
+  }
+  if (telEl) {
+    telEl.textContent = cfg.contacto_telefono || '—';
+    telEl.href = telHref(cfg.contacto_telefono) || '#';
+  }
+  if (mailEl) {
+    mailEl.textContent = cfg.contacto_email || '—';
+    mailEl.href = cfg.contacto_email ? 'mailto:' + cfg.contacto_email : '#';
+  }
+
+  var waLink = getWaLink(cfg);
+  if (waEl && waLink) waEl.href = waLink;
 }
 
 /* ================================================================
-   SECCIÓN: BURBUJA FLOTANTE DE WHATSAPP
+   SECCIÓN: BURBUJA FLOTANTE (abre el chat del sitio)
    Botón flotante fijo en la esquina inferior derecha, en todas las
    páginas (se inyecta una sola vez, igual que el modal de producto).
-   Siempre visible desde que se inyecta: es el lugar reservado para
-   el futuro chatbot, así que no depende de que WhatsApp esté
-   configurado (ver initFooterContacto arriba, que solo llena el
-   href real cuando existe un número/link de verdad).
+   Ya no es un link directo a WhatsApp: ahora abre/cierra el panel
+   del chatbot del sitio (ver injectChatWidget más abajo), que a su
+   vez ofrece un botón para continuar la conversación por el
+   WhatsApp real cuando esté configurado.
 ================================================================ */
 function injectWhatsAppBubble() {
   if (document.getElementById('wa-bubble')) return;
 
-  var a = document.createElement('a');
-  a.id        = 'wa-bubble';
-  a.className = 'wa-bubble visible';
-  a.href      = '#';
-  a.target    = '_blank';
-  a.rel       = 'noopener';
-  a.title     = 'Escríbenos por WhatsApp';
-  a.innerHTML =
+  var btn = document.createElement('button');
+  btn.type      = 'button';
+  btn.id        = 'wa-bubble';
+  btn.className = 'wa-bubble visible';
+  btn.title     = 'Chat de Dulcería Charles';
+  btn.setAttribute('aria-label', 'Abrir chat');
+  btn.setAttribute('aria-haspopup', 'dialog');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.innerHTML =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="28" height="28">' +
     '<path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>' +
     '</svg>';
-  document.body.appendChild(a);
+  document.body.appendChild(btn);
+
+  btn.addEventListener('click', toggleChatPanel);
+}
+
+/* ================================================================
+   SECCIÓN: CHATBOT DEL SITIO
+   Widget de chat propio (no es WhatsApp, corre solo en la página).
+   Contesta preguntas frecuentes con la misma info de Configuración >
+   Contacto que ya usa el footer (horario, dirección, WhatsApp...),
+   por botones rápidos o texto libre con reconocimiento por palabras
+   clave. Para lo que no sabe contestar — o si el cliente prefiere
+   hablar con alguien — siempre ofrece un botón para seguir la
+   conversación por el WhatsApp real del negocio, con el mensaje ya
+   escrito según lo que preguntó. Se abre/cierra con el botón
+   flotante (#wa-bubble).
+================================================================ */
+var CHAT_MENU = [
+  { key: 'horario',  label: '📍 Ubicación y horario' },
+  { key: 'pedido',   label: '🛍️ ¿Cómo hago un pedido?' },
+  { key: 'catalogo', label: '🍬 Ver catálogo' },
+  { key: 'pago',     label: '💳 Métodos de pago' },
+  { key: 'estado',   label: '📦 Estado de mi pedido' },
+  { key: 'humano',   label: '💬 Hablar con una persona' }
+];
+
+// Palabras clave para cuando el cliente escribe libre en vez de tocar un botón.
+var CHAT_KEYWORDS = [
+  { key: 'horario',  words: ['horario', 'hora', 'abren', 'cierran', 'direccion', 'ubicacion', 'domicilio', 'donde estan', 'donde queda'] },
+  { key: 'pedido',   words: ['como pido', 'como compro', 'hacer un pedido', 'como funciona', 'proceso de compra'] },
+  { key: 'catalogo', words: ['catalogo', 'productos', 'que venden', 'bombones', 'chocolates', 'gomitas', 'mazapanes', 'botanas', 'enchilados', 'paletas', 'refrescos', 'dulces'] },
+  { key: 'pago',     words: ['pago', 'pagar', 'efectivo', 'tarjeta', 'transferencia', 'metodo de pago'] },
+  { key: 'estado',   words: ['mi pedido', 'estado de mi pedido', 'donde va mi pedido', 'rastrear', 'numero de pedido'] },
+  { key: 'humano',   words: ['whatsapp', 'humano', 'persona', 'asesor', 'hablar con alguien', 'atencion'] }
+];
+
+var _chatLastUserText = ''; // último texto del cliente, para armar el mensaje del CTA de WhatsApp
+
+function _stripAccents(s) {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function chatMatchKeyword(text) {
+  var norm = _stripAccents(text.toLowerCase());
+  for (var i = 0; i < CHAT_KEYWORDS.length; i++) {
+    var group = CHAT_KEYWORDS[i];
+    for (var j = 0; j < group.words.length; j++) {
+      if (norm.indexOf(group.words[j]) !== -1) return group.key;
+    }
+  }
+  return null;
+}
+
+// Arma la respuesta de cada tema con datos reales de Configuración > Contacto.
+function chatAnswerFor(key, cfg) {
+  switch (key) {
+    case 'horario': {
+      var dir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? ', ' + cfg.contacto_ciudad : '');
+      var horLineas = (cfg.contacto_horario || '').split('|').map(function (s) { return s.trim(); }).filter(Boolean);
+      var hor = horLineas.length ? horLineas.join(' · ') : 'consulta el horario en la página de Contacto';
+      return '📍 ' + (dir || 'Puedes ver nuestra dirección en la página de Contacto') + '\n🕒 ' + hor;
+    }
+    case 'pedido':
+      return 'Es bien fácil: 1️⃣ elige tus productos y agrégalos al carrito 🛒, 2️⃣ ve a pagar y confirma tus datos, 3️⃣ pasas a recoger tu pedido a la tienda y pagas en efectivo al recogerlo 💵.';
+    case 'catalogo':
+      return 'Tenemos bombones, botanas, chocolates, enchilados, gomitas, mazapanes, paletas y refrescos 🍬.';
+    case 'pago':
+      return 'Por ahora solo manejamos pago en efectivo, directo al recoger tu pedido en tienda 💵.';
+    case 'estado':
+      return 'Puedes ver el estado de todos tus pedidos desde tu cuenta.';
+    default:
+      return null;
+  }
+}
+
+function injectChatWidget() {
+  if (document.getElementById('dc-chat-panel')) return;
+
+  var panel = document.createElement('div');
+  panel.id = 'dc-chat-panel';
+  panel.className = 'dc-chat-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', 'Chat de Dulcería Charles');
+  panel.setAttribute('aria-hidden', 'true');
+  panel.innerHTML =
+    '<div class="dc-chat-header">' +
+      '<div class="dc-chat-header-info">' +
+        '<span class="dc-chat-avatar">🍬</span>' +
+        '<div><strong>Dulcería Charles</strong><span class="dc-chat-status">Asistente del sitio</span></div>' +
+      '</div>' +
+      '<button type="button" class="dc-chat-close" id="dc-chat-close" aria-label="Cerrar chat">✕</button>' +
+    '</div>' +
+    '<div class="dc-chat-body" id="dc-chat-body"></div>' +
+    '<div class="dc-chat-quick" id="dc-chat-quick"></div>' +
+    '<form class="dc-chat-input-row" id="dc-chat-form">' +
+      '<input type="text" class="dc-chat-input" id="dc-chat-input" placeholder="Escribe tu pregunta…" autocomplete="off" />' +
+      '<button type="submit" class="dc-chat-send" aria-label="Enviar mensaje">➤</button>' +
+    '</form>' +
+    '<a href="#" target="_blank" rel="noopener" class="dc-chat-wa-cta" id="dc-chat-wa-cta">💬 Continuar por WhatsApp</a>';
+  document.body.appendChild(panel);
+
+  document.getElementById('dc-chat-close').addEventListener('click', closeChatPanel);
+
+  document.getElementById('dc-chat-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var input = document.getElementById('dc-chat-input');
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    chatHandleQuestion(chatMatchKeyword(text), text);
+  });
+
+  chatRenderQuickReplies();
+  chatUpdateWaCta();
+}
+
+function chatRenderQuickReplies() {
+  var wrap = document.getElementById('dc-chat-quick');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  CHAT_MENU.forEach(function (item) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dc-quick-btn';
+    btn.textContent = item.label;
+    btn.addEventListener('click', function () { chatHandleQuestion(item.key, item.label); });
+    wrap.appendChild(btn);
+  });
+}
+
+function chatAddMessage(text, from) {
+  var body = document.getElementById('dc-chat-body');
+  if (!body) return null;
+  var msg = document.createElement('div');
+  msg.className = 'dc-msg ' + (from === 'user' ? 'user' : 'bot');
+  msg.innerHTML = escapeHtml(text).replace(/\n/g, '<br>'); // escapado: el texto del cliente pasa por aquí también
+  body.appendChild(msg);
+  body.scrollTop = body.scrollHeight;
+  return msg;
+}
+
+function chatAddLinkMessage(text, href, label) {
+  var msg = chatAddMessage(text, 'bot');
+  if (!msg) return;
+  msg.appendChild(document.createElement('br'));
+  var a = document.createElement('a');
+  a.href = href;
+  a.className = 'dc-msg-link';
+  a.textContent = label;
+  msg.appendChild(a);
+}
+
+// Punto de entrada único: lo llaman tanto los botones rápidos (key conocida)
+// como el texto libre (key puede salir null de chatMatchKeyword).
+async function chatHandleQuestion(key, userText) {
+  chatAddMessage(userText, 'user');
+  _chatLastUserText = userText;
+  chatUpdateWaCta();
+
+  if (key === 'humano') {
+    chatAddMessage('Claro, te comunico con nosotros 👇 toca el botón verde de abajo para seguir por WhatsApp.', 'bot');
+    return;
+  }
+  if (!key) {
+    chatAddMessage('No estoy seguro de eso todavía 🤔 Puedo ayudarte con horario, cómo pedir, catálogo, pagos o el estado de tu pedido — o escríbenos por WhatsApp con el botón de abajo.', 'bot');
+    return;
+  }
+
+  var cfg = await getContactoCfg();
+  var answer = chatAnswerFor(key, cfg);
+  if (key === 'catalogo') {
+    chatAddLinkMessage(answer, 'catalogo.html', '🍬 Ir al catálogo →');
+  } else if (key === 'estado') {
+    var href = (typeof isLoggedIn === 'function' && isLoggedIn()) ? 'pedidos.html' : 'login.html';
+    chatAddLinkMessage(answer, href, '📦 Ver mis pedidos →');
+  } else {
+    chatAddMessage(answer, 'bot');
+  }
+}
+
+// Mantiene el botón verde "Continuar por WhatsApp" con el link real y el
+// mensaje pre-escrito según lo último que haya preguntado el cliente.
+function chatUpdateWaCta() {
+  var cta = document.getElementById('dc-chat-wa-cta');
+  if (!cta) return;
+  getContactoCfg().then(function (cfg) {
+    var waLink = getWaLink(cfg);
+    if (!waLink) {
+      cta.classList.add('dc-chat-wa-cta--disabled');
+      cta.removeAttribute('href');
+      return;
+    }
+    var msg = _chatLastUserText
+      ? 'Hola, vengo del chat de la página. Mi pregunta: ' + _chatLastUserText
+      : 'Hola, vengo del chat de la página y quisiera más información 🍬';
+    var sep = waLink.indexOf('?') > -1 ? '&' : '?';
+    cta.href = waLink + sep + 'text=' + encodeURIComponent(msg);
+    cta.classList.remove('dc-chat-wa-cta--disabled');
+  });
+}
+
+function openChatPanel() {
+  var panel  = document.getElementById('dc-chat-panel');
+  var bubble = document.getElementById('wa-bubble');
+  if (!panel) return;
+  if (!panel.dataset.greeted) {
+    chatAddMessage('¡Hola! 👋 Soy el asistente de Dulcería Charles. Toca una opción de abajo o escríbeme tu pregunta.', 'bot');
+    panel.dataset.greeted = '1';
+  }
+  panel.classList.add('open');
+  panel.setAttribute('aria-hidden', 'false');
+  if (bubble) bubble.setAttribute('aria-expanded', 'true');
+  var input = document.getElementById('dc-chat-input');
+  if (input) input.focus();
+}
+
+function closeChatPanel() {
+  var panel  = document.getElementById('dc-chat-panel');
+  var bubble = document.getElementById('wa-bubble');
+  if (!panel) return;
+  panel.classList.remove('open');
+  panel.setAttribute('aria-hidden', 'true');
+  if (bubble) bubble.setAttribute('aria-expanded', 'false');
+}
+
+function toggleChatPanel() {
+  var panel = document.getElementById('dc-chat-panel');
+  if (!panel) return;
+  panel.classList.contains('open') ? closeChatPanel() : openChatPanel();
 }
 
 /* ================================================================
@@ -704,8 +962,15 @@ function initReveal() {
         observer.unobserve(entry.target); // dejamos de observarlo (ya se mostró)
       }
     });
-  }, { threshold: 0.1 });
-  // threshold: 0.1 = la animación se activa cuando el 10% del elemento es visible
+  }, { threshold: 0, rootMargin: '0px 0px -40px 0px' });
+  // threshold: 0 = basta con que aparezca 1px del elemento para activar la animación.
+  // Antes era 0.1 (10% del ALTO del elemento), pero eso depende de qué tan alto
+  // sea el elemento: la sección de "Productos destacados" en pantallas angostas
+  // (360x760/800) cae a una sola columna y con muchos productos su alto supera
+  // los 8000px, así que el 10% (>800px) nunca llegaba a estar visible a la vez
+  // en un viewport de esa altura → la sección se quedaba con opacity:0 para
+  // siempre (espacio en blanco). Con threshold 0 no depende del alto del target.
+  // rootMargin negativo evita que se dispare unos pixeles antes de tiempo.
 
   els.forEach(function(el) { observer.observe(el); }); // observamos cada elemento
 }
@@ -739,10 +1004,11 @@ document.addEventListener('DOMContentLoaded', function() {
   /* 4. Iniciar el efecto de scroll reveal */
   initReveal();
 
-  /* 4b. Inyectar la burbuja de WhatsApp y llenar el footer de contacto
-     (dirección/horario/tel/email/whatsapp) — la misma llamada activa
-     ambos, ver initFooterContacto(). */
+  /* 4b. Inyectar la burbuja flotante + el panel del chatbot del sitio,
+     y llenar el footer de contacto (dirección/horario/tel/email/whatsapp).
+     Ver initFooterContacto() y la sección CHATBOT DEL SITIO más arriba. */
   injectWhatsAppBubble();
+  injectChatWidget();
   initFooterContacto();
 
   /* 5. Inicializar el drawer de autenticación (definido en auth.js) */
@@ -768,6 +1034,7 @@ document.addEventListener('DOMContentLoaded', function() {
     drawer.setAttribute('aria-hidden', 'false');   // accesibilidad: el drawer es visible
     toggle.setAttribute('aria-label', 'Cerrar menú'); // antes quedaba fijo en "Abrir menú"
     document.body.style.overflow = 'hidden';       // bloquear scroll del fondo
+    document.body.classList.add('drawer-is-open'); // oculta la burbuja de WhatsApp (ver style.css)
   }
 
   function closeDrawer() {
@@ -777,6 +1044,7 @@ document.addEventListener('DOMContentLoaded', function() {
     drawer.setAttribute('aria-hidden', 'true');    // accesibilidad: el drawer está oculto
     toggle.setAttribute('aria-label', 'Abrir menú');
     document.body.style.overflow = '';
+    document.body.classList.remove('drawer-is-open');
   }
 
   if (toggle && drawer && overlay) {
@@ -788,8 +1056,25 @@ document.addEventListener('DOMContentLoaded', function() {
     overlay.addEventListener('click', closeDrawer); // clic en el fondo → cerrar
 
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { closeDrawer(); closeProductModal(); }
-      // La tecla Escape cierra cualquier cosa abierta (drawer o modal)
+      if (e.key === 'Escape') { closeDrawer(); closeProductModal(); closeChatPanel(); }
+      // La tecla Escape cierra cualquier cosa abierta (drawer, modal o chat)
+    });
+  }
+
+  /* 8. Nombre de la dulcería en el footer: lleva al inicio.
+     Si ya estamos en index.html, en vez de recargar la página hacemos
+     scroll suave hasta arriba (mismo efecto que "ir al inicio"). */
+  var footerHomeLink = document.getElementById('footer-home-link');
+  if (footerHomeLink) {
+    footerHomeLink.addEventListener('click', function(e) {
+      var path = window.location.pathname;
+      var onIndex = path === '/' || path === '' || /\/index\.html$/.test(path);
+      if (onIndex) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      // En cualquier otra página se deja el comportamiento normal del link
+      // (navegar a index.html).
     });
   }
 });

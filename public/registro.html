@@ -158,7 +158,7 @@
       btn.textContent = 'Creando cuenta…';
 
       try {
-        await apiRegistro(nombre, email, password, false);
+        await apiRegistro(nombre, email, password);
         window.location.href = 'catalogo.html';
       } catch (err) {
         globalErr.textContent = err.message;

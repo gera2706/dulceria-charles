@@ -395,6 +395,7 @@ ul { list-style: none; }
   font-size: 1.4rem;
   margin-bottom: 0.3rem;
 }
+#footer-home-link { cursor: pointer; }
 .footer-col--marca .footer-slogan {
   font-size: 0.9rem;
   color: #aaa;
@@ -765,10 +766,7 @@ ul { list-style: none; }
 }
 .cart-badge-bounce { animation: cartBounce 0.42s ease; }
 
-/* ===== BURBUJA FLOTANTE DE WHATSAPP ===== */
-/* Arranca oculta (opacity/scale 0 + pointer-events off) y solo se
-   revela con la clase .visible cuando initFooterContacto() (cart.js)
-   confirma que hay un número/link de WhatsApp configurado de verdad. */
+/* ===== BURBUJA FLOTANTE (abre el chat del sitio) ===== */
 .wa-bubble {
   position: fixed;
   bottom: 24px;
@@ -776,6 +774,7 @@ ul { list-style: none; }
   width: 56px;
   height: 56px;
   border-radius: 50%;
+  border: none;
   background: #25d366;
   display: flex;
   align-items: center;
@@ -785,13 +784,198 @@ ul { list-style: none; }
   opacity: 0;
   transform: scale(0.6);
   pointer-events: none;
+  cursor: pointer;
   transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
 }
 .wa-bubble.visible { opacity: 1; transform: scale(1); pointer-events: auto; }
 .wa-bubble:hover { transform: scale(1.08); box-shadow: 0 8px 26px rgba(0,0,0,0.38); }
+/* Con el menú lateral abierto (body.drawer-is-open, ver cart.js openDrawer/
+   closeDrawer) la burbuja y el panel de chat quedan debajo del drawer y del
+   overlay, así que se ocultan para que no estorben ni se toquen sin querer. */
+body.drawer-is-open .wa-bubble { opacity: 0; transform: scale(0.6); pointer-events: none; }
 @media (max-width: 600px) {
   .wa-bubble { width: 50px; height: 50px; bottom: 18px; right: 18px; }
   .wa-bubble svg { width: 24px; height: 24px; }
+}
+
+/* ===== PANEL DEL CHATBOT DEL SITIO ===== */
+/* Se abre/cierra con la burbuja (#wa-bubble). Contesta preguntas
+   frecuentes y siempre deja a la mano un botón para seguir la
+   conversación por el WhatsApp real (ver chatbot en cart.js). */
+.dc-chat-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 96px;
+  width: 340px;
+  max-height: min(520px, 70vh);
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 501;
+  opacity: 0;
+  transform: translateY(16px) scale(0.97);
+  transform-origin: bottom right;
+  pointer-events: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.dc-chat-panel.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+body.drawer-is-open .dc-chat-panel { opacity: 0; transform: translateY(16px) scale(0.97); pointer-events: none; }
+
+.dc-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  background: var(--pink);
+  color: #fff;
+  flex-shrink: 0;
+}
+.dc-chat-header-info { display: flex; align-items: center; gap: 0.6rem; }
+.dc-chat-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+.dc-chat-header-info strong { display: block; font-size: 0.95rem; }
+.dc-chat-status { display: block; font-size: 0.75rem; opacity: 0.85; }
+.dc-chat-close {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.3rem;
+  border-radius: 50%;
+  transition: background 0.15s ease;
+}
+.dc-chat-close:hover { background: rgba(255,255,255,0.2); }
+
+.dc-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--bg);
+}
+.dc-msg {
+  max-width: 82%;
+  padding: 0.55rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.87rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+.dc-msg.bot {
+  align-self: flex-start;
+  background: var(--white);
+  color: var(--text);
+  border-bottom-left-radius: 3px;
+  box-shadow: var(--shadow);
+}
+.dc-msg.user {
+  align-self: flex-end;
+  background: var(--pink);
+  color: #fff;
+  border-bottom-right-radius: 3px;
+}
+.dc-msg-link {
+  display: inline-block;
+  margin-top: 0.4rem;
+  color: var(--pink);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.dc-chat-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.7rem 1rem 0;
+  flex-shrink: 0;
+}
+.dc-quick-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.78rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.dc-quick-btn:hover { background: var(--border); border-color: var(--pink); }
+
+.dc-chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  flex-shrink: 0;
+}
+.dc-chat-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  background: var(--bg);
+  color: var(--text);
+}
+.dc-chat-input:focus { outline: 2px solid var(--pink); outline-offset: 1px; }
+.dc-chat-send {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--pink);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+.dc-chat-send:hover { background: var(--pink-dark); }
+
+.dc-chat-wa-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.75rem 1rem;
+  background: #25d366;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.dc-chat-wa-cta:hover { background: #1fb959; }
+.dc-chat-wa-cta--disabled { opacity: 0.5; pointer-events: none; }
+
+@media (max-width: 600px) {
+  .dc-chat-panel {
+    left: 12px;
+    right: 12px;
+    bottom: 82px;
+    width: auto;
+    max-height: min(480px, 65vh);
+  }
 }
 
 /* ===== DIÁLOGO DE CONFIRMACIÓN PROPIO ===== */

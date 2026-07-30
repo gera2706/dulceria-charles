@@ -71,7 +71,7 @@
         <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.8rem;">
           <input type="checkbox" id="remember" style="width:17px;height:17px;accent-color:var(--pink);cursor:pointer;" />
           <label for="remember" style="font-size:0.9rem;font-weight:600;color:var(--text);cursor:pointer;">
-            Mantener sesión iniciada
+            Recuérdame
           </label>
         </div>
 
@@ -100,6 +100,19 @@
       if (isLoggedIn()) {
         var params = new URLSearchParams(window.location.search);
         window.location.href = params.get('next') || 'index.html';
+      }
+    })();
+
+    /* "Recuérdame": solo guarda el CORREO (nunca la contraseña) para no
+       tener que volver a escribirlo. La sesión en sí ya no se mantiene
+       iniciada entre visitas por seguridad — ver saveToken() en api.js.
+       La contraseña la puede ofrecer autocompletar el propio navegador
+       (los campos ya tienen autocomplete="email"/"current-password"). */
+    (function() {
+      var rememberedEmail = localStorage.getItem('dc_remembered_email');
+      if (rememberedEmail) {
+        document.getElementById('email').value = rememberedEmail;
+        document.getElementById('remember').checked = true;
       }
     })();
 
@@ -136,7 +149,9 @@
       btn.textContent = 'Iniciando sesión…';
 
       try {
-        await apiLogin(email, password, remember);
+        await apiLogin(email, password);
+        if (remember) localStorage.setItem('dc_remembered_email', email);
+        else localStorage.removeItem('dc_remembered_email');
         var params = new URLSearchParams(window.location.search);
         window.location.href = params.get('next') || 'index.html';
       } catch (err) {

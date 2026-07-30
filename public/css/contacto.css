@@ -80,6 +80,26 @@
 .info-card p a { color: var(--pink); font-weight: 700; transition: color 0.2s; }
 .info-card p a:hover { color: var(--pink-dark); }
 
+/* Card de WhatsApp: solo el logo, la tarjeta entera es el link */
+.info-card--wa {
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.info-card--wa:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.info-card--wa .wa-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #25d366;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(37,211,102,0.35);
+}
+
 /* ===== MAP ===== */
 .map-section {
   padding: 1rem 3rem 3rem;

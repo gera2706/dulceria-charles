@@ -12,15 +12,23 @@
 
    ¿CÓMO FUNCIONA EL SISTEMA DE AUTENTICACIÓN?
    1. Usuario hace login → servidor devuelve un TOKEN (cadena de texto)
-   2. Guardamos el token en localStorage o sessionStorage del navegador
+   2. Guardamos el token en sessionStorage del navegador
    3. En cada petición posterior, enviamos el token en el header:
       Authorization: Bearer eyJhbGci...
    4. El servidor verifica el token y sabe quién es el usuario
    5. Al cerrar sesión, borramos el token del navegador
 
-   ¿CUÁL ES LA DIFERENCIA ENTRE localStorage Y sessionStorage?
-   - localStorage:   persiste aunque cierres el navegador. "Recuérdame"
-   - sessionStorage: se borra al cerrar la pestaña. Sesión temporal
+   POR QUÉ SIEMPRE sessionStorage Y NO localStorage:
+   localStorage persiste aunque se cierre el navegador — en una
+   computadora compartida, cualquiera que la use después seguiría
+   con la sesión abierta. Por seguridad, la sesión siempre se guarda
+   en sessionStorage (se borra al cerrar la pestaña/navegador) y hay
+   que volver a iniciar sesión cada vez. Lo único que el checkbox
+   "Recuérdame" del login guarda es el correo (ver login.html), para
+   no tener que volver a escribirlo — nunca la contraseña.
+   (getToken()/getCurrentUser() siguen revisando localStorage también,
+   solo para no cerrarle la sesión de golpe a alguien que ya la tenía
+   guardada ahí de antes de este cambio.)
 ================================================================ */
 
 const API_BASE = '/api';
@@ -32,23 +40,17 @@ const API_BASE = '/api';
    MANEJO DEL TOKEN JWT EN EL NAVEGADOR
 ================================================================ */
 
-/* Lee el token guardado. Primero busca en localStorage (sesión
-   permanente), luego en sessionStorage (sesión temporal) */
+/* Lee el token guardado. Revisa localStorage solo por compatibilidad
+   con sesiones guardadas ahí antes de este cambio (ver nota arriba);
+   las sesiones nuevas siempre quedan en sessionStorage. */
 function getToken() {
   return localStorage.getItem('dc_token') || sessionStorage.getItem('dc_token') || null;
 }
 
-/* Guarda el token en el lugar correcto según la preferencia del usuario.
-   Si marcó "recuérdame" → localStorage (permanente)
-   Si no → sessionStorage (se borra al cerrar el navegador) */
-function saveToken(token, remember) {
-  if (remember) {
-    localStorage.setItem('dc_token', token);
-    sessionStorage.removeItem('dc_token'); // limpiamos el otro por si acaso
-  } else {
-    sessionStorage.setItem('dc_token', token);
-    localStorage.removeItem('dc_token');
-  }
+/* Guarda el token en sessionStorage (se borra al cerrar el navegador) */
+function saveToken(token) {
+  sessionStorage.setItem('dc_token', token);
+  localStorage.removeItem('dc_token'); // por si tenía una sesión persistente de antes de este cambio
 }
 
 /* Borra el token de ambos storages. Se llama al cerrar sesión. */
@@ -114,14 +116,14 @@ async function apiFetch(endpoint, options = {}) {
    - Guarda el token en el storage
    - Migra el carrito y favoritos del visitante a la cuenta del usuario
    - Devuelve los datos del usuario */
-async function apiLogin(email, password, remember) {
+async function apiLogin(email, password) {
   const data = await apiFetch('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password })
     // JSON.stringify convierte el objeto JS a texto JSON para enviarlo
   });
-  saveToken(data.token, remember);
-  _saveSession(data.user, remember);
+  saveToken(data.token);
+  _saveSession(data.user);
 
   // Si el visitante tenía carrito guardado en sessionStorage,
   // lo fusionamos con su carrito de usuario registrado
@@ -134,13 +136,13 @@ async function apiLogin(email, password, remember) {
 }
 
 /* Registra una cuenta nueva. Misma lógica que apiLogin después del registro. */
-async function apiRegistro(nombre, email, password, remember) {
+async function apiRegistro(nombre, email, password) {
   const data = await apiFetch('/auth/registro', {
     method: 'POST',
     body: JSON.stringify({ nombre, email, password })
   });
-  saveToken(data.token, remember);
-  _saveSession(data.user, remember);
+  saveToken(data.token);
+  _saveSession(data.user);
   if (typeof migrateCartOnLogin     === 'function') migrateCartOnLogin();
   if (typeof migrateFavoritesOnLogin === 'function') await migrateFavoritesOnLogin();
   return data.user;
@@ -155,9 +157,8 @@ async function apiActualizarPerfil(datos) {
     method: 'PUT',
     body: JSON.stringify(datos)
   });
-  const remember = !!localStorage.getItem('dc_token'); // si ya estaba en localStorage, mantenemos "recuérdame"
-  saveToken(data.token, remember);
-  _saveSession(data.user, remember);
+  saveToken(data.token);
+  _saveSession(data.user);
   return data.user;
 }
 
@@ -289,13 +290,7 @@ async function apiGuardarContacto(datos) { return apiFetch('/config/contacto', {
    hacer una petición al servidor en cada página.
    El prefijo _ indica que es de uso interno de este archivo.
 ================================================================ */
-function _saveSession(user, remember) {
-  const data = JSON.stringify(user);
-  if (remember) {
-    localStorage.setItem('dc_session', data);
-    sessionStorage.removeItem('dc_session');
-  } else {
-    sessionStorage.setItem('dc_session', data);
-    localStorage.removeItem('dc_session');
-  }
+function _saveSession(user) {
+  sessionStorage.setItem('dc_session', JSON.stringify(user));
+  localStorage.removeItem('dc_session'); // por si tenía una sesión persistente de antes de este cambio
 }

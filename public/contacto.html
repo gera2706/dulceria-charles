@@ -102,18 +102,20 @@
       <div class="info-card">
         <span class="info-icon">📞</span>
         <h4>Teléfono</h4>
-        <p id="ci-telefono">Cargando…</p>
+        <p><a id="ci-telefono" href="#">Cargando…</a></p>
       </div>
       <div class="info-card">
         <span class="info-icon">📧</span>
         <h4>Correo</h4>
         <p id="ci-email">Cargando…</p>
       </div>
-      <div class="info-card">
-        <span class="info-icon">💬</span>
-        <h4>WhatsApp</h4>
-        <p><a id="ci-whatsapp" href="#" target="_blank" rel="noopener">Escríbenos por WhatsApp</a></p>
-      </div>
+      <a id="ci-whatsapp" href="#" target="_blank" rel="noopener" class="info-card info-card--wa" title="Escríbenos por WhatsApp">
+        <span class="wa-logo">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="26" height="26">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+          </svg>
+        </span>
+      </a>
     </aside>
   </div>
 
@@ -136,7 +138,7 @@
   <footer class="footer">
     <div class="footer-grid">
       <div class="footer-col footer-col--marca">
-        <a href="index.html" class="active"><p class="footer-brand-name">🍬 Dulcería Charles</p></a>
+        <a href="index.html" id="footer-home-link" class="active"><p class="footer-brand-name">🍬 Dulcería Charles</p></a>
         <p class="footer-slogan">Endulzando tu vida desde 2020</p>
         <div class="footer-social">
           <a href="#" id="footer-whatsapp" target="_blank" rel="noopener" class="social-icon wa" title="WhatsApp"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="17" height="17"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg></a>
@@ -179,20 +181,23 @@
     /* Cargar info de contacto desde la API */
     (async function () {
       try {
-        var cfg = await apiGetContacto();
+        var cfg = await getContactoCfg(); // caché compartida con el footer/chatbot, ver cart.js
         /* Dirección */
         var dir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? '<br/>' + cfg.contacto_ciudad : '');
         document.getElementById('ci-direccion').innerHTML = dir || '—';
         /* Horario — separado por | */
         var hor = (cfg.contacto_horario || '').split('|').join('<br/>');
         document.getElementById('ci-horario').innerHTML = hor || '—';
-        /* Teléfono */
-        document.getElementById('ci-telefono').textContent = cfg.contacto_telefono || '—';
+        /* Teléfono — link tel: para abrir el marcador del cliente (él decide si llama) */
+        var telEl = document.getElementById('ci-telefono');
+        telEl.textContent = cfg.contacto_telefono || '—';
+        telEl.href = telHref(cfg.contacto_telefono) || '#';
         /* Email */
         document.getElementById('ci-email').textContent = cfg.contacto_email || '—';
-        /* WhatsApp — único contacto "social" que manejamos (además del correo) */
-        if (cfg.contacto_whatsapp && cfg.contacto_whatsapp !== '#')
-          document.getElementById('ci-whatsapp').href = cfg.contacto_whatsapp;
+        /* WhatsApp: getWaLink usa el link configurado o, si no hay, lo arma
+           con el teléfono real (ver cart.js) */
+        var waLink = getWaLink(cfg);
+        if (waLink) document.getElementById('ci-whatsapp').href = waLink;
       } catch (e) {
         console.warn('No se pudo cargar la configuración de contacto:', e);
       }

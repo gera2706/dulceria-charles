@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   var storeDir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? ', ' + cfg.contacto_ciudad : '');
   var storeHor = (cfg.contacto_horario  || '').split('|').join(' | ');
   var storeTel = cfg.contacto_telefono || '—';
+  var storeTelHref = telHref(cfg.contacto_telefono);
 
   /* ── Construir HTML del comprobante ── */
   var items = pedido.items || [];
@@ -132,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async function () {
           '🏪 <strong>Dulcería Charles</strong><br>' +
           '📍 ' + (storeDir || '—') + '<br>' +
           '🕐 ' + (storeHor || '—') + '<br>' +
-          '📞 ' + storeTel +
+          '📞 ' + (storeTelHref ? '<a href="' + storeTelHref + '">' + storeTel + '</a>' : storeTel) +
           '<span class="pickup-note">✅ Presenta este comprobante al recoger tu pedido.</span>' +
         '</div>' +
         '<hr class="t-dash">' +
