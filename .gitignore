@@ -11,6 +11,9 @@ public/img/productos_upload/
 # Respaldos de la BD (contienen datos reales de usuarios/pedidos)
 respaldos/
 
+# Documentacion y auditorias: solo local, no se sube al repositorio
+docs/
+
 # Logs
 *.log
 npm-debug.log*
