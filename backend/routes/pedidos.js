@@ -300,7 +300,26 @@ router.post('/', authMiddleware, async (req, res) => {
 ---------------------------------------------------------------- */
 router.get('/mios', authMiddleware, async (req, res) => {
   try {
-    const [rows] = await db.query(
+    // Paginación OPCIONAL (?page=&limit=): el LIMIT se aplica sobre los
+    // PEDIDOS, no sobre las filas del JOIN (que están "aplanadas" con
+    // sus items) — si no, un LIMIT cortaría a la mitad los items de un
+    // pedido. Por eso primero se eligen los IDs de pedido de esa página
+    // y luego se hace el JOIN completo solo para esos IDs.
+    let idsPedidos = null;
+    if (req.query.page || req.query.limit) {
+      const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+      const page  = Math.max(parseInt(req.query.page, 10) || 1, 1);
+      const [totalRows] = await db.query('SELECT COUNT(*) AS n FROM pedidos WHERE usuario_id = ?', [req.user.id]);
+      const [idRows] = await db.query(
+        'SELECT id FROM pedidos WHERE usuario_id = ? ORDER BY fecha DESC LIMIT ? OFFSET ?',
+        [req.user.id, limit, (page - 1) * limit]
+      );
+      idsPedidos = idRows.map(r => r.id);
+      res.set('X-Total-Count', String(totalRows[0].n));
+      if (!idsPedidos.length) return res.json([]);
+    }
+
+    let sql =
       `SELECT p.id, p.subtotal, p.total,
               p.estado, p.metodo_pago, p.nombre_envio, p.telefono, p.fecha,
               pi.id AS item_id, pi.producto_id AS item_producto_id,
@@ -308,10 +327,15 @@ router.get('/mios', authMiddleware, async (req, res) => {
               pi.cantidad AS item_cantidad
        FROM pedidos p
        LEFT JOIN pedido_items pi ON pi.pedido_id = p.id
-       WHERE p.usuario_id = ?
-       ORDER BY p.fecha DESC`,
-      [req.user.id]
-    );
+       WHERE p.usuario_id = ?`;
+    const vals = [req.user.id];
+    if (idsPedidos) {
+      sql += ` AND p.id IN (${idsPedidos.map(() => '?').join(',')})`;
+      vals.push(...idsPedidos);
+    }
+    sql += ' ORDER BY p.fecha DESC';
+
+    const [rows] = await db.query(sql, vals);
     res.json(agruparPedidosConItems(rows));
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener pedidos.' });
@@ -353,6 +377,32 @@ router.get('/:id', authMiddleware, async (req, res) => {
 ---------------------------------------------------------------- */
 router.get('/', adminMiddleware, async (req, res) => {
   try {
+    const filtroEstado = req.query.estado && ESTADOS_VALIDOS.includes(req.query.estado);
+
+    // Paginación OPCIONAL (?page=&limit=) — mismo enfoque de dos pasos
+    // que en GET /mios: el LIMIT va sobre pedidos, no sobre filas del
+    // JOIN con items. Sin page/limit, se sigue devolviendo todo (así
+    // el panel admin actual no se rompe).
+    let idsPedidos = null;
+    if (req.query.page || req.query.limit) {
+      const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+      const page  = Math.max(parseInt(req.query.page, 10) || 1, 1);
+      let countSql = 'SELECT COUNT(*) AS n FROM pedidos';
+      let idSql    = 'SELECT id FROM pedidos';
+      const filtroVals = [];
+      if (filtroEstado) {
+        countSql += ' WHERE estado = ?';
+        idSql    += ' WHERE estado = ?';
+        filtroVals.push(req.query.estado);
+      }
+      idSql += ' ORDER BY fecha DESC LIMIT ? OFFSET ?';
+      const [totalRows] = await db.query(countSql, filtroVals);
+      const [idRows] = await db.query(idSql, [...filtroVals, limit, (page - 1) * limit]);
+      idsPedidos = idRows.map(r => r.id);
+      res.set('X-Total-Count', String(totalRows[0].n));
+      if (!idsPedidos.length) return res.json([]);
+    }
+
     let sql =
       `SELECT p.id, p.subtotal, p.total,
               p.estado, p.metodo_pago, p.nombre_envio, p.telefono, p.fecha,
@@ -364,11 +414,17 @@ router.get('/', adminMiddleware, async (req, res) => {
        LEFT JOIN usuarios u ON u.id = p.usuario_id
        LEFT JOIN pedido_items pi ON pi.pedido_id = p.id`;
     const vals = [];
+    const condiciones = [];
 
-    if (req.query.estado && ESTADOS_VALIDOS.includes(req.query.estado)) {
-      sql += ' WHERE p.estado = ?';
+    if (filtroEstado) {
+      condiciones.push('p.estado = ?');
       vals.push(req.query.estado);
     }
+    if (idsPedidos) {
+      condiciones.push(`p.id IN (${idsPedidos.map(() => '?').join(',')})`);
+      vals.push(...idsPedidos);
+    }
+    if (condiciones.length) sql += ' WHERE ' + condiciones.join(' AND ');
     sql += ' ORDER BY p.fecha DESC';
 
     const [rows] = await db.query(sql, vals);

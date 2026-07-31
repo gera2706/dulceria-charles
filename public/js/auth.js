@@ -144,9 +144,10 @@ function initDrawerCategories() {
       a.href      = 'catalogo.html?cat=' + encodeURIComponent(cat.nombre);
       a.className = 'drawer-cat-item';
       var iconHtml = typeof renderCatIcon === 'function' ? renderCatIcon(cat.icono, '1.15rem') : '🍬';
+      var nombreCat = escapeHtml(cat.nombre.charAt(0).toUpperCase() + cat.nombre.slice(1));
       a.innerHTML =
         iconHtml +
-        '<span>' + cat.nombre.charAt(0).toUpperCase() + cat.nombre.slice(1) + '</span>' +
+        '<span>' + nombreCat + '</span>' +
         ICON_CHEV;
       wrap.appendChild(a);
     });
@@ -157,4 +158,107 @@ function initDrawerCategories() {
   apiGetCategorias()
     .then(function (cats) { render(cats && cats.length ? cats : FALLBACK_CATEGORIAS); })
     .catch(function () { render(FALLBACK_CATEGORIAS); });
+}
+
+/* ── Desplegable "Categorías" del navbar (solo escritorio) ──
+   Mismo dato/fuente que initDrawerCategories, pero renderizado dentro
+   de #nav-cats-panel en vez del drawer móvil. ── */
+function initNavCategoriesMenu() {
+  var wrap = document.getElementById('nav-cats-panel');
+  if (!wrap) return;
+
+  function render(cats) {
+    if (!cats || !cats.length) {
+      wrap.innerHTML = '<div class="nav-dropdown-empty">Sin categorías todavía.</div>';
+      return;
+    }
+    wrap.innerHTML = '';
+    cats.forEach(function (cat) {
+      var a = document.createElement('a');
+      a.href = 'catalogo.html?cat=' + encodeURIComponent(cat.nombre);
+      var iconHtml = typeof renderCatIcon === 'function' ? renderCatIcon(cat.icono, '1.1rem') : '🍬';
+      var nombreCat = escapeHtml(cat.nombre.charAt(0).toUpperCase() + cat.nombre.slice(1));
+      a.innerHTML = iconHtml + '<span>' + nombreCat + '</span>';
+      wrap.appendChild(a);
+    });
+  }
+
+  if (typeof apiGetCategorias !== 'function') { render(FALLBACK_CATEGORIAS); return; }
+
+  apiGetCategorias()
+    .then(function (cats) { render(cats && cats.length ? cats : FALLBACK_CATEGORIAS); })
+    .catch(function () { render(FALLBACK_CATEGORIAS); });
+}
+
+/* ── Desplegable "Cuenta" del navbar (solo escritorio) ──
+   Mismas opciones que la sección de cuenta del drawer móvil
+   (ver initAuthDrawer arriba), pero dentro de #nav-account-panel. ── */
+function initNavAccountMenu() {
+  var wrap = document.getElementById('nav-account-panel');
+  var btn  = document.getElementById('nav-account-btn');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  var ICON_LOCK     = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7.7a4 4 0 0 1 8 0V11"/></svg>';
+  var ICON_USERPLUS = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="8" r="3.3"/><path d="M3.5 20a6 6 0 0 1 12 0"/><path d="M18 7.5v4.5M15.7 9.7h4.6"/></svg>';
+  var ICON_USER     = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>';
+  var ICON_SETTINGS = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="1.7"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="1.7"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="10" cy="18" r="1.7"/></svg>';
+  var ICON_HELP     = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.7 2.7 0 0 1 5.2 1c0 1.7-2.2 1.8-2.4 3.5"/><circle cx="12" cy="16.8" r="0.2"/></svg>';
+  var ICON_LOGOUT   = '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3.5"/><path d="m15.5 16 4-4-4-4"/><path d="M19.2 12H9.5"/></svg>';
+
+  var user = getCurrentUser();
+
+  if (!user) {
+    var loginA = document.createElement('a');
+    loginA.href = 'login.html';
+    loginA.innerHTML = ICON_LOCK + ' Iniciar sesión';
+
+    var regA = document.createElement('a');
+    regA.href = 'registro.html';
+    regA.innerHTML = ICON_USERPLUS + ' Crear cuenta';
+
+    wrap.appendChild(loginA);
+    wrap.appendChild(regA);
+
+    // Botón solo con el ícono cuando no hay sesión (antes ya era así,
+    // pero lo reafirmamos por si initNavAccountMenu se vuelve a llamar
+    // después de cerrar sesión, ver logout() en este mismo archivo).
+    if (btn) { btn.classList.remove('nav-account-btn--named'); btn.innerHTML = ICON_USER; }
+  } else {
+    // El saludo va solo en el botón de Cuenta del navbar (antes solo
+    // vivía dentro del drawer, que en escritorio ya no se ve — ver el
+    // cambio de la hamburguesa). Ya no se repite como título arriba del
+    // desplegable: se veía dos veces seguidas (botón + panel) y era
+    // redundante — con el del botón basta, siempre está a la vista.
+    if (btn) {
+      btn.classList.add('nav-account-btn--named');
+      btn.innerHTML = '<span class="nav-account-name">Hola, ' + escapeHtml(user.nombre.split(' ')[0]) + '</span>' + ICON_USER;
+    }
+
+    var cuentaA = document.createElement('a');
+    cuentaA.href = 'mi-cuenta.html';
+    cuentaA.innerHTML = ICON_USER + ' Mi cuenta';
+    wrap.appendChild(cuentaA);
+
+    if (user.rol === 'admin') {
+      var adminA = document.createElement('a');
+      adminA.href = 'admin.html';
+      adminA.innerHTML = ICON_SETTINGS + ' Panel de administración';
+      wrap.appendChild(adminA);
+    }
+
+    var ayudaA = document.createElement('a');
+    ayudaA.href = 'contacto.html';
+    ayudaA.innerHTML = ICON_HELP + ' Ayuda';
+    wrap.appendChild(ayudaA);
+
+    var hr = document.createElement('hr');
+    wrap.appendChild(hr);
+
+    var logoutBtn = document.createElement('button');
+    logoutBtn.type = 'button';
+    logoutBtn.innerHTML = ICON_LOGOUT + ' Salir';
+    logoutBtn.addEventListener('click', logout);
+    wrap.appendChild(logoutBtn);
+  }
 }

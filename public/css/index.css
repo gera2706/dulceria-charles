@@ -59,56 +59,233 @@
   50%       { transform: translateY(-18px); }
 }
 
-/* ===== CATEGORIES ===== */
-.categories {
+/* ===== CATEGORÍAS: CARRUSEL PROMOCIONAL ===== */
+.cat-promo {
   padding: 3rem 4rem;
   text-align: center;
 }
-.categories h2 {
+.cat-promo h2 {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 2rem;
   color: var(--text);
   margin-bottom: 2rem;
 }
-.categories-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 1.2rem;
-  max-width: 900px;
-  margin: 0 auto;
-}
-.cat-card {
-  background: var(--white);
+.cat-promo-wrap { position: relative; max-width: 900px; margin: 0 auto; }
+
+/* Pista con scroll-snap nativo: los puntos/flechas solo hacen scrollTo,
+   así que en móvil también se puede deslizar con el dedo sin JS extra. */
+.cat-promo-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 1.5rem 1rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  cursor: grab; /* en escritorio también se puede arrastrar con el mouse, ver index.js */
+}
+.cat-promo-track::-webkit-scrollbar { display: none; }
+/* Mientras se arrastra: sin scroll-snap/smooth (si no, cada pixel de
+   arrastre se anima y se siente pegajoso) y sin selección de texto. */
+.cat-promo-track.dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
+  scroll-behavior: auto;
+  user-select: none;
+}
+.cat-promo-track.dragging .cat-promo-item { pointer-events: none; } /* evita abrir el link al soltar tras arrastrar */
+
+.cat-promo-slide {
+  flex: 1 0 100%;
+  scroll-snap-align: start;
+  position: relative;
+  overflow: hidden;
+  min-height: 230px;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 2rem 1.5rem;
+  box-shadow: var(--shadow-lg);
+}
+/* Mancha decorativa de fondo — le da algo de "vida" al degradado sin
+   necesitar fotografía/arte tipo splash, que no tenemos entre los
+   recursos del proyecto. */
+.cat-promo-slide::before {
+  content: '';
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  top: -90px;
+  right: -60px;
+}
+.cat-promo-slide::after {
+  content: '';
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  bottom: -70px;
+  left: -40px;
+}
+.cat-promo-slide--0 { background: linear-gradient(120deg, var(--pink) 0%, var(--purple) 100%); }
+.cat-promo-slide--1 { background: linear-gradient(120deg, var(--teal) 0%, var(--purple-dark) 100%); }
+.cat-promo-slide--2 { background: linear-gradient(120deg, var(--yellow) 0%, var(--pink-dark) 100%); }
+.cat-promo-slide--3 { background: linear-gradient(120deg, var(--purple) 0%, var(--teal) 100%); }
+
+.cat-promo-item {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
-  transition: transform 0.2s, box-shadow 0.2s;
-  cursor: pointer;
+  gap: 0.5rem;
+  flex: 1 1 150px;
+  max-width: 210px;
+  color: #fff;
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: transform 0.2s ease;
 }
-.cat-card:hover { transform: translateY(-4px) scale(1.03); box-shadow: var(--shadow-lg); }
+.cat-promo-item:hover { transform: translateY(-4px) scale(1.03); }
+.cat-promo-icon-wrap {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+}
 /* Las reglas .cat-icon / .cat-icon__img viven en style.css (global),
    no aquí, porque renderCatIcon() se usa en muchas páginas que no
    cargan index.css (catálogo, drawer, admin, etc). Ver style.css. */
-.cat-card h3 { font-size: 0.95rem; font-weight: 700; color: var(--text); }
-
-/* ===== FEATURED ===== */
-.featured {
-  padding: 2rem 4rem 3rem;
-  text-align: center;
+.cat-promo-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
+.cat-promo-link {
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.cat-promo-arrow-ic { display: inline-block; transition: transform 0.2s ease; }
+.cat-promo-item:hover .cat-promo-arrow-ic { transform: translateX(4px); }
+
+/* Flechas prev/next sobre los bordes del carrusel */
+.cat-promo-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--white);
+  color: var(--pink);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.cat-promo-arrow:hover { background: var(--pink); color: #fff; transform: translateY(-50%) scale(1.08); }
+.cat-promo-arrow--prev { left: -8px; }
+.cat-promo-arrow--next { right: -8px; }
+
+/* Puntos de navegación */
+.cat-promo-dots { display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.2rem; }
+.cat-promo-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.2s ease, width 0.2s ease, border-radius 0.2s ease;
+}
+.cat-promo-dot.active { background: var(--pink); width: 22px; border-radius: 5px; }
+
+/* ===== FEATURED =====
+   Antes era un título plano + grid, sin nada que lo distinguiera del
+   resto de la página — al lado del carrusel de categorías (con
+   degradados y movimiento) se sentía apagado. Le agregamos un fondo
+   con manchas de color muy sutiles (mismo lenguaje visual que el
+   carrusel, pero discreto porque aquí lo protagonista son los
+   productos) y que las tarjetas entren en cascada al hacer scroll en
+   vez de aparecer todas de golpe. (Antes también llevaban una
+   insignia "Destacado" por tarjeta, pero se quitó: chocaba visualmente
+   con el corazón de favoritos y era redundante — ya están en la
+   sección de Destacados.) */
+.featured {
+  position: relative;
+  overflow: hidden;
+  padding: 3rem 4rem 3.5rem;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(217,76,133,0.05) 0%, rgba(124,92,173,0.04) 100%);
+}
+.featured::before,
+.featured::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+.featured::before {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(217,76,133,0.1) 0%, transparent 70%);
+  top: -120px;
+  left: -100px;
+}
+.featured::after {
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(124,92,173,0.1) 0%, transparent 70%);
+  bottom: -100px;
+  right: -80px;
+}
+.featured > * { position: relative; z-index: 1; }
+
 .featured h2 {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 2rem;
+  font-size: 2.1rem;
   color: var(--text);
-  margin-bottom: 2rem;
+  margin-bottom: 2.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.featured h2 .featured-star {
+  display: inline-block;
+  animation: featuredStarPulse 2.6s ease-in-out infinite;
+}
+@keyframes featuredStarPulse {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50%      { transform: scale(1.2) rotate(-10deg); }
 }
 .featured .btn { margin-top: 2.5rem; }
+
+.featured .product-card:hover { transform: translateY(-6px) scale(1.015); }
+.featured .product-card:hover .card-img { transform: scale(1.1); }
 
 /* ===== PROMO BANNER ===== */
 .promo-banner {
@@ -143,7 +320,11 @@
   .hero { flex-direction: column; padding: 2.5rem 1.5rem; text-align: center; min-height: auto; }
   .hero-image { max-width: 260px; margin-left: 210px;}
   .hero-content h1 { font-size: 2.2rem; }
-  .categories { padding: 2rem 1.5rem; }
+  .cat-promo { padding: 2rem 1.5rem; }
+  .cat-promo-arrow { display: none; } /* en móvil se desliza con el dedo (scroll-snap) */
+  .cat-promo-slide { padding: 1.6rem 1rem; min-height: 200px; gap: 0.5rem; }
+  .cat-promo-icon-wrap { width: 76px; height: 76px; }
+  .cat-promo-name { font-size: 1.1rem; }
   .featured    { padding: 2rem 1.5rem; }
   .promo-banner { padding: 2rem 1.5rem; }
 }

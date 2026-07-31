@@ -277,6 +277,18 @@ async function apiEditarCategoria(id, nombre, icono)   { return apiFetch('/categ
 async function apiEliminarCategoria(id)        { return apiFetch('/categorias/' + id, { method: 'DELETE' }); }
 
 /* ================================================================
+   CHATBOT DEL SITIO: PREGUNTAS FRECUENTES
+   Ver backend/routes/chatbot_faq.js y la sección "CHATBOT DEL SITIO"
+   en cart.js (que consume apiGetChatbotFaqs).
+================================================================ */
+
+async function apiGetChatbotFaqs()             { return apiFetch('/chatbot-faq'); }              // públicas (activas)
+async function apiGetChatbotFaqsAdmin()        { return apiFetch('/chatbot-faq/admin'); }         // todas, solo admin
+async function apiCrearChatbotFaq(datos)       { return apiFetch('/chatbot-faq',      { method: 'POST', body: JSON.stringify(datos) }); }
+async function apiEditarChatbotFaq(id, datos)  { return apiFetch('/chatbot-faq/' + id, { method: 'PUT',  body: JSON.stringify(datos) }); }
+async function apiEliminarChatbotFaq(id)       { return apiFetch('/chatbot-faq/' + id, { method: 'DELETE' }); }
+
+/* ================================================================
    CONFIGURACIÓN DEL SITIO
 ================================================================ */
 

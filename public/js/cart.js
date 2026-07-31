@@ -724,62 +724,76 @@ function injectWhatsAppBubble() {
    escrito según lo que preguntó. Se abre/cierra con el botón
    flotante (#wa-bubble).
 ================================================================ */
-var CHAT_MENU = [
-  { key: 'horario',  label: '📍 Ubicación y horario' },
-  { key: 'pedido',   label: '🛍️ ¿Cómo hago un pedido?' },
-  { key: 'catalogo', label: '🍬 Ver catálogo' },
-  { key: 'pago',     label: '💳 Métodos de pago' },
-  { key: 'estado',   label: '📦 Estado de mi pedido' },
-  { key: 'humano',   label: '💬 Hablar con una persona' }
-];
-
-// Palabras clave para cuando el cliente escribe libre en vez de tocar un botón.
-var CHAT_KEYWORDS = [
-  { key: 'horario',  words: ['horario', 'hora', 'abren', 'cierran', 'direccion', 'ubicacion', 'domicilio', 'donde estan', 'donde queda'] },
-  { key: 'pedido',   words: ['como pido', 'como compro', 'hacer un pedido', 'como funciona', 'proceso de compra'] },
-  { key: 'catalogo', words: ['catalogo', 'productos', 'que venden', 'bombones', 'chocolates', 'gomitas', 'mazapanes', 'botanas', 'enchilados', 'paletas', 'refrescos', 'dulces'] },
-  { key: 'pago',     words: ['pago', 'pagar', 'efectivo', 'tarjeta', 'transferencia', 'metodo de pago'] },
-  { key: 'estado',   words: ['mi pedido', 'estado de mi pedido', 'donde va mi pedido', 'rastrear', 'numero de pedido'] },
-  { key: 'humano',   words: ['whatsapp', 'humano', 'persona', 'asesor', 'hablar con alguien', 'atencion'] }
+// Respaldo si /api/chatbot-faq falla (mismo comportamiento que tenía el
+// chatbot antes de ser configurable desde el admin — ver panel Chatbot).
+var CHAT_FAQ_FALLBACK = [
+  { id: 'f1', pregunta: '📍 Ubicación y horario', palabras_clave: 'horario,hora,abren,cierran,direccion,ubicacion,domicilio,donde estan,donde queda',
+    respuesta: '📍 {direccion}\n🕒 {horario}', accion_tipo: 'ninguna' },
+  { id: 'f2', pregunta: '🛍️ ¿Cómo hago un pedido?', palabras_clave: 'como pido,como compro,hacer un pedido,como funciona,proceso de compra',
+    respuesta: 'Es bien fácil: 1️⃣ elige tus productos y agrégalos al carrito 🛒, 2️⃣ ve a pagar y confirma tus datos, 3️⃣ pasas a recoger tu pedido a la tienda y pagas en efectivo al recogerlo 💵.', accion_tipo: 'ninguna' },
+  { id: 'f3', pregunta: '🍬 Ver catálogo', palabras_clave: 'catalogo,productos,que venden,bombones,chocolates,gomitas,mazapanes,botanas,enchilados,paletas,refrescos,dulces',
+    respuesta: 'Tenemos bombones, botanas, chocolates, enchilados, gomitas, mazapanes, paletas y refrescos 🍬.', accion_tipo: 'catalogo', accion_texto: '🍬 Ir al catálogo →' },
+  { id: 'f4', pregunta: '💳 Métodos de pago', palabras_clave: 'pago,pagar,efectivo,tarjeta,transferencia,metodo de pago',
+    respuesta: 'Por ahora solo manejamos pago en efectivo, directo al recoger tu pedido en tienda 💵.', accion_tipo: 'ninguna' },
+  { id: 'f5', pregunta: '📦 Estado de mi pedido', palabras_clave: 'mi pedido,estado de mi pedido,donde va mi pedido,rastrear,numero de pedido',
+    respuesta: 'Puedes ver el estado de todos tus pedidos desde tu cuenta.', accion_tipo: 'pedidos', accion_texto: '📦 Ver mis pedidos →' },
+  { id: 'f6', pregunta: '💬 Hablar con una persona', palabras_clave: 'whatsapp,humano,persona,asesor,hablar con alguien,atencion',
+    respuesta: 'Claro, te comunico con nosotros 👇 toca el botón verde de abajo para seguir por WhatsApp.', accion_tipo: 'whatsapp' }
 ];
 
 var _chatLastUserText = ''; // último texto del cliente, para armar el mensaje del CTA de WhatsApp
+
+/* Preguntas del chatbot en caché — se piden una sola vez por carga de
+   página (igual que getContactoCfg) y las administra el admin desde
+   el panel (sec-chatbot → backend/routes/chatbot_faq.js). */
+var _chatFaqsPromise = null;
+function getChatFaqs() {
+  if (!_chatFaqsPromise) {
+    _chatFaqsPromise = (typeof apiGetChatbotFaqs === 'function')
+      ? apiGetChatbotFaqs().then(function (faqs) { return faqs && faqs.length ? faqs : CHAT_FAQ_FALLBACK; })
+          .catch(function (e) {
+            console.warn('No se pudieron cargar las preguntas del chatbot:', e.message);
+            return CHAT_FAQ_FALLBACK;
+          })
+      : Promise.resolve(CHAT_FAQ_FALLBACK);
+  }
+  return _chatFaqsPromise;
+}
+
+/* Invalida la caché de preguntas — la usa el panel admin (sec-chatbot)
+   después de guardar/borrar una pregunta, para que la vista previa del
+   chatbot (botón "🧪 Probar chatbot") refleje el cambio al instante
+   sin tener que recargar la página. */
+function resetChatFaqsCache() { _chatFaqsPromise = null; }
 
 function _stripAccents(s) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 }
 
-function chatMatchKeyword(text) {
+// Busca, entre las palabras_clave de cada pregunta (separadas por coma),
+// alguna que aparezca en el texto libre que escribió el cliente.
+function chatMatchKeyword(text, faqs) {
   var norm = _stripAccents(text.toLowerCase());
-  for (var i = 0; i < CHAT_KEYWORDS.length; i++) {
-    var group = CHAT_KEYWORDS[i];
-    for (var j = 0; j < group.words.length; j++) {
-      if (norm.indexOf(group.words[j]) !== -1) return group.key;
+  for (var i = 0; i < faqs.length; i++) {
+    var palabras = (faqs[i].palabras_clave || '').split(',').map(function (w) { return _stripAccents(w.trim().toLowerCase()); }).filter(Boolean);
+    for (var j = 0; j < palabras.length; j++) {
+      if (palabras[j] && norm.indexOf(palabras[j]) !== -1) return faqs[i];
     }
   }
   return null;
 }
 
-// Arma la respuesta de cada tema con datos reales de Configuración > Contacto.
-function chatAnswerFor(key, cfg) {
-  switch (key) {
-    case 'horario': {
-      var dir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? ', ' + cfg.contacto_ciudad : '');
-      var horLineas = (cfg.contacto_horario || '').split('|').map(function (s) { return s.trim(); }).filter(Boolean);
-      var hor = horLineas.length ? horLineas.join(' · ') : 'consulta el horario en la página de Contacto';
-      return '📍 ' + (dir || 'Puedes ver nuestra dirección en la página de Contacto') + '\n🕒 ' + hor;
-    }
-    case 'pedido':
-      return 'Es bien fácil: 1️⃣ elige tus productos y agrégalos al carrito 🛒, 2️⃣ ve a pagar y confirma tus datos, 3️⃣ pasas a recoger tu pedido a la tienda y pagas en efectivo al recogerlo 💵.';
-    case 'catalogo':
-      return 'Tenemos bombones, botanas, chocolates, enchilados, gomitas, mazapanes, paletas y refrescos 🍬.';
-    case 'pago':
-      return 'Por ahora solo manejamos pago en efectivo, directo al recoger tu pedido en tienda 💵.';
-    case 'estado':
-      return 'Puedes ver el estado de todos tus pedidos desde tu cuenta.';
-    default:
-      return null;
-  }
+// Sustituye los placeholders {direccion} {horario} {telefono} {email} en la
+// respuesta con los datos reales de Configuración > Contacto (ver admin).
+function chatFillPlaceholders(text, cfg) {
+  var dir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? ', ' + cfg.contacto_ciudad : '');
+  var horLineas = (cfg.contacto_horario || '').split('|').map(function (s) { return s.trim(); }).filter(Boolean);
+  var hor = horLineas.join(' · ');
+  return text
+    .replace(/\{direccion\}/gi, dir || 'consulta nuestra dirección en la página de Contacto')
+    .replace(/\{horario\}/gi, hor || 'consulta el horario en la página de Contacto')
+    .replace(/\{telefono\}/gi, cfg.contacto_telefono || '—')
+    .replace(/\{email\}/gi, cfg.contacto_email || '—');
 }
 
 function injectChatWidget() {
@@ -810,30 +824,35 @@ function injectChatWidget() {
 
   document.getElementById('dc-chat-close').addEventListener('click', closeChatPanel);
 
-  document.getElementById('dc-chat-form').addEventListener('submit', function (e) {
+  document.getElementById('dc-chat-form').addEventListener('submit', async function (e) {
     e.preventDefault();
     var input = document.getElementById('dc-chat-input');
     var text = input.value.trim();
     if (!text) return;
     input.value = '';
-    chatHandleQuestion(chatMatchKeyword(text), text);
+    var faqs = await getChatFaqs();
+    chatHandleQuestion(chatMatchKeyword(text, faqs), text);
   });
 
   chatRenderQuickReplies();
   chatUpdateWaCta();
 }
 
+// Las preguntas rápidas se administran en el panel admin (sec-chatbot),
+// se cargan desde /api/chatbot-faq (con getChatFaqs, en caché).
 function chatRenderQuickReplies() {
   var wrap = document.getElementById('dc-chat-quick');
   if (!wrap) return;
-  wrap.innerHTML = '';
-  CHAT_MENU.forEach(function (item) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'dc-quick-btn';
-    btn.textContent = item.label;
-    btn.addEventListener('click', function () { chatHandleQuestion(item.key, item.label); });
-    wrap.appendChild(btn);
+  getChatFaqs().then(function (faqs) {
+    wrap.innerHTML = '';
+    faqs.forEach(function (faq) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dc-quick-btn';
+      btn.textContent = faq.pregunta;
+      btn.addEventListener('click', function () { chatHandleQuestion(faq, faq.pregunta); });
+      wrap.appendChild(btn);
+    });
   });
 }
 
@@ -848,41 +867,53 @@ function chatAddMessage(text, from) {
   return msg;
 }
 
-function chatAddLinkMessage(text, href, label) {
+/* Solo permite http(s) o rutas relativas del propio sitio — bloquea
+   javascript:/data:/vbscript: por si una cuenta admin comprometida
+   guarda un link malicioso en una FAQ del chatbot (ver auditoría). */
+function _chatEsUrlSegura(url) {
+  return /^https?:\/\//i.test(url) || url.startsWith('/') || url.startsWith('catalogo.html') ||
+         url.startsWith('pedidos.html') || url.startsWith('login.html');
+}
+
+function chatAddLinkMessage(text, href, label, openBlank) {
   var msg = chatAddMessage(text, 'bot');
   if (!msg) return;
   msg.appendChild(document.createElement('br'));
   var a = document.createElement('a');
-  a.href = href;
+  a.href = _chatEsUrlSegura(href) ? href : '#';
   a.className = 'dc-msg-link';
   a.textContent = label;
+  if (openBlank) { a.target = '_blank'; a.rel = 'noopener'; }
   msg.appendChild(a);
 }
 
-// Punto de entrada único: lo llaman tanto los botones rápidos (key conocida)
-// como el texto libre (key puede salir null de chatMatchKeyword).
-async function chatHandleQuestion(key, userText) {
+// Punto de entrada único: lo llaman tanto los botones rápidos (faq conocida)
+// como el texto libre (faq puede salir null de chatMatchKeyword, si no
+// coincidió ninguna palabra clave configurada en el admin).
+async function chatHandleQuestion(faq, userText) {
   chatAddMessage(userText, 'user');
   _chatLastUserText = userText;
   chatUpdateWaCta();
 
-  if (key === 'humano') {
-    chatAddMessage('Claro, te comunico con nosotros 👇 toca el botón verde de abajo para seguir por WhatsApp.', 'bot');
-    return;
-  }
-  if (!key) {
-    chatAddMessage('No estoy seguro de eso todavía 🤔 Puedo ayudarte con horario, cómo pedir, catálogo, pagos o el estado de tu pedido — o escríbenos por WhatsApp con el botón de abajo.', 'bot');
+  if (!faq) {
+    chatAddMessage('No estoy seguro de eso todavía 🤔 Toca una de las opciones de abajo, o escríbenos por WhatsApp con el botón verde.', 'bot');
     return;
   }
 
-  var cfg = await getContactoCfg();
-  var answer = chatAnswerFor(key, cfg);
-  if (key === 'catalogo') {
-    chatAddLinkMessage(answer, 'catalogo.html', '🍬 Ir al catálogo →');
-  } else if (key === 'estado') {
-    var href = (typeof isLoggedIn === 'function' && isLoggedIn()) ? 'pedidos.html' : 'login.html';
-    chatAddLinkMessage(answer, href, '📦 Ver mis pedidos →');
+  var cfg    = await getContactoCfg();
+  var answer = chatFillPlaceholders(faq.respuesta, cfg);
+
+  if (faq.accion_tipo === 'catalogo') {
+    var hrefCat = 'catalogo.html' + (faq.accion_valor ? '?cat=' + encodeURIComponent(faq.accion_valor) : '');
+    chatAddLinkMessage(answer, hrefCat, faq.accion_texto || '🍬 Ver catálogo →');
+  } else if (faq.accion_tipo === 'pedidos') {
+    var hrefPed = (typeof isLoggedIn === 'function' && isLoggedIn()) ? 'pedidos.html' : 'login.html';
+    chatAddLinkMessage(answer, hrefPed, faq.accion_texto || '📦 Ver mis pedidos →');
+  } else if (faq.accion_tipo === 'link' && faq.accion_valor) {
+    chatAddLinkMessage(answer, faq.accion_valor, faq.accion_texto || 'Ver más →', /^https?:\/\//i.test(faq.accion_valor));
   } else {
+    // 'whatsapp' y 'ninguna' son solo texto — el CTA de WhatsApp ya está
+    // siempre visible abajo del chat para el caso 'whatsapp'.
     chatAddMessage(answer, 'bot');
   }
 }
@@ -976,11 +1007,87 @@ function initReveal() {
 }
 
 /* ================================================================
+   SECCIÓN: ALTO REAL DEL NAVBAR
+   admin.css y auth.css necesitan saber cuánto mide el navbar para
+   calcular el alto del resto de la página (sidebar del admin, alto
+   mínimo del login/registro, etc.). Antes tenían el valor fijo en
+   68px escrito a mano; con el navbar de escritorio más cargado ahora
+   (Categorías, Mis Pedidos, ícono de Cuenta) mide más que eso, y ese
+   valor fijo se quedó desactualizado — se notaba como que el sidebar
+   del admin no calzaba bien hasta achicar/agrandar la ventana.
+   En vez de otro número fijo, OBSERVAMOS el navbar de verdad con
+   ResizeObserver y guardamos su alto en --navbar-h, que esas hojas de
+   estilo ya usan (con 68px solo de respaldo por si este script no
+   llegó a correr). Usar ResizeObserver en vez de medir una sola vez
+   en DOMContentLoaded es a propósito: el alto del navbar cambia por
+   varios motivos que no son solo "cambió el tamaño de la ventana"
+   (cargan las fuentes web, initNavAccountMenu cambia el botón de
+   Cuenta de ícono a "Hola, nombre"...) — medir en un solo momento fijo
+   siempre se quedaba corto contra alguno de esos cambios. ResizeObserver
+   se dispara automáticamente cada vez que el navbar cambia de tamaño
+   por CUALQUIER motivo, así que no hay que adivinar el momento correcto.*/
+function watchNavbarHeight() {
+  var nav = document.querySelector('.navbar');
+  if (!nav) return;
+
+  function set() { document.documentElement.style.setProperty('--navbar-h', nav.offsetHeight + 'px'); }
+  set();
+
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(set).observe(nav);
+  } else {
+    // Respaldo para navegadores muy viejos sin ResizeObserver
+    window.addEventListener('resize', set);
+  }
+}
+
+/* ================================================================
+   SECCIÓN: DESPLEGABLES DEL NAVBAR (Categorías / Cuenta)
+   Los dos desplegables del navbar de escritorio (#nav-cats-dropdown,
+   #nav-account-dropdown) comparten el mismo comportamiento de abrir/
+   cerrar: clic en su botón lo abre (y cierra el otro, si estaba
+   abierto), clic afuera o Escape lo cierra. El contenido de cada uno
+   lo llenan initNavCategoriesMenu()/initNavAccountMenu() (auth.js).
+================================================================ */
+function closeNavDropdowns() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(function (d) {
+    d.classList.remove('open');
+    var btn = d.querySelector('.nav-dropdown-btn, .nav-icon-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function initNavDropdowns() {
+  var dropdowns = document.querySelectorAll('.nav-dropdown');
+  if (!dropdowns.length) return;
+
+  dropdowns.forEach(function (dropdown) {
+    var btn = dropdown.querySelector('.nav-dropdown-btn, .nav-icon-btn');
+    if (!btn) return;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var willOpen = !dropdown.classList.contains('open');
+      closeNavDropdowns(); // solo un desplegable abierto a la vez
+      if (willOpen) {
+        dropdown.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  document.addEventListener('click', closeNavDropdowns); // clic fuera de cualquiera de los dos
+}
+
+/* ================================================================
    SECCIÓN: INICIALIZACIÓN AL CARGAR LA PÁGINA
    Este bloque se ejecuta cuando el HTML termina de cargarse.
    Inicializa todos los comportamientos globales.
 ================================================================ */
 document.addEventListener('DOMContentLoaded', function() {
+
+  /* 0. Mantener --navbar-h sincronizado con el alto real del navbar
+     (ver watchNavbarHeight arriba). */
+  watchNavbarHeight();
 
   /* 1. Aplicar el tema guardado (oscuro o claro) */
   var savedTheme = localStorage.getItem('dc_theme') || 'light';
@@ -1004,11 +1111,15 @@ document.addEventListener('DOMContentLoaded', function() {
   /* 4. Iniciar el efecto de scroll reveal */
   initReveal();
 
-  /* 4b. Inyectar la burbuja flotante + el panel del chatbot del sitio,
-     y llenar el footer de contacto (dirección/horario/tel/email/whatsapp).
+  /* 4b. Inyectar la burbuja flotante + el panel del chatbot del sitio
+     (no en el panel de admin: es para clientes, no para quien administra
+     la tienda, y ahí estorbaría sobre los formularios/tablas), y llenar
+     el footer de contacto (dirección/horario/tel/email/whatsapp).
      Ver initFooterContacto() y la sección CHATBOT DEL SITIO más arriba. */
-  injectWhatsAppBubble();
-  injectChatWidget();
+  if (!/\/admin\.html$/.test(window.location.pathname)) {
+    injectWhatsAppBubble();
+    injectChatWidget();
+  }
   initFooterContacto();
 
   /* 5. Inicializar el drawer de autenticación (definido en auth.js) */
@@ -1016,6 +1127,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   /* 5b. Cargar la sección "Categorías" del drawer (definida en auth.js) */
   if (typeof initDrawerCategories === 'function') initDrawerCategories();
+
+  /* 5c. Desplegables del navbar de escritorio: "Categorías" y "Cuenta"
+     (definidas en auth.js; en móvil van ocultas, ver CSS .nav-links). */
+  if (typeof initNavCategoriesMenu === 'function') initNavCategoriesMenu();
+  if (typeof initNavAccountMenu   === 'function') initNavAccountMenu();
+  initNavDropdowns();
 
   /* 6. Cargar favoritos desde la API si hay sesión activa */
   if (isLoggedIn() && typeof loadFavorites === 'function') {
@@ -1056,8 +1173,8 @@ document.addEventListener('DOMContentLoaded', function() {
     overlay.addEventListener('click', closeDrawer); // clic en el fondo → cerrar
 
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { closeDrawer(); closeProductModal(); closeChatPanel(); }
-      // La tecla Escape cierra cualquier cosa abierta (drawer, modal o chat)
+      if (e.key === 'Escape') { closeDrawer(); closeProductModal(); closeChatPanel(); closeNavDropdowns(); }
+      // La tecla Escape cierra cualquier cosa abierta (drawer, modal, chat o desplegable)
     });
   }
 

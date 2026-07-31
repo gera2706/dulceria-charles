@@ -75,9 +75,9 @@ router.post('/registro', async (req, res) => {
   if (!emailRegex.test(email))
     return res.status(400).json({ error: 'El correo no tiene un formato válido.' });
 
-  // VALIDACIÓN 3: Contraseña mínima de 6 caracteres
-  if (password.length < 6)
-    return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+  // VALIDACIÓN 3: Contraseña mínima de 8 caracteres (NIST recomienda 8+)
+  if (password.length < 8)
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
 
   try {
     // VALIDACIÓN 3: ¿Ya existe una cuenta con ese correo?
@@ -237,8 +237,8 @@ router.put('/me', authMiddleware, meLimiter, async (req, res) => {
     if (passwordNueva) {
       if (!passwordActual)
         return res.status(400).json({ error: 'Ingresa tu contraseña actual para cambiarla.' });
-      if (passwordNueva.length < 6)
-        return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+      if (passwordNueva.length < 8)
+        return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres.' });
 
       const [rows] = await db.query('SELECT password FROM usuarios WHERE id = ?', [req.user.id]);
       if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado.' });

@@ -1,6 +1,8 @@
 /* ===== AUTH PAGES (login + registro) ===== */
 .auth-wrapper {
-  min-height: calc(100vh - 68px);
+  /* var(--navbar-h) la fija cart.js midiendo el navbar real (ver
+     setNavbarHeightVar); 68px es solo el respaldo antes de que corra el JS */
+  min-height: calc(100vh - var(--navbar-h, 68px));
   display: flex;
   align-items: center;
   justify-content: center;

@@ -10,6 +10,19 @@
    que ocupen el mismo espacio y se vean visualmente iguales.
 ================================================================ */
 
+/* Escape mínimo y autocontenido: no depende de que cart.js (escapeHtml
+   global) ya se haya cargado, porque el orden de <script> varía entre
+   páginas y este archivo se usa en las 12. */
+function _catIconEscape(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderCatIcon(icono, size) {
   size = size || '3rem';
   if (!icono) icono = '🍬';
@@ -23,11 +36,11 @@ function renderCatIcon(icono, size) {
     return '<span class="cat-icon cat-icon--img" style="font-size:' + size + ';' +
       'display:inline-flex;align-items:center;justify-content:center;' +
       'width:1em;height:1em;">' +
-      '<img src="' + icono + '" alt="categoría" class="cat-icon__img"' +
+      '<img src="' + _catIconEscape(icono) + '" alt="categoría" class="cat-icon__img"' +
       ' onerror="this.style.display=\'none\'">' +
       '</span>';
   }
 
   /* Emoji u otro texto */
-  return '<span class="cat-icon" style="font-size:' + size + ';">' + icono + '</span>';
+  return '<span class="cat-icon" style="font-size:' + size + ';">' + _catIconEscape(icono) + '</span>';
 }

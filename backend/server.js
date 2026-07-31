@@ -61,6 +61,12 @@ app.use(express.json());
 ────────────────────────────────────────────────────────── */
 app.use('/api/auth/login',    rateLimit({ windowMs: 15*60*1000, max: 10,  message: { error: 'Demasiados intentos. Espera 15 minutos.' } }));
 app.use('/api/auth/registro', rateLimit({ windowMs: 60*60*1000, max: 5,   message: { error: 'Demasiados registros desde esta IP.' } }));
+
+// Límite general y generoso sobre toda la API, además de los límites
+// específicos de arriba — cubre endpoints públicos de solo lectura
+// (ej: /api/productos) que antes no tenían ningún límite, contra
+// scraping agresivo o un mini-DoS de aplicación.
+app.use('/api', rateLimit({ windowMs: 15*60*1000, max: 300, message: { error: 'Demasiadas peticiones. Intenta de nuevo en unos minutos.' } }));
 // Sin esto, req.body sería undefined en las rutas POST/PUT.
 // Este middleware lee el cuerpo de la petición y lo parsea de JSON a objeto JS.
 // Ejemplo: recibe '{"email":"a@b.com"}' y lo convierte a { email: "a@b.com" }
@@ -99,6 +105,7 @@ app.use('/api/favoritos',  require('./routes/favoritos'));   // /api/favoritos
 app.use('/api/usuarios',   require('./routes/usuarios'));    // /api/usuarios
 app.use('/api/config',     require('./routes/config'));      // /api/config/contacto
 app.use('/api/categorias', require('./routes/categorias'));
+app.use('/api/chatbot-faq', require('./routes/chatbot_faq')); // preguntas frecuentes del chatbot del sitio
 app.use('/api/upload',    require('./routes/upload')); // /api/categorias
 
 /* ── MANEJADOR DE RUTAS NO ENCONTRADAS ────────────────────────

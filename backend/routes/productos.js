@@ -56,16 +56,37 @@ router.get('/', async (req, res) => {
       // No necesita ? porque no es un valor del usuario, es fijo.
     }
 
-    // Si viene una búsqueda por texto, usamos LIKE con % como comodín
+    // Búsqueda por texto: usa el índice FULLTEXT sobre nombre (ft_productos_nombre)
+    // en vez de LIKE '%q%', que nunca puede usar un índice B-tree normal por el
+    // comodín al inicio (auditoría de rendimiento 2026-07-30). MATCH/AGAINST en
+    // modo booleano con "*" al final aproxima el "empieza con" de LIKE.
     if (req.query.q) {
-      sql += ' AND nombre LIKE ?';
-      vals.push('%' + req.query.q + '%');
-      // LIKE '%paleta%' en SQL significa: "contiene la palabra paleta en cualquier posición"
-      // El % antes significa "cualquier texto antes" y el % después "cualquier texto después"
+      sql += ' AND MATCH(nombre) AGAINST(? IN BOOLEAN MODE)';
+      vals.push(req.query.q.trim().split(/\s+/).filter(Boolean).map(w => w + '*').join(' '));
     }
 
     sql += ' ORDER BY id ASC';
     // Ordenamos por ID para que siempre salgan en el mismo orden.
+
+    // Paginación OPCIONAL (?page=&limit=): si no se manda, se devuelven
+    // todos los productos como siempre (así el catálogo público, que
+    // filtra del lado del cliente, sigue funcionando sin cambios).
+    // Auditoría de rendimiento 2026-07-30: con 107 productos no hace
+    // falta hoy, pero deja listo el camino para cuando el catálogo crezca.
+    if (req.query.page || req.query.limit) {
+      const [totalRows] = await db.query(
+        'SELECT COUNT(*) AS n FROM productos WHERE activo = 1' +
+        (req.query.categoria ? ' AND categoria = ?' : '') +
+        (req.query.destacado === '1' ? ' AND destacado = 1' : '') +
+        (req.query.q ? ' AND MATCH(nombre) AGAINST(? IN BOOLEAN MODE)' : ''),
+        vals
+      );
+      const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+      const page  = Math.max(parseInt(req.query.page, 10) || 1, 1);
+      sql += ' LIMIT ? OFFSET ?';
+      vals.push(limit, (page - 1) * limit);
+      res.set('X-Total-Count', String(totalRows[0].n));
+    }
 
     const [rows] = await db.query(sql, vals);
     // db.query devuelve un array: [filas, metadata].

@@ -38,9 +38,38 @@ CREATE TABLE IF NOT EXISTS categorias (
   icono  VARCHAR(500) DEFAULT '🍬'
 ) ENGINE=InnoDB;
 
+-- ── CHATBOT: PREGUNTAS FRECUENTES ────────────────────────
+-- Preguntas rápidas / palabras clave del chatbot del sitio (ver
+-- cart.js, sección CHATBOT DEL SITIO). El admin las administra desde
+-- el panel (sec-chatbot) sin tocar código.
+-- respuesta admite los placeholders {direccion} {horario} {telefono}
+-- {email}, que se rellenan con los datos reales de Configuración >
+-- Contacto al mostrarse (ver chatFillPlaceholders() en cart.js).
+-- accion_tipo: ninguna | link | whatsapp | catalogo | pedidos
+--   - link:     accion_valor = URL, accion_texto = texto del botón
+--   - catalogo: accion_valor = categoría opcional (vacío = catálogo completo)
+--   - pedidos:  lleva a pedidos.html si hay sesión, si no a login.html
+--   - whatsapp: no agrega botón propio, solo apunta al CTA de WhatsApp ya visible
+CREATE TABLE IF NOT EXISTS chatbot_faq (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  pregunta       VARCHAR(150)  NOT NULL,
+  palabras_clave VARCHAR(500)  DEFAULT '',
+  respuesta      TEXT          NOT NULL,
+  accion_tipo    VARCHAR(20)   NOT NULL DEFAULT 'ninguna',
+  accion_valor   VARCHAR(300)  DEFAULT '',
+  accion_texto   VARCHAR(100)  DEFAULT '',
+  orden          INT           NOT NULL DEFAULT 0,
+  activo         TINYINT(1)    DEFAULT 1,
+  INDEX idx_activo_orden (activo, orden)
+) ENGINE=InnoDB;
+
 -- ── PRODUCTOS ─────────────────────────────────────────────
 -- categoria es VARCHAR para que las categorías dinámicas del admin funcionen.
 -- No usar ENUM aquí porque rompe al crear categorías nuevas desde el panel.
+-- fk_productos_categoria (con ON UPDATE CASCADE) refuerza a nivel de BD lo
+-- que antes solo garantizaba el código de la app: si algún día categorias.js
+-- deja de hacer su UPDATE manual al renombrar una categoría, MySQL lo hace
+-- de todos modos (auditoría de modelado 2026-07-30, hallazgo alto).
 CREATE TABLE IF NOT EXISTS productos (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   nombre          VARCHAR(200)  NOT NULL,
@@ -53,8 +82,13 @@ CREATE TABLE IF NOT EXISTS productos (
   stock           INT           NOT NULL DEFAULT 20,
   stock_minimo    INT           NOT NULL DEFAULT 5,
   fecha_creacion  DATETIME      DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_productos_categoria FOREIGN KEY (categoria) REFERENCES categorias(nombre)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT chk_productos_precio CHECK (precio > 0),
+  CONSTRAINT chk_productos_stock  CHECK (stock >= 0),
   INDEX idx_activo_cat (activo, categoria),
-  INDEX idx_destacado  (destacado)
+  INDEX idx_destacado  (destacado),
+  FULLTEXT INDEX ft_productos_nombre (nombre)
 ) ENGINE=InnoDB;
 
 -- ── CONFIGURACIÓN ─────────────────────────────────────────
@@ -79,12 +113,12 @@ CREATE TABLE IF NOT EXISTS pedidos (
   subtotal      DECIMAL(10,2) NOT NULL,
   total         DECIMAL(10,2) NOT NULL,
   estado        ENUM('pendiente_finalizar','pendiente_entregar','entregado','cancelado')
-                DEFAULT 'pendiente_finalizar',
+                NOT NULL DEFAULT 'pendiente_finalizar',
   metodo_pago   VARCHAR(50),
   nombre_envio  VARCHAR(150),
   telefono      VARCHAR(20),
   fecha         DATETIME      DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+  CONSTRAINT fk_pedidos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
   INDEX idx_usuario_id (usuario_id),
   INDEX idx_estado     (estado)
 ) ENGINE=InnoDB;
@@ -99,8 +133,9 @@ CREATE TABLE IF NOT EXISTS pedido_items (
   nombre       VARCHAR(200)  NOT NULL,
   precio       DECIMAL(10,2) NOT NULL,
   cantidad     INT           NOT NULL,
-  FOREIGN KEY (pedido_id)   REFERENCES pedidos(id)   ON DELETE CASCADE,
-  FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE SET NULL,
+  CONSTRAINT fk_pedido_items_pedido   FOREIGN KEY (pedido_id)   REFERENCES pedidos(id)   ON DELETE CASCADE,
+  CONSTRAINT fk_pedido_items_producto FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE SET NULL,
+  CONSTRAINT chk_pedido_items_cantidad CHECK (cantidad > 0),
   INDEX idx_pedido_id (pedido_id)
 ) ENGINE=InnoDB;
 
@@ -111,9 +146,25 @@ CREATE TABLE IF NOT EXISTS favoritos (
   producto_id  INT  NOT NULL,
   fecha        DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY unique_fav (usuario_id, producto_id),
-  FOREIGN KEY (usuario_id)  REFERENCES usuarios(id)  ON DELETE CASCADE,
-  FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_favoritos_usuario  FOREIGN KEY (usuario_id)  REFERENCES usuarios(id)  ON DELETE CASCADE,
+  CONSTRAINT fk_favoritos_producto FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE,
   INDEX idx_usuario_id (usuario_id)
+) ENGINE=InnoDB;
+
+-- ── AUDITORÍA ─────────────────────────────────────────────
+-- Bitácora automática de cambios (aportada por Eduardo, integrada aquí
+-- el 31-jul-2026). Los triggers de más abajo escriben aquí solos, sin
+-- que el backend Node tenga que hacer nada extra.
+CREATE TABLE IF NOT EXISTS auditoria (
+  id_auditoria      INT AUTO_INCREMENT PRIMARY KEY,
+  tabla_afectada    VARCHAR(50) NOT NULL,
+  accion            ENUM('INSERT','UPDATE','DELETE') NOT NULL,
+  id_registro       INT NOT NULL,
+  usuario           VARCHAR(100),
+  descripcion       VARCHAR(255),
+  datos_anteriores  JSON,
+  datos_nuevos      JSON,
+  fecha             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -136,6 +187,33 @@ INSERT INTO categorias (nombre, icono) VALUES
 ('mazapanes',  '🥜'),
 ('paletas',    '🍭'),
 ('refrescos',  '🥤');
+
+-- Chatbot: preguntas frecuentes por defecto (mismas que traía el chatbot
+-- antes de ser configurable, para no perder el comportamiento actual)
+INSERT INTO chatbot_faq (pregunta, palabras_clave, respuesta, accion_tipo, accion_valor, accion_texto, orden) VALUES
+('📍 Ubicación y horario',
+ 'horario,hora,abren,cierran,direccion,ubicacion,domicilio,donde estan,donde queda',
+ '📍 {direccion}\n🕒 {horario}', 'ninguna', '', '', 1),
+('🛍️ ¿Cómo hago un pedido?',
+ 'como pido,como compro,hacer un pedido,como funciona,proceso de compra',
+ 'Es bien fácil: 1️⃣ elige tus productos y agrégalos al carrito 🛒, 2️⃣ ve a pagar y confirma tus datos, 3️⃣ pasas a recoger tu pedido a la tienda y pagas en efectivo al recogerlo 💵.',
+ 'ninguna', '', '', 2),
+('🍬 Ver catálogo',
+ 'catalogo,productos,que venden,bombones,chocolates,gomitas,mazapanes,botanas,enchilados,paletas,refrescos,dulces',
+ 'Tenemos bombones, botanas, chocolates, enchilados, gomitas, mazapanes, paletas y refrescos 🍬.',
+ 'catalogo', '', '🍬 Ir al catálogo →', 3),
+('💳 Métodos de pago',
+ 'pago,pagar,efectivo,tarjeta,transferencia,metodo de pago',
+ 'Por ahora solo manejamos pago en efectivo, directo al recoger tu pedido en tienda 💵.',
+ 'ninguna', '', '', 4),
+('📦 Estado de mi pedido',
+ 'mi pedido,estado de mi pedido,donde va mi pedido,rastrear,numero de pedido',
+ 'Puedes ver el estado de todos tus pedidos desde tu cuenta.',
+ 'pedidos', '', '📦 Ver mis pedidos →', 5),
+('💬 Hablar con una persona',
+ 'whatsapp,humano,persona,asesor,hablar con alguien,atencion',
+ 'Claro, te comunico con nosotros 👇 toca el botón verde de abajo para seguir por WhatsApp.',
+ 'whatsapp', '', '', 6);
 
 -- Configuración (datos de contacto/pickup, ver backend/routes/config.js)
 INSERT INTO configuracion (clave, valor) VALUES
@@ -255,3 +333,177 @@ INSERT INTO productos (id, nombre, categoria, precio, imagen, destacado) VALUES
 (105,'Vero Semaforito 40pz',            'paletas',     92, 'img/productos/Paletas-20260528T212337Z-3-001/Paletas/VERO PAL SEMAFORITO 40pz $92.webp', 0),
 (106,'Vero Bomba Negra 40pz',           'paletas',     82, 'img/productos/Paletas-20260528T212337Z-3-001/Paletas/VERO PAL.BOMBA NEGRA 40pzs $82.webp', 0),
 (107,'Vero Brochita Pintazul 48pz',     'paletas',     92, 'img/productos/Paletas-20260528T212337Z-3-001/Paletas/VERO PAL.BROCHITA PINTAZUL 48pzs $92.webp', 1);
+
+-- ============================================================
+--  TRIGGERS — bitácora automática en "auditoria"
+--  Aportados por Eduardo, integrados aquí el 31-jul-2026.
+--  Se crean DESPUÉS de insertar los 107 productos a propósito,
+--  para que el seed inicial no llene "auditoria" con 107 filas
+--  de "se agregó el producto..." en cada instalación nueva.
+-- ============================================================
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS tr_productos_insert$$
+CREATE TRIGGER tr_productos_insert
+AFTER INSERT ON productos
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_nuevos)
+  VALUES ('productos', 'INSERT', NEW.id, CONCAT('Se agregó el producto: ', NEW.nombre),
+    JSON_OBJECT('nombre', NEW.nombre, 'categoria', NEW.categoria, 'precio', NEW.precio, 'stock', NEW.stock));
+END$$
+
+DROP TRIGGER IF EXISTS tr_productos_update$$
+CREATE TRIGGER tr_productos_update
+AFTER UPDATE ON productos
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores, datos_nuevos)
+  VALUES ('productos', 'UPDATE', NEW.id, CONCAT('Se actualizó el producto: ', NEW.nombre),
+    JSON_OBJECT('nombre', OLD.nombre, 'categoria', OLD.categoria, 'precio', OLD.precio, 'stock', OLD.stock, 'activo', OLD.activo),
+    JSON_OBJECT('nombre', NEW.nombre, 'categoria', NEW.categoria, 'precio', NEW.precio, 'stock', NEW.stock, 'activo', NEW.activo));
+END$$
+
+DROP TRIGGER IF EXISTS tr_productos_delete$$
+CREATE TRIGGER tr_productos_delete
+AFTER DELETE ON productos
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores)
+  VALUES ('productos', 'DELETE', OLD.id, CONCAT('Se eliminó el producto: ', OLD.nombre),
+    JSON_OBJECT('nombre', OLD.nombre, 'categoria', OLD.categoria, 'precio', OLD.precio, 'stock', OLD.stock));
+END$$
+
+DROP TRIGGER IF EXISTS tr_pedidos_insert$$
+CREATE TRIGGER tr_pedidos_insert
+AFTER INSERT ON pedidos
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_nuevos)
+  VALUES ('pedidos', 'INSERT', NEW.id, CONCAT('Nuevo pedido #', NEW.id),
+    JSON_OBJECT('usuario', NEW.usuario_id, 'total', NEW.total, 'estado', NEW.estado));
+END$$
+
+DROP TRIGGER IF EXISTS tr_pedidos_update$$
+CREATE TRIGGER tr_pedidos_update
+AFTER UPDATE ON pedidos
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores, datos_nuevos)
+  VALUES ('pedidos', 'UPDATE', NEW.id, CONCAT('Pedido #', NEW.id, ' actualizado'),
+    JSON_OBJECT('estado', OLD.estado, 'total', OLD.total),
+    JSON_OBJECT('estado', NEW.estado, 'total', NEW.total));
+END$$
+
+DROP TRIGGER IF EXISTS tr_usuarios_insert$$
+CREATE TRIGGER tr_usuarios_insert
+AFTER INSERT ON usuarios
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_nuevos)
+  VALUES ('usuarios', 'INSERT', NEW.id, CONCAT('Nuevo usuario registrado: ', NEW.nombre),
+    JSON_OBJECT('nombre', NEW.nombre, 'email', NEW.email, 'rol', NEW.rol));
+END$$
+
+DROP TRIGGER IF EXISTS tr_usuarios_update$$
+CREATE TRIGGER tr_usuarios_update
+AFTER UPDATE ON usuarios
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores, datos_nuevos)
+  VALUES ('usuarios', 'UPDATE', NEW.id, CONCAT('Usuario actualizado: ', NEW.nombre),
+    JSON_OBJECT('nombre', OLD.nombre, 'email', OLD.email, 'rol', OLD.rol),
+    JSON_OBJECT('nombre', NEW.nombre, 'email', NEW.email, 'rol', NEW.rol));
+END$$
+
+-- NOTA (agregado 31-jul-2026, no estaba en el archivo original de Eduardo):
+-- backend/routes/usuarios.js sí hace un DELETE real de usuarios (a
+-- diferencia de productos, que solo hace soft-delete) — sin este trigger
+-- esa acción se quedaba fuera de la bitácora de auditoría.
+DROP TRIGGER IF EXISTS tr_usuarios_delete$$
+CREATE TRIGGER tr_usuarios_delete
+AFTER DELETE ON usuarios
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores)
+  VALUES ('usuarios', 'DELETE', OLD.id, CONCAT('Usuario eliminado: ', OLD.nombre),
+    JSON_OBJECT('nombre', OLD.nombre, 'email', OLD.email, 'rol', OLD.rol));
+END$$
+
+DELIMITER ;
+
+-- ============================================================
+--  PROCEDIMIENTOS ALMACENADOS
+--  Aportados por Eduardo, integrados aquí el 31-jul-2026.
+--  Son utilidades para usar directo desde MySQL Workbench; el
+--  backend Node.js no los llama (sigue usando sus propias rutas
+--  con las validaciones de negocio de TRANSICIONES_VALIDAS,
+--  protección de último admin, etc. — estos procedimientos NO
+--  reemplazan esas reglas si se llaman a mano).
+-- ============================================================
+
+/* sp_cambiar_estado_pedido(p_id, p_estado)
+   Cambia el estado de un pedido y muestra su info actualizada.
+   Ejemplo: CALL sp_cambiar_estado_pedido(5, 'entregado'); */
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_cambiar_estado_pedido$$
+CREATE PROCEDURE sp_cambiar_estado_pedido(IN p_id INT, IN p_estado VARCHAR(30))
+BEGIN
+  UPDATE pedidos SET estado = p_estado WHERE id = p_id;
+  SELECT p.id AS pedido, u.nombre AS cliente, p.total, p.estado,
+         p.metodo_pago, p.nombre_envio, p.telefono, p.fecha
+  FROM pedidos p INNER JOIN usuarios u ON p.usuario_id = u.id
+  WHERE p.id = p_id;
+END$$
+DELIMITER ;
+
+/* sp_productos_stock_bajo()
+   Lista los productos cuyo stock ya llegó a su stock_minimo o menos.
+   Ejemplo: CALL sp_productos_stock_bajo(); */
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_productos_stock_bajo$$
+CREATE PROCEDURE sp_productos_stock_bajo()
+BEGIN
+  SELECT id, nombre, categoria, stock, stock_minimo
+  FROM productos
+  WHERE stock <= stock_minimo
+  ORDER BY stock ASC;
+END$$
+DELIMITER ;
+
+/* sp_cambiar_rol_usuario(p_usuario, p_rol)
+   Cambia el rol de un usuario entre cliente y admin.
+   Ejemplo: CALL sp_cambiar_rol_usuario(3, 'admin'); */
+DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_cambiar_rol_usuario$$
+CREATE PROCEDURE sp_cambiar_rol_usuario(IN p_usuario INT, IN p_rol VARCHAR(20))
+BEGIN
+  UPDATE usuarios SET rol = p_rol WHERE id = p_usuario;
+END$$
+DELIMITER ;
+
+-- ============================================================
+--  VISTAS
+--  Aportadas por Eduardo, integradas aquí el 31-jul-2026.
+-- ============================================================
+
+-- Productos cuyo stock ya llegó a su stock_minimo o menos.
+DROP VIEW IF EXISTS vw_productos_stock_bajo;
+CREATE VIEW vw_productos_stock_bajo AS
+SELECT id, nombre, categoria, precio, stock, stock_minimo
+FROM productos
+WHERE stock <= stock_minimo;
+
+-- Pedidos con los datos del cliente ya unidos (para reportes/admin).
+DROP VIEW IF EXISTS vw_pedidos_completos;
+CREATE VIEW vw_pedidos_completos AS
+SELECT p.id AS pedido, u.nombre AS cliente, u.email, p.total, p.estado,
+       p.metodo_pago, p.nombre_envio, p.telefono, p.fecha
+FROM pedidos p INNER JOIN usuarios u ON p.usuario_id = u.id;
+
+-- Solo los productos activos (disponibles para la venta).
+DROP VIEW IF EXISTS vw_catalogo;
+CREATE VIEW vw_catalogo AS
+SELECT id, nombre, categoria, precio, stock, imagen, destacado
+FROM productos
+WHERE activo = 1;

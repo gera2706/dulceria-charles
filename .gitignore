@@ -8,6 +8,9 @@ backend/.env
 public/img/categorias/
 public/img/productos_upload/
 
+# Respaldos de la BD (contienen datos reales de usuarios/pedidos)
+respaldos/
+
 # Logs
 *.log
 npm-debug.log*

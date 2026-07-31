@@ -17,11 +17,20 @@ document.addEventListener('DOMContentLoaded', function () {
       btn.classList.add('active');
       document.querySelectorAll('.admin-section').forEach(function (s) { s.classList.remove('active'); });
       document.getElementById('sec-' + btn.dataset.section).classList.add('active');
+
+      // La vista previa del chatbot (burbuja + panel) solo tiene sentido
+      // mientras se está en la sección Chatbot — si no, se queda flotando
+      // sobre el resto del panel admin sin servir de nada. Se quita por
+      // completo del DOM (no solo se cierra) al salir de la sección; el
+      // botón "🧪 Probar chatbot" la vuelve a crear cuando se necesite.
+      if (btn.dataset.section !== 'chatbot' && typeof removeChatbotPreview === 'function') removeChatbotPreview();
+
       if (btn.dataset.section === 'dashboard')     renderDashboard();
       if (btn.dataset.section === 'productos')     renderProductos();
       if (btn.dataset.section === 'pedidos')       renderPedidos();
       if (btn.dataset.section === 'usuarios')      renderUsuarios();
       if (btn.dataset.section === 'configuracion') renderConfiguracion();
+      if (btn.dataset.section === 'chatbot')       renderChatbotFaqs();
     });
   });
 
@@ -495,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function () {
           ? items.map(function (i) {
               var precio = parseFloat(i.precio || i.price || 0);
               var qty    = i.cantidad || i.qty || 1;
-              return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.83rem;border-bottom:1px solid #f3eeff;">' +
+              return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.83rem;border-bottom:1px solid var(--border);color:var(--text);">' +
                 '<span>' + escapeHtml(i.nombre || i.name || '—') + ' <span style="color:var(--text-light);">x' + qty + '</span></span>' +
                 '<span style="font-weight:700;">' + fmt(precio * qty) + '</span>' +
               '</div>';
@@ -503,7 +512,9 @@ document.addEventListener('DOMContentLoaded', function () {
           : '<p style="color:var(--text-light);font-size:0.83rem;">Sin productos registrados.</p>';
 
         trDetail.innerHTML =
-          '<td colspan="7" style="background:#faf7ff;padding:0.8rem 1.2rem;">' +
+          // background/color con variables: antes era #faf7ff fijo, que en modo
+          // oscuro dejaba texto claro sobre fondo claro y se volvía ilegible.
+          '<td colspan="7" style="background:var(--bg);color:var(--text);padding:0.8rem 1.2rem;">' +
             '<div style="font-size:0.78rem;font-weight:700;color:var(--purple);margin-bottom:0.4rem;">🍬 Productos del pedido</div>' +
             itemsHtml +
             (o.nombre_envio ? '<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--text-light);">👤 ' + escapeHtml(o.nombre_envio) + (o.telefono ? ' · +52 ' + escapeHtml(o.telefono) : '') + '</div>' : '') +
@@ -885,6 +896,194 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (e) {
       msgEl.textContent = 'Error: ' + e.message;
       msgEl.style.color = '#e74c3c';
+    }
+  });
+
+  /* ══════════════════════════════════════
+     CHATBOT: PREGUNTAS FRECUENTES
+     Ver backend/routes/chatbot_faq.js y la sección "CHATBOT DEL
+     SITIO" en cart.js, que consume estas preguntas en el chatbot
+     flotante del sitio.
+  ══════════════════════════════════════ */
+  var _allFaqs = [];
+  var FAQ_ACCION_LABELS = {
+    ninguna:  '— Sin acción',
+    link:     '🔗 Link',
+    whatsapp: '💬 WhatsApp',
+    catalogo: '🍬 Catálogo',
+    pedidos:  '📦 Mis pedidos'
+  };
+
+  /* Vista previa: el botón "🧪 Probar chatbot" inyecta el widget REAL del
+     sitio (cart.js) — normalmente no aparece en admin.html — y lo abre ahí
+     mismo, para poder probar los cambios sin salir del panel. Después de
+     guardar/borrar una pregunta se invalida su caché y se refresca la
+     lista de accesos rápidos para que el cambio se vea al instante. */
+  function _refreshChatPreview() {
+    if (typeof resetChatFaqsCache === 'function') resetChatFaqsCache();
+    if (typeof chatRenderQuickReplies === 'function') chatRenderQuickReplies();
+  }
+
+  document.getElementById('btn-preview-chatbot').addEventListener('click', function () {
+    if (typeof injectWhatsAppBubble === 'function') injectWhatsAppBubble();
+    if (typeof injectChatWidget === 'function') injectChatWidget();
+    if (typeof openChatPanel === 'function') openChatPanel();
+  });
+
+  // Quita la burbuja y el panel del DOM por completo (no solo los cierra) —
+  // se usa al salir de la sección Chatbot, ver el click de navBtns arriba.
+  function removeChatbotPreview() {
+    var bubble = document.getElementById('wa-bubble');
+    var panel  = document.getElementById('dc-chat-panel');
+    if (bubble) bubble.remove();
+    if (panel)  panel.remove();
+  }
+
+  async function renderChatbotFaqs() {
+    var listEl  = document.getElementById('faq-list');
+    var emptyEl = document.getElementById('faq-empty');
+    listEl.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">Cargando…</p>';
+    emptyEl.classList.add('hidden');
+    try {
+      _allFaqs = await apiGetChatbotFaqsAdmin();
+    } catch (e) {
+      listEl.innerHTML = '<p style="color:#e74c3c;font-size:0.88rem;">Error al cargar las preguntas.</p>';
+      return;
+    }
+
+    if (!_allFaqs.length) {
+      listEl.innerHTML = '';
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    listEl.innerHTML = '';
+    _allFaqs.forEach(function (faq) {
+      var card = document.createElement('div');
+      card.style.cssText =
+        'background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);' +
+        'padding:1rem 1.2rem;' + (faq.activo ? '' : 'opacity:0.6;');
+      card.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.8rem;flex-wrap:wrap;">' +
+          '<div style="flex:1;min-width:220px;">' +
+            '<div style="font-weight:700;color:var(--text);margin-bottom:0.3rem;">' + escapeHtml(faq.pregunta) + '</div>' +
+            '<div style="font-size:0.82rem;color:var(--text-light);margin-bottom:0.4rem;">' + escapeHtml(faq.respuesta).replace(/\n/g, ' · ') + '</div>' +
+            (faq.palabras_clave ? '<div style="font-size:0.78rem;color:var(--text-light);"><strong>Palabras clave:</strong> ' + escapeHtml(faq.palabras_clave) + '</div>' : '') +
+          '</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.4rem;">' +
+            '<div style="display:flex;gap:0.4rem;flex-wrap:wrap;justify-content:flex-end;">' +
+              '<span class="admin-badge">' + (FAQ_ACCION_LABELS[faq.accion_tipo] || faq.accion_tipo) + '</span>' +
+              '<span class="admin-badge' + (faq.activo ? '' : ' featured') + '">' + (faq.activo ? '✅ Activa' : '⏸️ Inactiva') + '</span>' +
+            '</div>' +
+            '<div class="td-actions">' +
+              '<button class="btn-admin-sm btn-edit faq-btn-edit" data-id="' + faq.id + '">✏️ Editar</button>' +
+              '<button class="btn-admin-sm btn-delete faq-btn-delete" data-id="' + faq.id + '">🗑️</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      listEl.appendChild(card);
+    });
+
+    listEl.querySelectorAll('.faq-btn-edit').forEach(function (btn) {
+      btn.addEventListener('click', function () { openFaqModal(+btn.dataset.id); });
+    });
+    listEl.querySelectorAll('.faq-btn-delete').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var faq = _allFaqs.find(function (f) { return f.id === +btn.dataset.id; });
+        var ok = await dcConfirm('¿Eliminar la pregunta "' + (faq ? faq.pregunta : '') + '"? Esta acción no se puede deshacer.', 'Sí, eliminar');
+        if (!ok) return;
+        try {
+          await apiEliminarChatbotFaq(+btn.dataset.id);
+          showToast('Pregunta eliminada');
+          renderChatbotFaqs();
+          _refreshChatPreview();
+        } catch (e) {
+          alert('Error: ' + e.message);
+        }
+      });
+    });
+  }
+
+  var faqModalOverlay = document.getElementById('faq-modal-overlay');
+  var faqEditId       = document.getElementById('faq-edit-id');
+  var faqAccionTipo   = document.getElementById('faq-accion-tipo');
+  var faqAccionExtra  = document.getElementById('faq-accion-extra');
+
+  function _faqToggleAccionExtra() {
+    // El link/categoría y el texto del botón solo aplican a link/catálogo
+    var tipo = faqAccionTipo.value;
+    faqAccionExtra.style.display = (tipo === 'link' || tipo === 'catalogo') ? '' : 'none';
+  }
+  faqAccionTipo.addEventListener('change', _faqToggleAccionExtra);
+
+  function openFaqModal(id) {
+    document.getElementById('faq-err').textContent = '';
+    if (id === null) {
+      document.getElementById('faq-modal-title').textContent = '➕ Agregar pregunta';
+      faqEditId.value = '';
+      document.getElementById('faq-pregunta').value      = '';
+      document.getElementById('faq-palabras').value      = '';
+      document.getElementById('faq-respuesta').value     = '';
+      faqAccionTipo.value = 'ninguna';
+      document.getElementById('faq-accion-valor').value  = '';
+      document.getElementById('faq-accion-texto').value  = '';
+      document.getElementById('faq-orden').value         = _allFaqs.length ? Math.max.apply(null, _allFaqs.map(function (f) { return f.orden; })) + 1 : 1;
+      document.getElementById('faq-activo').checked      = true;
+    } else {
+      var faq = _allFaqs.find(function (f) { return f.id === id; });
+      if (!faq) return;
+      document.getElementById('faq-modal-title').textContent = '✏️ Editar pregunta';
+      faqEditId.value = id;
+      document.getElementById('faq-pregunta').value      = faq.pregunta;
+      document.getElementById('faq-palabras').value      = faq.palabras_clave || '';
+      document.getElementById('faq-respuesta').value     = faq.respuesta;
+      faqAccionTipo.value = faq.accion_tipo || 'ninguna';
+      document.getElementById('faq-accion-valor').value  = faq.accion_valor || '';
+      document.getElementById('faq-accion-texto').value  = faq.accion_texto || '';
+      document.getElementById('faq-orden').value         = faq.orden || 0;
+      document.getElementById('faq-activo').checked      = !!faq.activo;
+    }
+    _faqToggleAccionExtra();
+    faqModalOverlay.classList.add('open');
+  }
+
+  function closeFaqModal() { faqModalOverlay.classList.remove('open'); }
+
+  document.getElementById('btn-add-faq').addEventListener('click',   function () { openFaqModal(null); });
+  document.getElementById('faq-modal-close').addEventListener('click',  closeFaqModal);
+  document.getElementById('faq-modal-cancel').addEventListener('click', closeFaqModal);
+  faqModalOverlay.addEventListener('click', function (e) { if (e.target === faqModalOverlay) closeFaqModal(); });
+
+  document.getElementById('faq-modal-save').addEventListener('click', async function () {
+    var errEl = document.getElementById('faq-err');
+    var datos = {
+      pregunta:       document.getElementById('faq-pregunta').value.trim(),
+      palabras_clave: document.getElementById('faq-palabras').value.trim(),
+      respuesta:      document.getElementById('faq-respuesta').value.trim(),
+      accion_tipo:    faqAccionTipo.value,
+      accion_valor:   document.getElementById('faq-accion-valor').value.trim(),
+      accion_texto:   document.getElementById('faq-accion-texto').value.trim(),
+      orden:          parseInt(document.getElementById('faq-orden').value, 10) || 0,
+      activo:         document.getElementById('faq-activo').checked
+    };
+    if (!datos.pregunta)  { errEl.textContent = 'La pregunta es obligatoria.'; return; }
+    if (!datos.respuesta) { errEl.textContent = 'La respuesta es obligatoria.'; return; }
+    errEl.textContent = '';
+
+    var editId = faqEditId.value ? +faqEditId.value : null;
+    try {
+      if (editId !== null) {
+        await apiEditarChatbotFaq(editId, datos);
+        showToast('Pregunta actualizada ✓');
+      } else {
+        await apiCrearChatbotFaq(datos);
+        showToast('Pregunta agregada ✓');
+      }
+      closeFaqModal();
+      renderChatbotFaqs();
+      _refreshChatPreview();
+    } catch (e) {
+      errEl.textContent = e.message;
     }
   });
 

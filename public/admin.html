@@ -42,8 +42,17 @@
         <div class="nav-links">
       <a href="index.html">Inicio</a>
       <a href="catalogo.html">Catálogo</a>
+      <div class="nav-dropdown" id="nav-cats-dropdown">
+        <button type="button" class="nav-dropdown-btn" id="nav-cats-btn" aria-haspopup="true" aria-expanded="false">Categorías<svg class="ic nav-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="nav-dropdown-panel" id="nav-cats-panel"></div>
+      </div>
+      <a href="pedidos.html">Mis Pedidos</a>
       <a href="favoritos.html">Favoritos</a>
       <a href="contacto.html">Contacto</a>
+      <div class="nav-dropdown" id="nav-account-dropdown">
+        <button type="button" class="nav-icon-btn" id="nav-account-btn" aria-label="Cuenta" aria-haspopup="true" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></button>
+        <div class="nav-dropdown-panel nav-dropdown-panel--right" id="nav-account-panel"></div>
+      </div>
       <a href="carrito.html" class="nav-icon-btn" aria-label="Carrito"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2.5 3h2l2.3 12a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.3L21 7.5H6.2"/></svg><span class="cart-count" id="cart-count">0</span></a>
     </div>
     <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú">
@@ -99,6 +108,9 @@
       <span class="admin-sidebar-title">Sitio</span>
       <button class="admin-nav-btn" data-section="configuracion">
         <span class="nav-icon">⚙️</span><span>Configuración</span>
+      </button>
+      <button class="admin-nav-btn" data-section="chatbot">
+        <span class="nav-icon">🤖</span><span>Chatbot</span>
       </button>
 
       <!-- Antes el admin no tenía forma de cambiar de tema: el botón
@@ -276,6 +288,29 @@
         </div>
       </section>
 
+      <!-- ── SECCIÓN: CHATBOT ───────────────────────────────────
+           Preguntas frecuentes del chatbot del sitio (ver cart.js,
+           sección CHATBOT DEL SITIO). Cada pregunta tiene un texto
+           de botón rápido, palabras clave para el texto libre, una
+           respuesta (admite {direccion} {horario} {telefono} {email})
+           y una acción opcional (link, WhatsApp, catálogo o pedidos).
+           Lógica en renderChatbotFaqs() de admin.js.
+      ──────────────────────────────────────────────────────────── -->
+      <section class="admin-section" id="sec-chatbot">
+        <h2 class="admin-section-title">🤖 Chatbot del sitio</h2>
+        <p style="color:var(--text-light);font-size:0.88rem;margin-bottom:1rem;max-width:640px;">
+          Estas son las preguntas rápidas y palabras clave que contesta el chatbot flotante del sitio.
+          Las respuestas pueden usar <code>{direccion}</code>, <code>{horario}</code>, <code>{telefono}</code>
+          y <code>{email}</code> — se rellenan solos con los datos de Configuración &gt; Contacto.
+        </p>
+        <div class="admin-toolbar">
+          <button class="btn-admin-add" id="btn-preview-chatbot" style="background:var(--teal);">🧪 Probar chatbot</button>
+          <button class="btn-admin-add" id="btn-add-faq">＋ Agregar pregunta</button>
+        </div>
+        <div id="faq-list" style="display:flex;flex-direction:column;gap:0.8rem;"></div>
+        <div class="admin-empty hidden" id="faq-empty"><span>🤖</span>Todavía no hay preguntas configuradas.</div>
+      </section>
+
       <!-- ══ USUARIOS ══ -->
       <section class="admin-section" id="sec-usuarios">
         <h2 class="admin-section-title">👥 Usuarios</h2>
@@ -429,6 +464,70 @@
       <!-- Lista -->
       <div id="cats-list" style="max-height:320px;overflow-y:auto;border-top:1px solid #f0eaff;padding-top:0.8rem;">
         <p style="color:var(--text-light);font-size:0.88rem;">Cargando…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL PREGUNTA DEL CHATBOT ══ -->
+  <div class="admin-modal-overlay" id="faq-modal-overlay">
+    <div class="admin-modal">
+      <button class="admin-modal-close" id="faq-modal-close">✕</button>
+      <h3 id="faq-modal-title">Agregar pregunta</h3>
+      <input type="hidden" id="faq-edit-id" value="" />
+
+      <div class="admin-form-group">
+        <label>Pregunta / texto del botón rápido *</label>
+        <input type="text" id="faq-pregunta" placeholder="Ej: 📍 Ubicación y horario" />
+      </div>
+
+      <div class="admin-form-group">
+        <label>Palabras clave <small style="color:var(--text-light);">(separadas por coma, para cuando escriben en vez de tocar el botón)</small></label>
+        <input type="text" id="faq-palabras" placeholder="horario, hora, abren, direccion, ubicacion" />
+      </div>
+
+      <div class="admin-form-group">
+        <label>Respuesta * <small style="color:var(--text-light);">(admite {direccion} {horario} {telefono} {email})</small></label>
+        <textarea id="faq-respuesta" rows="3" placeholder="Escribe la respuesta del chatbot…"></textarea>
+      </div>
+
+      <div class="admin-form-row">
+        <div class="admin-form-group">
+          <label>Acción al contestar</label>
+          <select id="faq-accion-tipo">
+            <option value="ninguna">Ninguna (solo texto)</option>
+            <option value="catalogo">Ir al catálogo</option>
+            <option value="pedidos">Ir a "Mis pedidos"</option>
+            <option value="link">Link personalizado</option>
+            <option value="whatsapp">Abrir WhatsApp</option>
+          </select>
+        </div>
+        <div class="admin-form-group">
+          <label>Orden <small style="color:var(--text-light);">(menor = aparece primero)</small></label>
+          <input type="number" id="faq-orden" value="0" step="1" />
+        </div>
+      </div>
+
+      <div class="admin-form-row" id="faq-accion-extra">
+        <div class="admin-form-group">
+          <label>Valor del link/categoría <small style="color:var(--text-light);">(URL, o nombre de categoría para "catálogo" — vacío = catálogo completo)</small></label>
+          <input type="text" id="faq-accion-valor" placeholder="https://… o bombones" />
+        </div>
+        <div class="admin-form-group">
+          <label>Texto del botón de acción</label>
+          <input type="text" id="faq-accion-texto" placeholder="Ej: 🍬 Ir al catálogo →" />
+        </div>
+      </div>
+
+      <div class="admin-form-group checkbox-group">
+        <input type="checkbox" id="faq-activo" checked />
+        <label for="faq-activo">✅ Activa (visible en el chatbot)</label>
+      </div>
+
+      <div id="faq-err" style="color:#e74c3c;font-size:0.85rem;margin-bottom:0.5rem;min-height:1em;"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:0.8rem;margin-top:0.8rem;">
+        <button class="btn btn-outline" id="faq-modal-cancel">Cancelar</button>
+        <button class="btn-admin-add" id="faq-modal-save">💾 Guardar</button>
       </div>
     </div>
   </div>

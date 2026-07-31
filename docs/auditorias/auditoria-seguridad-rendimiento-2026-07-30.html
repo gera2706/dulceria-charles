@@ -1,0 +1,742 @@
+<!doctype html><html><head><!-- frame-runtime --><script>window.__FRAME_PREAMBLE={"capabilities":{"downloads":"downloads.BABDwU1K.js","mcp":"mcp.hoz5jxDa.js","permissions":"permissions.ByA9Fd8x.js","self":"self.D3u1zjZe.js","user":"user.Cp1-RnjB.js"},"transforms":"_transforms.DYk1Ltlh.js","comments":"_comments.DiwQajF_.js","translate":"_translate.C5leZL2A.js"}</script><script>(function(){"use strict";const Ee="modulepreload",we=function(e){return"/"+e},Se={},ee=function(t,n,l){let i=Promise.resolve();function s(f){const c=new Event("vite:preloadError",{cancelable:!0});if(c.payload=f,window.dispatchEvent(c),!c.defaultPrevented)throw f}return i.then(f=>{for(const c of f||[])c.status==="rejected"&&s(c.reason);return t().catch(s)})},te=["light","dark","system"];function ne(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_init;return t!==null&&typeof t=="object"}function W(e){return e!==null&&typeof e=="object"&&e.__frame_size_poke===!0}function re(e){if(e===null||typeof e!="object")return!1;const t=e.__frame_theme;if(t===null||typeof t!="object")return!1;const n=t.theme;return typeof n=="string"&&te.includes(n)}function se(e){try{typeof reportError=="function"?reportError(e):setTimeout(()=>{throw e},0)}catch{}}const oe=Object.freeze(Object.assign(Object.create(null),{user:Object.freeze(Object.assign(Object.create(null),{id:null,isOwner:!1,canEdit:!1,name:null,avatarUrl:null,email:null}))}));function Y(e){if(window===top||e.type==="auxclick"&&e.button!==1)return;const t=e.composedPath?e.composedPath():[e.target];let n=null;for(let f=0;f<t.length;f++){const c=t[f];if(c&&c.matches&&c.matches("a[href],area[href]")){n=c;break}}if(!n&&e.target&&e.target.closest&&(n=e.target.closest("a[href],area[href]")),!n)return;const l=n.getAttribute("href");if(!l)return;let i,s;try{i=new URL(l,document.baseURI),s=new URL(document.baseURI).origin}catch{return}(i.protocol==="http:"||i.protocol==="https:")&&i.origin!==s&&(e.preventDefault(),parent.postMessage({__frame_nav:!0,url:i.href},"*"))}const K={};function D(e){if(window===top)return;const t=Date.now();t-(K[e]||0)<500||(K[e]=t,parent.postMessage({__frame_engaged:!0,kind:e},"*"))}const ie=2e3,x=["wheel","touchstart","touchmove","keydown","pointerdown"];let J=0;function ae(e){e.isTrusted&&(J=Date.now())}function ce(){addEventListener("click",Y,!0),addEventListener("auxclick",Y,!0)}function le(){for(let e=0;e<x.length;e++)addEventListener(x[e],ae,{capture:!0,passive:!0});addEventListener("scroll",e=>{e.isTrusted&&Date.now()-J<ie&&D("scroll")},{capture:!0,passive:!0}),addEventListener("pointermove",e=>{e.isTrusted&&D("pointer")},{capture:!0,passive:!0}),addEventListener("click",e=>{e.isTrusted&&D("click")},{capture:!0,passive:!0})}const I="__frame_scroll",ue=150,fe=310,de=160,me=3e4;function pe(){let e=0,t=!1,n=!1,l=!1,i=0;const s=a=>{try{sessionStorage.setItem(I,JSON.stringify({y:a}))}catch{}},f=()=>{if(t){t=!1;return}n=!0,clearTimeout(e),e=setTimeout(()=>s(scrollY),ue)};try{addEventListener("scroll",f,{passive:!0}),addEventListener("pagehide",()=>{clearTimeout(e),s(scrollY)})}catch{}const c=()=>{let a;try{a=sessionStorage.getItem(I)}catch{return null}if(a===null)return null;let _;try{_=JSON.parse(a)}catch{_=null}const m=_?.y;if(!(typeof m=="number"&&Number.isFinite(m)&&m>=0)){try{sessionStorage.removeItem(I)}catch{}return null}return m};let g=!1;const p=a=>{try{const _=scrollY;scrollTo({top:a,left:0,behavior:"instant"}),i=a,l=!0,s(a);const m=scrollY;m!==_&&(t=!0),m!==a&&!g&&(g=!0,addEventListener("load",()=>{try{if(scrollY===m){const y=c();p(y!==null?y:i)}}catch{}},{once:!0}))}catch{}},o=()=>{try{return!!location.hash}catch{return!0}};let u=!1;const d=()=>{try{if(u||innerWidth>fe||innerHeight>de)return;u=!0;const a=Date.now(),_=()=>{try{removeEventListener("resize",_)}catch{}if(Date.now()-a>me||n||o())return;const m=c();p(m!==null?m:i)};addEventListener("resize",_)}catch{}};let h=!1,b=!1;return{restore(){if(h||(h=!0,o()))return;const a=c();a!==null&&(p(a),d())},promoted(){if(b||(b=!0,o()))return;const a=c();a!==null?(p(a),d()):l&&p(i)}}}function he(e,t,n){const l=[...t.values()].filter(i=>i.targets.some(s=>s.startsWith(e+".")));return{wrap(i,s){const f=`${e}.${i}`,c=l.filter(g=>g.targets.includes(f));return c.length===0?(...g)=>{try{return s(...g)}catch(p){return Promise.reject(p)}}:(...g)=>{let p=g;for(const u of c){const d=u.module.parameters;if(d)try{p=d(p)}catch{return Promise.reject({code:"transform_error",id:u.id,scope:e,message:"parameters transform failed"})}}let o;try{o=s(...p)}catch(u){o=Promise.reject(u)}return o.then(u=>{for(let d=c.length-1;d>=0;d--){const h=c[d],b=h.module.returns;if(b)try{u=b(u)}catch{return n({id:h.id,scope:e,leg:"returns"}),u}}return u},u=>{for(let d=c.length-1;d>=0;d--){const h=c[d],b=h.module.throws;if(b)try{u=b(u)}catch{return n({id:h.id,scope:e,leg:"throws"}),Promise.reject(u)}}return Promise.reject(u)})}}}}function ge(e,t,n,l=()=>{}){const i=new Set(e.changes??[]),s=new Map;for(const f of i){const c=t[f];c&&s.set(f,c)}return{contract:e.contract,changes:i,flags:new Set(e.flags??[]),capabilities:e.capabilities??{},capBudgets:e.capBudgets??{},transforms:s,shellOrigin:n.shellOrigin,mount:n.mount,pipe:f=>he(f,s,l)}}(function(){const e=Object.defineProperty,t=globalThis,n=["RTCPeerConnection","webkitRTCPeerConnection","RTCDataChannel","RTCIceCandidate","RTCSessionDescription","RTCRtpSender","RTCRtpReceiver"];let l=0;for(let i=0;i<n.length;i++){const s=n[i];try{e(t,s,{value:void 0,writable:!1,configurable:!1})}catch{try{delete t[s]}catch{}try{e(t,s,{value:void 0,writable:!1,configurable:!0})}catch{}}typeof t[s]=="function"&&l++}if(l&&window!==top)try{parent.postMessage({__frame_rtc_lockdown_failed:l},"*")}catch{}})();const _e=1e4,ye=Object.freeze([...window.__FRAME_PREAMBLE?.origins??["https://claude.ai","https://preview.claude.ai"]]);function G(e){for(const t of ye)if(t.endsWith(":*"))try{const n=new URL(e);if(`${n.protocol}//${n.hostname}:*`===t)return!0}catch{}else if(e===t)return!0;return!1}const R=Object.freeze({...window.__FRAME_PREAMBLE?.capabilities}),U=window.__FRAME_PREAMBLE?.transforms,z=window.__FRAME_PREAMBLE?.comments,$=window.__FRAME_PREAMBLE?.translate,T=/^[\w.-]+\.js$/,be=/^[a-z][a-z0-9_-]{0,63}$/;let V=null,j=null;function q(e,t,n){try{Object.defineProperty(e,t,{value:n,writable:!1,configurable:!1,enumerable:!0})}catch{try{Object.defineProperty(e,t,{value:n,writable:!1,configurable:!0,enumerable:!0})}catch{}}}let B=!1;function X(e){const t=document.documentElement;e==="light"||e==="dark"?(t.dataset.theme=e,t.style.colorScheme=e,B=!0):B&&(delete t.dataset.theme,t.style.colorScheme="",B=!1)}const A=Object.assign(Object.create(null),{mcp:Object.assign(Object.create(null),{watchTool:{handlerArg:3}})}),M=new Map;function Q(e,t){const n=M.get(e);if(!n)return;const l=Object.assign(Object.create(null),t);Object.assign(n.impl,l),n.impl.__settled=()=>Promise.reject({code:"capability_removed",message:`${e}: method not in this runtime`});const i=n.queue;n.queue=[];for(const s of i){const f=l[s.method];if(f)if(A[e]?.[s.method])try{s.resolve(f(...s.args))}catch{k(s,A[e][s.method].handlerArg,{code:"transform_error",message:`${e}.${s.method} rejected its arguments`})}else f(...s.args).then(s.resolve,s.reject);else{const c={code:"capability_removed",message:`${e}.${s.method} is not in this runtime`},g=A[e]?.[s.method];if(g){k(s,g.handlerArg,c);continue}s.reject(c)}}}function ve(e,t){const n=M.get(e);if(!n)return;n.impl.__settled=()=>Promise.reject(t);const l=n.queue;n.queue=[];for(const i of l){const s=A[e]?.[i.method];if(s){k(i,s.handlerArg,t);continue}i.reject(t)}}function N(e,t){const n=oe[e];if(!n){ve(e,t);return}Q(e,Object.fromEntries(Object.entries(n).map(([l,i])=>[l,()=>Promise.resolve(i)])))}function k(e,t,n){if(e.syncState?.dead)return;const l=e.args[t];typeof l=="function"&&queueMicrotask(()=>{if(!e.syncState?.dead)try{l({type:"error",error:n})}catch(i){se(i)}})}const F=Object.getOwnPropertyDescriptor(window,"claude");if(window!==top&&!(F&&F.writable===!1)){ce(),le();let e=null;try{e=pe()}catch{}const t=F?.value??{};q(window,"claude",t);const n=o=>{const u={impl:Object.create(null),queue:[]};M.set(o,u);const d=u.impl,h=new Proxy(d,{get:(b,a)=>{if(typeof a!="string"||a==="then"||a==="toJSON"||a==="valueOf")return;if(a==="toString")return Object.prototype.toString;const _=A[o]?.[a];return _?(...m)=>{if(typeof m[_.handlerArg]!="function")throw new TypeError(`${o}.${a} requires a handler function`);const y=d[a];if(y)return y(...m);if(d.__settled){const v={dead:!1},P={args:[...m],syncState:v};return d.__settled().catch(C=>k(P,_.handlerArg,C)),()=>{v.dead=!0}}let E=null;const S={dead:!1};return u.queue.push({method:a,args:m,resolve:v=>{E=typeof v=="function"?v:null,S.dead&&E?.()},reject:()=>{},syncState:S}),()=>{S.dead=!0,E?.()}}:(...m)=>{const y=d[a]??d.__settled;return y?y(...m):new Promise((E,S)=>{u.queue.push({method:a,args:m,resolve:E,reject:S})})}},set:()=>!1});q(t,o,h)};for(const o of Object.keys(R)){if(t[o]!==void 0){q(t,o,t[o]);continue}n(o)}let l=null,i=null,s=0;const f=o=>{o.source!==parent||!G(o.origin)||ne(o.data)&&(l=o.data.__frame_init,j=o.origin,removeEventListener("message",f),clearTimeout(s),i?.())};addEventListener("message",f),parent.postMessage({__frame_connect:!0},"*");const c=new Promise(o=>{i=o,s=setTimeout(()=>{removeEventListener("message",f),o()},_e)}),g=document.readyState==="loading"?new Promise(o=>document.addEventListener("DOMContentLoaded",()=>o(),{once:!0})):Promise.resolve();g.then(()=>{try{e?.restore()}catch{}});const p=o=>{if(!(o.source!==parent||!G(o.origin))&&W(o.data)){removeEventListener("message",p);try{e?.promoted()}catch{}}};addEventListener("message",p),c.then(async()=>{if(!l||!j){for(const r of M.keys())N(r,{code:"not_granted",message:"frame initialization did not arrive - capability unavailable"});return}X(l.theme);const o=j;let u=!1,d=!1;addEventListener("message",r=>{if(r.source!==parent||r.origin!==o)return;re(r.data)&&X(r.data.__frame_theme.theme);const w=r.data?.__fc_mode;w&&typeof w=="object"&&!u&&z&&T.test(z)&&(u=!0,h(z).then(H=>H.install?.(o,w.on===!0)).catch(()=>{}));const O=r.data?.__ft_cmd;O&&typeof O=="object"&&!d&&$&&T.test($)&&(d=!0,h($).then(H=>H.install?.(o,O)).catch(()=>{}))});const h=r=>ee(()=>import("/_runtime/"+r),void 0),b=Object.keys(l.capabilities??{});for(const r of b)Object.hasOwn(R,r)||be.test(r)&&t[r]===void 0&&(n(r),N(r,{code:"capability_disabled",message:"capability not in this runtime generation"}));const a=b.filter(r=>Object.hasOwn(R,r)).map(r=>[r,R[r]]).filter(r=>typeof r[1]=="string"&&T.test(r[1])),[_,...m]=await Promise.allSettled([U&&T.test(U)?h(U):Promise.resolve({}),...a.map(([,r])=>h(r))]),y=j;V=ge(l,_.status==="fulfilled"&&_.value?.TRANSFORMS||{},{shellOrigin:y,mount:Q},r=>parent.postMessage({__frame_cap_telemetry:r},y));const E=r=>parent.postMessage({__frame_cap_telemetry:{kind:"cap-load-error",cap:r}},y),S=V;m.forEach((r,w)=>{const O=a[w][0];if(r.status!=="fulfilled"){E(O);return}try{r.value?.install?.(S)}catch{E(O)}});for(const[r,w]of M)if(!(w.queue.length===0&&Object.keys(w.impl).length>0)){if(b.includes(r)){N(r,{code:"capability_disabled",message:"capability not available in this session"});continue}N(r,{code:"not_granted",message:"capability not available in this session"})}await g,parent.postMessage({__frame_ready:!0},j);let v=-1,P=0;const C=()=>{P=0;const r=Math.max(document.documentElement.scrollHeight,document.body?document.body.scrollHeight:0);r!==v&&(v=r,parent.postMessage({__frame_size:!0,h:r},y))},L=()=>{P||(P=setTimeout(C,200))},Z=new ResizeObserver(L);Z.observe(document.documentElement),document.body&&Z.observe(document.body),document.addEventListener("load",L,!0),document.fonts?.ready.then(L,()=>{}),addEventListener("beforeprint",()=>{v=-1,C()}),L(),addEventListener("message",r=>{if(!(r.source!==parent||r.origin!==y)&&W(r.data)){try{e?.promoted()}catch{}v=-1,L()}})})}})();</script><!-- /frame-runtime --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>Auditoría de Base de Datos — Dulcería Charles</title>
+<style>
+  :root {
+    --bg: #F5F7F5;
+    --surface: #FFFFFF;
+    --surface-2: #EEF1EE;
+    --ink: #1C2321;
+    --ink-muted: #5C6862;
+    --ink-faint: #8B958F;
+    --border: #DBE1DC;
+    --border-strong: #C3CCC5;
+    --accent: #1F6F6B;
+    --accent-ink: #0F3E3C;
+    --accent-soft: #E3F0EE;
+    --accent-2: #A9711F;
+    --accent-2-soft: #F3E8D6;
+    --crit: #B3261E;
+    --crit-soft: #FBE7E5;
+    --high: #C2621A;
+    --high-soft: #FBEBDD;
+    --med: #96791A;
+    --med-soft: #F7F0D9;
+    --low: #3B6FA0;
+    --low-soft: #E7EFF6;
+    --ok: #2E7D5B;
+    --ok-soft: #E4F2EC;
+    --shadow: 0 1px 2px rgba(28,35,33,0.04), 0 8px 24px rgba(28,35,33,0.06);
+    --radius: 12px;
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', 'Liberation Mono', monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101615;
+      --surface: #171F1D;
+      --surface-2: #1E2825;
+      --ink: #E8EDE9;
+      --ink-muted: #9BAAA2;
+      --ink-faint: #6B7A73;
+      --border: #2A3733;
+      --border-strong: #3A4A44;
+      --accent: #52B6AE;
+      --accent-ink: #BFEAE5;
+      --accent-soft: #1B3230;
+      --accent-2: #D9A75C;
+      --accent-2-soft: #332A18;
+      --crit: #E5776E;
+      --crit-soft: #3A1E1C;
+      --high: #E5A264;
+      --high-soft: #382A18;
+      --med: #D8C05F;
+      --med-soft: #33301A;
+      --low: #7FAAD4;
+      --low-soft: #1B2A38;
+      --ok: #7FC7A4;
+      --ok-soft: #17332A;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101615; --surface: #171F1D; --surface-2: #1E2825; --ink: #E8EDE9;
+    --ink-muted: #9BAAA2; --ink-faint: #6B7A73; --border: #2A3733; --border-strong: #3A4A44;
+    --accent: #52B6AE; --accent-ink: #BFEAE5; --accent-soft: #1B3230;
+    --accent-2: #D9A75C; --accent-2-soft: #332A18;
+    --crit: #E5776E; --crit-soft: #3A1E1C; --high: #E5A264; --high-soft: #382A18;
+    --med: #D8C05F; --med-soft: #33301A; --low: #7FAAD4; --low-soft: #1B2A38;
+    --ok: #7FC7A4; --ok-soft: #17332A;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  :root[data-theme="light"] {
+    --bg: #F5F7F5; --surface: #FFFFFF; --surface-2: #EEF1EE; --ink: #1C2321;
+    --ink-muted: #5C6862; --ink-faint: #8B958F; --border: #DBE1DC; --border-strong: #C3CCC5;
+    --accent: #1F6F6B; --accent-ink: #0F3E3C; --accent-soft: #E3F0EE;
+    --accent-2: #A9711F; --accent-2-soft: #F3E8D6;
+    --crit: #B3261E; --crit-soft: #FBE7E5; --high: #C2621A; --high-soft: #FBEBDD;
+    --med: #96791A; --med-soft: #F7F0D9; --low: #3B6FA0; --low-soft: #E7EFF6;
+    --ok: #2E7D5B; --ok-soft: #E4F2EC;
+    --shadow: 0 1px 2px rgba(28,35,33,0.04), 0 8px 24px rgba(28,35,33,0.06);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 6rem;
+  }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 700; text-wrap: balance; color: var(--ink); }
+  p { max-width: 68ch; }
+  code, .mono { font-family: var(--mono); }
+
+  /* ===== HEADER ===== */
+  .report-head {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 2rem;
+    margin-bottom: 2.5rem;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    margin-bottom: 1.1rem;
+  }
+  .report-head h1 { font-size: 2.15rem; line-height: 1.15; margin: 0 0 0.6rem; letter-spacing: -0.01em; }
+  .report-head .sub { color: var(--ink-muted); font-size: 1.02rem; margin: 0 0 1.4rem; max-width: 62ch; }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.6rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+  }
+  .meta-row b { color: var(--ink-muted); font-weight: 600; }
+
+  /* ===== SCORE DASHBOARD ===== */
+  .scores {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.9rem;
+    margin: 2.2rem 0 2.6rem;
+  }
+  .score-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1rem;
+    box-shadow: var(--shadow);
+  }
+  .score-tile .label { font-size: 0.74rem; color: var(--ink-muted); font-weight: 600; margin-bottom: 0.5rem; }
+  .score-tile .val { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; }
+  .score-tile .val small { font-size: 1rem; color: var(--ink-faint); font-weight: 500; }
+  .score-bar { height: 5px; border-radius: 3px; background: var(--surface-2); margin-top: 0.6rem; overflow: hidden; }
+  .score-bar i { display: block; height: 100%; border-radius: 3px; }
+
+  /* ===== TOC ===== */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.3rem 1.5rem;
+    margin-bottom: 2.6rem;
+    box-shadow: var(--shadow);
+  }
+  .toc .toc-title { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); margin-bottom: 0.7rem; }
+  .toc ol { margin: 0; padding-left: 1.2rem; columns: 2; column-gap: 1.5rem; }
+  .toc li { font-size: 0.9rem; margin-bottom: 0.4rem; break-inside: avoid; }
+  .toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; }
+  .toc a:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ===== SECTIONS ===== */
+  section.block { margin-bottom: 3rem; scroll-margin-top: 1.5rem; }
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+  section.block h2 { font-size: 1.5rem; margin: 0.2rem 0 0.9rem; }
+  section.block > p.lede { color: var(--ink-muted); margin-bottom: 1.4rem; }
+
+  /* ===== EXEC SUMMARY CALLOUT ===== */
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1.4rem 1.6rem;
+    box-shadow: var(--shadow);
+  }
+  .summary-card p { margin: 0 0 0.9rem; max-width: 70ch; }
+  .summary-card p:last-child { margin-bottom: 0; }
+
+  /* ===== STRENGTHS LIST ===== */
+  .check-list { display: flex; flex-direction: column; gap: 0.55rem; margin: 1rem 0; padding: 0; list-style: none; }
+  .check-list li {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
+    font-size: 0.94rem;
+    background: var(--ok-soft);
+    border: 1px solid color-mix(in srgb, var(--ok) 35%, transparent);
+    border-radius: 8px;
+    padding: 0.55rem 0.8rem;
+  }
+  .check-list li::before { content: '✔'; color: var(--ok); font-weight: 700; flex-shrink: 0; }
+
+  /* ===== FINDING CARDS ===== */
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.1rem;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border-left: 4px solid var(--border-strong);
+  }
+  .finding.sev-critico { border-left-color: var(--crit); }
+  .finding.sev-alto     { border-left-color: var(--high); }
+  .finding.sev-medio    { border-left-color: var(--med); }
+  .finding.sev-bajo     { border-left-color: var(--low); }
+
+  .finding-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 1.3rem;
+    flex-wrap: wrap;
+  }
+  .finding-head h3 { font-family: var(--sans); font-size: 1rem; font-weight: 700; margin: 0; }
+  .sev-chip {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .sev-critico .sev-chip { background: var(--crit-soft); color: var(--crit); }
+  .sev-alto     .sev-chip { background: var(--high-soft); color: var(--high); }
+  .sev-medio    .sev-chip { background: var(--med-soft); color: var(--med); }
+  .sev-bajo     .sev-chip { background: var(--low-soft); color: var(--low); }
+
+  .finding-body { padding: 0 1.3rem 1.2rem; }
+  .finding-body dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1rem; margin: 0 0 0.8rem; }
+  .finding-body dt { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); padding-top: 0.15rem; white-space: nowrap; }
+  .finding-body dd { margin: 0; font-size: 0.92rem; color: var(--ink); }
+  .finding-body .file-ref { font-family: var(--mono); font-size: 0.85rem; color: var(--accent-ink); background: var(--accent-soft); padding: 0.05rem 0.4rem; border-radius: 4px; }
+
+  pre.code {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    margin: 0.6rem 0 0;
+  }
+  pre.code .kw { color: var(--accent-ink); font-weight: 700; }
+
+  /* ===== PRIORITY BOARD ===== */
+  .board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.4rem 0; }
+  .board-col { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .board-col > .col-head { padding: 0.75rem 1rem; font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .board-col.pri-alta > .col-head   { background: var(--crit-soft); color: var(--crit); }
+  .board-col.pri-media > .col-head  { background: var(--med-soft); color: var(--med); }
+  .board-col.pri-baja > .col-head   { background: var(--low-soft); color: var(--low); }
+  .board-col ul { list-style: none; margin: 0; padding: 0.9rem 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.7rem; }
+  .board-col li { font-size: 0.85rem; border-bottom: 1px dashed var(--border); padding-bottom: 0.6rem; }
+  .board-col li:last-child { border-bottom: none; padding-bottom: 0; }
+  .board-col li b { display: block; color: var(--ink); font-size: 0.87rem; margin-bottom: 0.15rem; }
+  .board-col li span { color: var(--ink-muted); font-size: 0.82rem; }
+
+  table.simple { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.8rem 0; }
+  table.simple th, table.simple td { text-align: left; padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--border); }
+  table.simple th { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); font-weight: 600; }
+  table.simple td.num, table.simple th.num { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+  .table-wrap { overflow-x: auto; }
+
+  .footer-note {
+    margin-top: 3.5rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+  }
+
+  @media (max-width: 640px) {
+    .scores { grid-template-columns: repeat(2, 1fr); }
+    .board { grid-template-columns: 1fr; }
+    .toc ol { columns: 1; }
+    .finding-body dl { grid-template-columns: 1fr; }
+    .finding-body dt { padding-top: 0.4rem; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="report-head">
+    <span class="eyebrow">🔍 Auditoría técnica</span>
+    <h1>Base de datos — Dulcería Charles</h1>
+    <p class="sub">Revisión de estructura, integridad, seguridad, rendimiento y escalabilidad del esquema <code>dulceria_charles</code> y de la capa de acceso a datos (backend Node/Express + MySQL 8), a partir del esquema versionado y del estado real de la base de datos en ejecución.</p>
+    <div class="meta-row">
+      <span><b>Alcance:</b> esquema SQL, 8 tablas, 8 rutas de API</span>
+      <span><b>Motor:</b> MySQL 8 / InnoDB</span>
+      <span><b>Método:</b> lectura de esquema + inspección en vivo (information_schema) + revisión de código</span>
+      <span><b>Fecha:</b> 30 jul. 2026</span>
+    </div>
+  </header>
+
+  <div class="scores">
+    <div class="score-tile">
+      <div class="label">Seguridad</div>
+      <div class="val">7<small>/10</small></div>
+      <div class="score-bar"><i style="width:70%;background:var(--med)"></i></div>
+    </div>
+    <div class="score-tile">
+      <div class="label">Organización</div>
+      <div class="val">8<small>/10</small></div>
+      <div class="score-bar"><i style="width:80%;background:var(--ok)"></i></div>
+    </div>
+    <div class="score-tile">
+      <div class="label">Rendimiento</div>
+      <div class="val">6.5<small>/10</small></div>
+      <div class="score-bar"><i style="width:65%;background:var(--med)"></i></div>
+    </div>
+    <div class="score-tile">
+      <div class="label">Escalabilidad</div>
+      <div class="val">6<small>/10</small></div>
+      <div class="score-bar"><i style="width:60%;background:var(--med)"></i></div>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <div class="toc-title">En este informe</div>
+    <ol>
+      <li><a href="#resumen">Resumen ejecutivo</a></li>
+      <li><a href="#fortalezas">Lo que ya está bien hecho</a></li>
+      <li><a href="#estructura">Estructura y organización</a></li>
+      <li><a href="#relaciones">Relaciones y normalización</a></li>
+      <li><a href="#integridad">Integridad de datos</a></li>
+      <li><a href="#seguridad">Seguridad</a></li>
+      <li><a href="#rendimiento">Rendimiento y escalabilidad</a></li>
+      <li><a href="#nomenclatura">Nomenclatura y tipos de datos</a></li>
+      <li><a href="#respaldo">Respaldo y documentación</a></li>
+      <li><a href="#plan">Plan de mejora por prioridad</a></li>
+    </ol>
+  </nav>
+
+  <!-- ===================== RESUMEN EJECUTIVO ===================== -->
+  <section class="block" id="resumen">
+    <span class="sec-num">01</span>
+    <h2>Resumen ejecutivo</h2>
+    <div class="summary-card">
+      <p><b>El estado general es sólido para el tamaño actual del proyecto.</b> Es, con diferencia, la base de código estudiantil mejor defendida contra inyección SQL que he revisado: las <b>~40 consultas</b> repartidas en 8 archivos de rutas usan parámetros preparados (<code>?</code>) sin una sola excepción, los precios de un pedido siempre se recalculan del lado del servidor, y las operaciones sensibles a stock corren dentro de transacciones reales con bloqueo de fila (<code>FOR UPDATE</code>). Hay evidencia clara de que ya hubo una pasada de auditoría previa — varios comentarios en el código narran hallazgos corregidos (precios manipulables, archivos backend expuestos, transiciones de estado ilegales).</p>
+      <p>Dicho esto, quedan <b>4 hallazgos que sí deben corregirse antes de un entorno de producción real</b> (el más serio: la aplicación se conecta a MySQL como <code>root</code>), y una decena de mejoras de importancia media que afectan mantenibilidad y crecimiento — sobre todo la ausencia de paginación, que hoy no es un problema con 107 productos y 2 pedidos, pero sí lo será con miles.</p>
+    </div>
+  </section>
+
+  <!-- ===================== FORTALEZAS ===================== -->
+  <section class="block" id="fortalezas">
+    <span class="sec-num">02</span>
+    <h2>Lo que ya está bien hecho</h2>
+    <p class="lede">Antes de listar problemas, vale nombrar lo que ya cumple con buenas prácticas profesionales — para no corregir después algo que en realidad ya está resuelto.</p>
+    <ul class="check-list">
+      <li>100% de las consultas usan parámetros preparados (<code>?</code>) — no se encontró concatenación de strings con input del usuario en ningún archivo de <code>routes/</code>.</li>
+      <li>Contraseñas con <code>bcrypt</code> (factor de costo 10), nunca devueltas en ninguna respuesta de la API.</li>
+      <li>El precio y la cantidad de cada producto en un pedido <b>siempre</b> se leen de la tabla <code>productos</code> al momento de confirmar — el cliente no puede alterar el precio manipulando el JSON del carrito.</li>
+      <li>Transacciones con <code>BEGIN/COMMIT/ROLLBACK</code> y <code>SELECT ... FOR UPDATE</code> al descontar stock: dos compras simultáneas del último artículo no pueden sobrevender.</li>
+      <li>Máquina de estados explícita para pedidos (<code>TRANSICIONES_VALIDAS</code>) — impide reabrir un pedido cancelado o duplicar la restauración de stock.</li>
+      <li>Borrado suave (<code>activo=0</code>) en productos: los pedidos históricos no se rompen cuando un producto se retira del catálogo.</li>
+      <li>Protección contra quedarse sin administradores: no se puede eliminar ni degradar al último admin del sistema.</li>
+      <li><code>.env</code> correctamente ignorado por git, con un <code>.env.example</code> limpio; el backend ya no se sirve como archivo estático (comentario en <code>server.js</code> documenta ese fix).</li>
+      <li>Subida de imágenes con lista blanca de extensión + mimetype, tamaño máximo y <b>SVG bloqueado a propósito</b> (vector de XSS almacenado) — un detalle que muchos proyectos pasan por alto.</li>
+      <li>Índices alineados con los patrones de consulta reales (<code>idx_activo_cat</code>, <code>idx_estado</code>, <code>idx_activo_orden</code>…), no puestos al azar.</li>
+      <li><code>DECIMAL(10,2)</code> para dinero en vez de <code>FLOAT</code> — evita errores de redondeo.</li>
+      <li>Comentarios técnicos excepcionalmente completos en prácticamente cada archivo — muy por encima del promedio para un proyecto de este tamaño.</li>
+    </ul>
+  </section>
+
+  <!-- ===================== ESTRUCTURA ===================== -->
+  <section class="block" id="estructura">
+    <span class="sec-num">03</span>
+    <h2>Estructura y organización de las tablas</h2>
+    <p class="lede">8 tablas, cada una con un propósito claro y sin solapamiento evidente. La nomenclatura es consistente (snake_case, español, patrón <code>&lt;entidad&gt;_id</code> para llaves foráneas). No hay tablas vacías ni claramente obsoletas.</p>
+
+    <div class="table-wrap">
+      <table class="simple">
+        <thead><tr><th>Tabla</th><th>Propósito</th><th class="num">Filas hoy</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">usuarios</td><td>Cuentas (clientes y admins)</td><td class="num">3</td></tr>
+          <tr><td class="mono">categorias</td><td>Categorías dinámicas del catálogo</td><td class="num">8</td></tr>
+          <tr><td class="mono">productos</td><td>Catálogo</td><td class="num">107</td></tr>
+          <tr><td class="mono">pedidos</td><td>Cabecera de pedido (modelo pickup)</td><td class="num">2</td></tr>
+          <tr><td class="mono">pedido_items</td><td>Detalle de cada pedido, congelado al momento de compra</td><td class="num">3</td></tr>
+          <tr><td class="mono">favoritos</td><td>Relación N:M usuario↔producto</td><td class="num">3</td></tr>
+          <tr><td class="mono">configuracion</td><td>Clave→valor para datos de contacto del sitio</td><td class="num">9</td></tr>
+          <tr><td class="mono">chatbot_faq</td><td>Preguntas frecuentes del chatbot del sitio</td><td class="num">6</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Ninguna tabla debería fusionarse ni dividirse. La única que vale la pena señalar es <code class="file-ref">configuracion</code>: es un patrón <b>EAV</b> (clave→valor) — flexible para agregar ajustes sin migraciones, pero sin tipado ni validación por clave a nivel de base de datos. Es una decisión razonable dado su volumen (9 filas, solo el admin escribe), así que no se marca como hallazgo — solo como algo a tener presente si algún día necesita crecer.</p>
+  </section>
+
+  <!-- ===================== RELACIONES / NORMALIZACIÓN ===================== -->
+  <section class="block" id="relaciones">
+    <span class="sec-num">04</span>
+    <h2>Relaciones y normalización</h2>
+    <p class="lede">El esquema cumple 1FN, 2FN y 3FN en la práctica totalidad de las tablas. <code>pedido_items</code> duplica a propósito <code>nombre</code> y <code>precio</code> de <code>productos</code> — eso <b>no</b> es una violación de normalización, es una decisión correcta: congela el precio histórico para que un pedido de hace un año no cambie si el producto sube de precio hoy.</p>
+
+    <div class="finding sev-alto">
+      <div class="finding-head">
+        <h3>productos.categoria no tiene llave foránea real</h3>
+        <span class="sev-chip">Alto</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Dónde</dt><dd><span class="file-ref">dulceria_charles.sql</span> — tabla <code>productos</code>, columna <code>categoria VARCHAR(100)</code></dd>
+          <dt>Riesgo</dt><dd>La integridad entre <code>productos.categoria</code> y <code>categorias.nombre</code> depende <b>solo</b> del código de la aplicación (<code>productos.js</code> valida antes de insertar/actualizar). Cualquier inserción que no pase por esa ruta — un script de migración, una corrección manual en Workbench, un futuro endpoint que se les olvide validar — puede dejar productos con una categoría que no existe en ningún lado.</dd>
+          <dt>Por qué pasó</dt><dd>El comentario en el SQL explica que evitaron <code>ENUM</code> a propósito porque rompería al crear categorías nuevas desde el panel — decisión correcta. Pero el paso siguiente (FK contra <code>categorias.nombre</code>, que ya es <code>UNIQUE</code>) no se dio.</dd>
+          <dt>Solución</dt>
+          <dd>
+            <pre class="code"><span class="kw">ALTER TABLE</span> productos
+  <span class="kw">ADD CONSTRAINT</span> fk_productos_categoria
+  <span class="kw">FOREIGN KEY</span> (categoria) <span class="kw">REFERENCES</span> categorias(nombre)
+  <span class="kw">ON UPDATE CASCADE</span>
+  <span class="kw">ON DELETE RESTRICT</span>;</pre>
+            <p style="margin-top:0.6rem;font-size:0.85rem;color:var(--ink-muted)">Con <code>ON UPDATE CASCADE</code>, el <code>UPDATE productos SET categoria=? WHERE categoria=?</code> manual que hoy hace <span class="file-ref">categorias.js</span> al renombrar una categoría dejaría de ser necesario — MySQL lo haría solo.</p>
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="finding sev-medio">
+      <div class="finding-head">
+        <h3>pedidos.subtotal y pedidos.total siempre guardan el mismo valor</h3>
+        <span class="sev-chip">Medio</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Dónde</dt><dd><span class="file-ref">backend/routes/pedidos.js</span> — <code>calcularTotal()</code> alimenta ambas columnas con el mismo número</dd>
+          <dt>Riesgo</dt><dd>No es un error funcional, pero sí una columna redundante hoy: el proyecto no maneja impuestos, envío ni cupones (confirmado en los comentarios del propio SQL), así que <code>subtotal</code> y <code>total</code> jamás difieren.</dd>
+          <dt>Solución</dt><dd>Dos caminos válidos: (a) eliminar <code>subtotal</code> si de verdad no habrá diferenciación nunca, o (b) —recomendado, si algún día piensan agregar envío o descuentos— dejarla como está pero agregar un comentario explícito en el SQL aclarando que hoy son iguales a propósito, para que el próximo desarrollador no lo lea como un bug.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="finding sev-bajo">
+      <div class="finding-head">
+        <h3>Llaves foráneas sin nombre explícito</h3>
+        <span class="sev-chip">Bajo</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Dónde</dt><dd>Todas las FK del esquema (MySQL les puso nombres automáticos tipo <code class="mono">productos_ibfk_1</code>)</dd>
+          <dt>Riesgo</dt><dd>Ninguno funcional. Al depurar un error de integridad referencial en producción, un nombre como <code class="mono">fk_pedidos_usuarios</code> es mucho más rápido de identificar que <code class="mono">pedidos_ibfk_1</code>.</dd>
+          <dt>Solución</dt><dd>Nombrar las FK explícitamente la próxima vez que se toque el esquema: <code class="mono">CONSTRAINT fk_pedidos_usuarios FOREIGN KEY (usuario_id) REFERENCES usuarios(id)</code>.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== INTEGRIDAD ===================== -->
+  <section class="block" id="integridad">
+    <span class="sec-num">05</span>
+    <h2>Integridad de los datos</h2>
+    <p class="lede"><code>NOT NULL</code>, <code>UNIQUE</code> y <code>DEFAULT</code> están bien aplicados donde importa (<code>usuarios.email</code>, <code>categorias.nombre</code>, <code>favoritos</code> con llave compuesta única). El hueco real es la ausencia total de <code>CHECK</code>.</p>
+
+    <div class="finding sev-medio">
+      <div class="finding-head">
+        <h3>Sin restricciones CHECK — la validación vive solo en Node</h3>
+        <span class="sev-chip">Medio</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Riesgo</dt><dd>Hoy <code>precio &gt; 0</code>, <code>stock &gt;= 0</code> y <code>cantidad &gt; 0</code> se validan en el backend, pero no en la base de datos misma. Es una sola capa de defensa: si en el futuro otro servicio, un script batch o un acceso directo a MySQL Workbench escribe en estas tablas, nada al nivel de la BD lo detiene.</dd>
+          <dt>Solución</dt>
+          <dd>
+            <pre class="code"><span class="kw">ALTER TABLE</span> productos
+  <span class="kw">ADD CONSTRAINT</span> chk_precio_positivo <span class="kw">CHECK</span> (precio &gt; 0),
+  <span class="kw">ADD CONSTRAINT</span> chk_stock_no_negativo <span class="kw">CHECK</span> (stock &gt;= 0);
+
+<span class="kw">ALTER TABLE</span> pedido_items
+  <span class="kw">ADD CONSTRAINT</span> chk_cantidad_positiva <span class="kw">CHECK</span> (cantidad &gt; 0);</pre>
+          </dd>
+          <dt>Nota</dt><dd>MySQL 8.0.16+ ya soporta <code>CHECK</code> de forma nativa (antes se aceptaba en la sintaxis pero se ignoraba en silencio) — el proyecto usa MySQL 8, así que esto sí se hace cumplir de verdad.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="finding sev-bajo">
+      <div class="finding-head">
+        <h3>pedidos.estado admite NULL a pesar de tener DEFAULT</h3>
+        <span class="sev-chip">Bajo</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Riesgo</dt><dd>En la práctica nunca queda en <code>NULL</code> porque la app siempre lo asigna, pero la columna lo permite. Un pedido con estado <code>NULL</code> se saldría silenciosamente de la máquina de estados (<code>TRANSICIONES_VALIDAS[null]</code> → <code>undefined</code> → tratado como "sin transiciones permitidas").</dd>
+          <dt>Solución</dt><dd><code class="mono">ALTER TABLE pedidos MODIFY estado ENUM(...) NOT NULL DEFAULT 'pendiente_finalizar';</code></dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SEGURIDAD ===================== -->
+  <section class="block" id="seguridad">
+    <span class="sec-num">06</span>
+    <h2>Seguridad</h2>
+    <p class="lede">Esta es la sección con los hallazgos de mayor severidad del informe. Ninguno es "el código es vulnerable a inyección" — ese frente está cubierto — sino configuración de acceso y un par de puntos concretos de validación.</p>
+
+    <div class="finding sev-critico">
+      <div class="finding-head">
+        <h3>La aplicación se conecta a MySQL como root</h3>
+        <span class="sev-chip">Crítico</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Dónde</dt><dd><span class="file-ref">backend/.env</span> — <code class="mono">DB_USER=root</code> (verificado en el entorno actual)</dd>
+          <dt>Riesgo</dt><dd>El usuario <code>root</code> de MySQL tiene privilegios totales sobre <b>todas</b> las bases de datos del servidor, no solo <code>dulceria_charles</code>: puede crear/borrar bases de datos completas, crear otros usuarios, leer las tablas internas de <code>mysql.*</code>. Si alguna vez apareciera una vulnerabilidad en el backend (aunque hoy no hay ninguna de inyección SQL conocida), el radio de impacto pasaría de "esta tienda" a "todo el servidor de base de datos". Esto viola el <b>principio de mínimo privilegio</b>, que es la primera pregunta que hace cualquier revisión de seguridad sobre accesos.</dd>
+          <dt>Solución</dt>
+          <dd>
+            <pre class="code"><span class="kw">CREATE USER</span> 'dulceria_app'@'localhost' <span class="kw">IDENTIFIED BY</span> 'una_contraseña_fuerte_distinta_a_root';
+
+<span class="kw">GRANT SELECT, INSERT, UPDATE, DELETE</span>
+  <span class="kw">ON</span> dulceria_charles.* <span class="kw">TO</span> 'dulceria_app'@'localhost';
+
+<span class="kw">FLUSH PRIVILEGES</span>;</pre>
+            <p style="margin-top:0.6rem;font-size:0.85rem;color:var(--ink-muted)">Después, en <code class="file-ref">backend/.env</code>: <code class="mono">DB_USER=dulceria_app</code> y su contraseña. Este usuario no necesita <code>CREATE</code>/<code>DROP</code>/<code>ALTER</code> para el día a día — solo para migraciones, que se pueden correr puntualmente como root o con un segundo usuario de mantenimiento.</p>
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="finding sev-alto">
+      <div class="finding-head">
+        <h3>El link personalizado del chatbot no valida el esquema de la URL</h3>
+        <span class="sev-chip">Alto</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Dónde</dt><dd><span class="file-ref">public/js/cart.js</span> — <code>chatAddLinkMessage()</code> asigna <code>a.href = href</code> directo con <code>accion_valor</code> de <code>chatbot_faq</code>, sin validar el esquema</dd>
+          <dt>Riesgo</dt><dd>Solo un admin puede escribir <code>accion_valor</code> hoy, así que no es explotable por un visitante anónimo — pero es exactamente el tipo de hallazgo que una auditoría debe señalar: si una cuenta admin se ve comprometida (contraseña reusada, phishing), el atacante puede guardar una pregunta con <code class="mono">accion_tipo: "link"</code> y <code class="mono">accion_valor: "javascript:...".</code> Cualquier visitante que toque ese botón del chat ejecutaría ese script en su propio navegador — un XSS persistente que sobrevive aunque se recupere la cuenta del admin, hasta que alguien borre esa pregunta.</dd>
+          <dt>Solución</dt>
+          <dd>
+            <pre class="code"><span class="kw">function</span> esUrlSegura(url) {
+  <span class="kw">return</span> /^https?:\/\//i.test(url) || url.startsWith(<span class="mono">'/'</span>);
+}
+<span class="kw">// en chatAddLinkMessage, antes de asignar href:</span>
+<span class="kw">if</span> (!esUrlSegura(href)) href = <span class="mono">'#'</span>;</pre>
+            <p style="margin-top:0.6rem;font-size:0.85rem;color:var(--ink-muted)">Validar en dos lugares: al mostrar (arriba) y también al guardar en <span class="file-ref">backend/routes/chatbot_faq.js</span> (<code>validarDatos</code>), rechazando <code>accion_valor</code> que empiece con <code class="mono">javascript:</code>, <code class="mono">data:</code> o <code class="mono">vbscript:</code> cuando <code>accion_tipo === 'link'</code>.</p>
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="finding sev-medio">
+      <div class="finding-head">
+        <h3>JWT_SECRET más corto que lo recomendado por el propio proyecto</h3>
+        <span class="sev-chip">Medio</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Dónde</dt><dd><span class="file-ref">backend/.env</span> — verificado: 35 caracteres</dd>
+          <dt>Riesgo</dt><dd>El propio <code class="file-ref">.env.example</code> documenta el comando correcto (<code class="mono">crypto.randomBytes(32).toString('hex')</code>, que da 64 caracteres / 256 bits de entropía), pero el secreto actual no sigue esa receta. Un secreto más corto o con menos aleatoriedad real es, en teoría, más susceptible a fuerza bruta offline si algún día se filtrara el algoritmo/formato — aunque HS256 con 35 caracteres razonablemente aleatorios sigue siendo difícil de romper hoy, no hay razón para no usar el método completo que ya está documentado.</dd>
+          <dt>Solución</dt><dd><code class="mono">node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code> y reemplazar <code>JWT_SECRET</code>. Esto invalida todas las sesiones activas (los usuarios tendrán que volver a iniciar sesión) — normal y esperado.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="finding sev-medio">
+      <div class="finding-head">
+        <h3>Contraseña mínima de solo 6 caracteres</h3>
+        <span class="sev-chip">Medio</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Dónde</dt><dd><span class="file-ref">backend/routes/auth.js</span> — <code>if (password.length &lt; 6)</code>, en registro y en cambio de contraseña</dd>
+          <dt>Riesgo</dt><dd>6 caracteres es más corto que lo que recomiendan las guías actuales (NIST sugiere 8 como mínimo razonable, priorizando longitud sobre reglas de composición). No es explotable directamente, pero baja el costo de un ataque de fuerza bruta si el rate limiting fallara o se evadiera desde múltiples IPs.</dd>
+          <dt>Solución</dt><dd>Subir el mínimo a 8 en las dos validaciones (registro y <code>PUT /me</code>), y reflejarlo en el mensaje de error del frontend.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="finding sev-medio">
+      <div class="finding-head">
+        <h3>Token JWT en localStorage/sessionStorage, no en cookie httpOnly</h3>
+        <span class="sev-chip">Medio</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Riesgo</dt><dd>Cualquier JavaScript que logre ejecutarse en el sitio (XSS) puede leer <code>localStorage</code>/<code>sessionStorage</code> y robar el token de sesión. Una cookie <code>httpOnly</code> no es legible desde JavaScript, así que un XSS no podría robarla directamente (aunque introduce su propia complejidad: hay que proteger contra CSRF).</dd>
+          <dt>Nota</dt><dd>No se encontró ningún XSS reflejado o almacenado explotable en este momento (aparte del hallazgo del chatbot de arriba, que ya tiene su propia entrada) — esto es una recomendación de <b>defensa en profundidad</b>, no la corrección de un agujero activo. Es también el cambio de arquitectura más grande de este informe; no se recomienda hacerlo a la ligera sin planearlo.</dd>
+          <dt>Solución</dt><dd>Evaluarlo como proyecto aparte: mover la emisión del JWT a una cookie <code>httpOnly; Secure; SameSite=Strict</code> desde <code>_signToken</code>/las rutas de login, y actualizar <code>apiFetch</code> para dejar de mandar el header <code>Authorization</code> manualmente.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="finding sev-bajo">
+      <div class="finding-head">
+        <h3>Sin límite de tasa en endpoints públicos de lectura</h3>
+        <span class="sev-chip">Bajo</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Riesgo</dt><dd><code>rateLimit</code> hoy solo cubre login, registro y <code>PUT /me</code>. Endpoints como <code>GET /api/productos</code> no tienen límite — exposición baja (son datos públicos del catálogo de cualquier forma), pero sí abierta a scraping agresivo o un mini-DoS de aplicación.</dd>
+          <dt>Solución</dt><dd>Un <code>rateLimit</code> global y generoso (ej. 300 peticiones/15min por IP) sobre todo <code>/api/</code>, sin afectar el uso normal.</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== RENDIMIENTO / ESCALABILIDAD ===================== -->
+  <section class="block" id="rendimiento">
+    <span class="sec-num">07</span>
+    <h2>Rendimiento y escalabilidad</h2>
+    <p class="lede">Con el volumen actual (107 productos, un puñado de pedidos) todo responde instantáneo — esta sección mira hacia adelante, a qué se rompe primero si la tienda crece.</p>
+
+    <div class="finding sev-alto">
+      <div class="finding-head">
+        <h3>Ningún listado tiene paginación</h3>
+        <span class="sev-chip">Alto</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Dónde</dt><dd><code class="mono">GET /api/productos</code>, <code class="mono">GET /api/pedidos</code> (admin), <code class="mono">GET /api/pedidos/mios</code>, <code class="mono">GET /api/usuarios</code> — los cuatro devuelven la tabla completa en una sola respuesta.</dd>
+          <dt>Riesgo</dt><dd>Es el hallazgo de escalabilidad más importante del informe. <code>GET /api/pedidos</code> además hace <code>LEFT JOIN</code> con <code>usuarios</code> y <code>pedido_items</code> sin límite — con miles de pedidos, cada carga del dashboard de administración movería toda la tabla completa (y su JOIN) en cada petición. Hoy es invisible porque hay 2 pedidos; con 10,000 sería el primer cuello de botella real de la aplicación.</dd>
+          <dt>Solución</dt>
+          <dd>
+            <pre class="code"><span class="kw">SELECT</span> ... <span class="kw">FROM</span> productos
+<span class="kw">WHERE</span> activo = 1
+<span class="kw">ORDER BY</span> id <span class="kw">ASC</span>
+<span class="kw">LIMIT</span> ? <span class="kw">OFFSET</span> ?;</pre>
+            <p style="margin-top:0.6rem;font-size:0.85rem;color:var(--ink-muted)">Agregar <code class="mono">?page=</code>/<code class="mono">?limit=</code> (o paginación por cursor con el <code>id</code>) a los cuatro endpoints, y actualizar el frontend para pedir la siguiente página en vez de todo de una vez.</p>
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="finding sev-medio">
+      <div class="finding-head">
+        <h3>La búsqueda de productos no puede usar índice</h3>
+        <span class="sev-chip">Medio</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Dónde</dt><dd><span class="file-ref">backend/routes/productos.js</span> — <code class="mono">nombre LIKE '%' + q + '%'</code></dd>
+          <dt>Riesgo</dt><dd>Un <code>%</code> al inicio del patrón hace que MySQL no pueda usar un índice B-tree normal aunque exista uno sobre <code>nombre</code> — siempre es un recorrido completo de tabla. A 107 filas es instantáneo; a 50,000 productos empezaría a notarse.</dd>
+          <dt>Solución</dt><dd><code class="mono">ALTER TABLE productos ADD FULLTEXT INDEX ft_nombre (nombre);</code> y cambiar la búsqueda a <code class="mono">MATCH(nombre) AGAINST(? IN NATURAL LANGUAGE MODE)</code> cuando el catálogo crezca — no es urgente hoy.</dd>
+        </dl>
+      </div>
+    </div>
+
+    <p>El resto del uso de índices está bien pensado: <code class="mono">idx_activo_cat</code>, <code class="mono">idx_estado</code>, <code class="mono">idx_activo_orden</code> coinciden exactamente con los filtros que usan las consultas reales — no es un patrón de "índice en cada columna por si acaso", que también sería un problema (cada índice de más ralentiza los <code>INSERT</code>/<code>UPDATE</code>). El pool de conexiones (<code>connectionLimit: 10</code>) es apropiado para el tamaño actual, y el propio comentario del código ya reconoce que un sitio grande necesitaría más — buena señal de que se pensó, no que se copió sin más.</p>
+  </section>
+
+  <!-- ===================== NOMENCLATURA / TIPOS ===================== -->
+  <section class="block" id="nomenclatura">
+    <span class="sec-num">08</span>
+    <h2>Nomenclatura y tipos de datos</h2>
+    <p class="lede">Consistente de principio a fin: tablas y columnas en snake_case y español, llaves foráneas siempre <code>&lt;entidad&gt;_id</code>, índices siempre <code>idx_&lt;columna&gt;</code>. No hace falta proponer un estándar nuevo — el que ya usan es razonable y se sigue sin excepciones.</p>
+    <p>Tipos de datos revisados uno por uno: <code>DECIMAL(10,2)</code> para dinero (correcto, nunca <code>FLOAT</code>), <code>VARCHAR(20)</code> para teléfono (correcto — un teléfono no es un número aritmético, puede llevar <code>+</code> o ceros a la izquierda), <code>ENUM</code> usado solo donde el conjunto de valores es fijo y controlado por código (<code>rol</code>, <code>estado</code>) y evitado a propósito donde es dinámico (<code>categoria</code>) — es exactamente la distinción correcta. <code>TEXT</code> en <code>configuracion.valor</code> y <code>chatbot_faq.respuesta</code> es apropiado para contenido de longitud variable sin un límite natural claro.</p>
+  </section>
+
+  <!-- ===================== RESPALDO / DOCUMENTACIÓN ===================== -->
+  <section class="block" id="respaldo">
+    <span class="sec-num">09</span>
+    <h2>Respaldo, recuperación y documentación</h2>
+
+    <div class="finding sev-medio">
+      <div class="finding-head">
+        <h3>Sin estrategia de respaldo definida</h3>
+        <span class="sev-chip">Medio</span>
+      </div>
+      <div class="finding-body">
+        <dl>
+          <dt>Riesgo</dt><dd>El esquema (estructura) está versionado en git vía <code class="file-ref">dulceria_charles.sql</code>, lo cual está bien — pero eso no protege los <b>datos</b> (pedidos reales, usuarios reales) ante un borrado accidental o una falla de disco. No se encontró ningún script ni tarea programada de <code>mysqldump</code>.</dd>
+          <dt>Solución</dt>
+          <dd>
+            <pre class="code">mysqldump -u dulceria_app -p dulceria_charles \
+  --single-transaction --routines \
+  &gt; respaldo_$(date +%Y%m%d).sql</pre>
+            <p style="margin-top:0.6rem;font-size:0.85rem;color:var(--ink-muted)">Programado diario (Tarea Programada de Windows o un cron si se migra a Linux/hosting), guardando los últimos 7-14 respaldos y probando la restauración al menos una vez — un respaldo que nunca se probó restaurar no es un respaldo confiable.</p>
+          </dd>
+        </dl>
+      </div>
+    </div>
+
+    <p>En documentación, el proyecto está mejor de lo típico: los comentarios inline explican el <i>por qué</i> de decisiones no obvias (por ejemplo, por qué <code>categoria</code> no es <code>ENUM</code>, o por qué <code>pedido_items</code> duplica nombre/precio). Lo único que falta como artefacto independiente es un <b>diagrama entidad-relación</b> y un <b>diccionario de datos</b> — útiles el día que alguien más se sume al equipo y necesite entender el esquema sin leer los 8 archivos de rutas primero.</p>
+  </section>
+
+  <!-- ===================== PLAN DE MEJORA ===================== -->
+  <section class="block" id="plan">
+    <span class="sec-num">10</span>
+    <h2>Plan de mejora por prioridad</h2>
+    <p class="lede">Mismos hallazgos de arriba, organizados para decidir por dónde empezar.</p>
+
+    <div class="board">
+      <div class="board-col pri-alta">
+        <div class="col-head">Prioridad alta</div>
+        <ul>
+          <li><b>Usuario MySQL dedicado (no root)</b><span>Máximo impacto en seguridad, mínimo esfuerzo — un solo script SQL y una línea de <code>.env</code>.</span></li>
+          <li><b>Validar el esquema de accion_valor del chatbot</b><span>Cierra la vía de XSS persistente vía cuenta admin comprometida.</span></li>
+          <li><b>FK real en productos.categoria</b><span>Mueve una validación crítica de "solo en el código" a "garantizada por la base de datos".</span></li>
+          <li><b>Paginación en los 4 listados sin límite</b><span>El único cambio de esta lista que requiere tocar también el frontend — planearlo con tiempo, no es urgente hoy pero sí bloqueante para crecer.</span></li>
+        </ul>
+      </div>
+      <div class="board-col pri-media">
+        <div class="col-head">Prioridad media</div>
+        <ul>
+          <li><b>Regenerar JWT_SECRET</b><span>Con el comando ya documentado en <code>.env.example</code>.</span></li>
+          <li><b>Contraseña mínima de 8 caracteres</b><span>Cambio de una línea en dos validaciones.</span></li>
+          <li><b>Agregar CHECK constraints</b><span>Defensa en profundidad para precio/stock/cantidad.</span></li>
+          <li><b>Definir respaldo automático</b><span><code>mysqldump</code> programado + prueba de restauración.</span></li>
+          <li><b>FULLTEXT index para búsqueda de productos</b><span>No urgente a 107 filas; sí antes de escalar el catálogo.</span></li>
+          <li><b>Evaluar JWT en cookie httpOnly</b><span>Cambio de arquitectura — planear aparte, no es un parche rápido.</span></li>
+        </ul>
+      </div>
+      <div class="board-col pri-baja">
+        <div class="col-head">Prioridad baja</div>
+        <ul>
+          <li><b>pedidos.estado NOT NULL</b><span>Cierra un caso borde teórico.</span></li>
+          <li><b>Nombrar las FK explícitamente</b><span>Solo mejora la depuración futura.</span></li>
+          <li><b>Rate limit global</b><span>Defensa adicional sobre endpoints ya públicos.</span></li>
+          <li><b>Diagrama ER + diccionario de datos</b><span>Documentación para cuando el equipo crezca.</span></li>
+          <li><b>Flujo de "olvidé mi contraseña"</b><span>No es un hallazgo de seguridad — es un hueco funcional que van a necesitar con clientes reales.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer-note">
+    Metodología: lectura completa de <span class="file-ref">dulceria_charles.sql</span> y de los 8 archivos en <span class="file-ref">backend/routes/</span>, inspección en vivo del esquema vía <code class="mono">information_schema</code> (tablas, llaves foráneas, índices, nulabilidad) contra la base de datos en ejecución, y verificación de variables de entorno sensibles sin exponer sus valores reales en este informe.
+  </div>
+
+</div>
+
+</body></html>

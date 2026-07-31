@@ -5,7 +5,9 @@
 /* ── Layout ── */
 .admin-layout {
   display: flex;
-  min-height: calc(100vh - 68px);
+  /* var(--navbar-h) la fija cart.js midiendo el navbar real (ver
+     setNavbarHeightVar); 68px es solo el respaldo antes de que corra el JS */
+  min-height: calc(100vh - var(--navbar-h, 68px));
 }
 
 /* ── Sidebar ── */
@@ -18,8 +20,8 @@
   flex-direction: column;
   gap: 0.2rem;
   position: sticky;
-  top: 68px;
-  height: calc(100vh - 68px);
+  top: var(--navbar-h, 68px);
+  height: calc(100vh - var(--navbar-h, 68px));
   overflow-y: auto;
 }
 .admin-sidebar-title {

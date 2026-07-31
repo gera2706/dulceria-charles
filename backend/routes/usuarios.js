@@ -17,10 +17,22 @@ const { adminMiddleware } = require('../middleware/auth');
 ------------------------------------------------------------ */
 router.get('/', adminMiddleware, async (req, res) => {
   try {
-    const [rows] = await db.query(
-      // Seleccionamos solo los campos necesarios, sin el campo "password"
-      'SELECT id, nombre, email, rol, fecha_registro FROM usuarios ORDER BY fecha_registro DESC'
-    );
+    let sql = 'SELECT id, nombre, email, rol, fecha_registro FROM usuarios ORDER BY fecha_registro DESC';
+    const vals = [];
+
+    // Paginación OPCIONAL (?page=&limit=), igual que en /api/productos:
+    // sin parámetros devuelve todo como antes (compatibilidad con el
+    // panel admin actual), lista para cuando haya muchos más usuarios.
+    if (req.query.page || req.query.limit) {
+      const [totalRows] = await db.query('SELECT COUNT(*) AS n FROM usuarios');
+      const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+      const page  = Math.max(parseInt(req.query.page, 10) || 1, 1);
+      sql += ' LIMIT ? OFFSET ?';
+      vals.push(limit, (page - 1) * limit);
+      res.set('X-Total-Count', String(totalRows[0].n));
+    }
+
+    const [rows] = await db.query(sql, vals);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener usuarios.' });

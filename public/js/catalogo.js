@@ -34,8 +34,8 @@ document.addEventListener('DOMContentLoaded', async function () {
       var btn = document.createElement('button');
       btn.className    = 'filter-btn';
       btn.dataset.cat  = cat.nombre;
-      btn.innerHTML = renderCatIcon(cat.icono, '1.3rem') +
-        ' ' + cat.nombre.charAt(0).toUpperCase() + cat.nombre.slice(1);
+      var nombreCat = escapeHtml(cat.nombre.charAt(0).toUpperCase() + cat.nombre.slice(1));
+      btn.innerHTML = renderCatIcon(cat.icono, '1.3rem') + ' ' + nombreCat;
       li.appendChild(btn);
       filterList.appendChild(li);
     });
