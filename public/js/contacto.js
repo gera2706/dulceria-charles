@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const form       = document.getElementById('contact-form');
+  const form       = document.getElementById('contactForm');
   const successBox = document.getElementById('form-success');
   const newMsgBtn  = document.getElementById('new-msg-btn');
 
@@ -50,11 +50,38 @@ document.addEventListener('DOMContentLoaded', () => {
     return ok;
   }
 
-  form.addEventListener('submit', e => {
-    e.preventDefault();
+  form.addEventListener('submit', async e => {
+    e.preventDefault(); // evitamos recarga
     if (!validate()) return;
-    form.classList.add('hidden');
-    successBox.classList.remove('hidden');
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Enviando...';
+
+    const formData = new FormData(form);
+
+    try {
+      const res = await fetch('https://formspree.io/f/mqegwrnl', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (res.ok) {
+        form.classList.add('hidden');
+        successBox.classList.remove('hidden');
+      } else {
+        alert('Hubo un problema al enviar tu mensaje. Intenta de nuevo.');
+      }
+    } catch (err) {
+      alert('No se pudo enviar el mensaje. Revisa tu conexión e intenta de nuevo.');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
   });
 
   newMsgBtn.addEventListener('click', () => {
@@ -63,5 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.querySelectorAll('.error-msg').forEach(el => el.textContent = '');
     successBox.classList.add('hidden');
     form.classList.remove('hidden');
+
   });
+  
 });
