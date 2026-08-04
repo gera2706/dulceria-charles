@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "dulceria",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-l", "3456", "public"],
-      "port": 3456
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "backend",
+      "port": 3000
     }
   ]
 }

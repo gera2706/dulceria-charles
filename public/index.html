@@ -101,24 +101,24 @@
   </section>
 
   <!-- ============================================================
-       CATEGORÍAS — Grid de accesos rápidos por tipo de dulce
+       CATEGORÍAS — Carrusel promocional por tipo de dulce
        La clase "reveal" activa el efecto de aparición al hacer scroll
        (animación definida en cart.js con IntersectionObserver).
-       Cada tarjeta lleva al catálogo con el filtro de categoría
-       pre-aplicado usando el parámetro ?cat= en la URL.
+       index.js llena #cat-promo-track con las categorías reales desde
+       /api/categorias (2 por slide, con degradado de color) — cada
+       una lleva al catálogo con el filtro ?cat= pre-aplicado.
+       El carrusel usa scroll-snap nativo: los puntos/flechas solo
+       hacen scrollTo, así que también se puede deslizar con el dedo
+       en móvil sin código extra.
   ============================================================ -->
-  <section class="categories reveal">
+  <section class="cat-promo reveal">
     <h2>Nuestras categorías</h2>
-    <div class="categories-grid" id="categories-grid">
-      <a href="catalogo.html?cat=bombones"   class="cat-card"><span class="cat-icon">🍡</span><h3>Bombones</h3></a>
-      <a href="catalogo.html?cat=botanas"    class="cat-card"><span class="cat-icon">🍿</span><h3>Botanas</h3></a>
-      <a href="catalogo.html?cat=chocolates" class="cat-card"><span class="cat-icon">🍫</span><h3>Chocolates</h3></a>
-      <a href="catalogo.html?cat=enchilados" class="cat-card"><span class="cat-icon">🌶️</span><h3>Enchilados</h3></a>
-      <a href="catalogo.html?cat=gomitas"    class="cat-card"><span class="cat-icon">🐻</span><h3>Gomitas</h3></a>
-      <a href="catalogo.html?cat=mazapanes"  class="cat-card"><span class="cat-icon">🥜</span><h3>Mazapanes</h3></a>
-      <a href="catalogo.html?cat=paletas"    class="cat-card"><span class="cat-icon">🍭</span><h3>Paletas</h3></a>
-      <a href="catalogo.html?cat=Refrescos"  class="cat-card"><span class="cat-icon">🥤</span><h3>Refrescos</h3></a>
+    <div class="cat-promo-wrap">
+      <button type="button" class="cat-promo-arrow cat-promo-arrow--prev" id="cat-promo-prev" aria-label="Categoría anterior">‹</button>
+      <div class="cat-promo-track" id="cat-promo-track"></div>
+      <button type="button" class="cat-promo-arrow cat-promo-arrow--next" id="cat-promo-next" aria-label="Siguiente categoría">›</button>
     </div>
+    <div class="cat-promo-dots" id="cat-promo-dots"></div>
   </section>
 
   <!-- ============================================================
