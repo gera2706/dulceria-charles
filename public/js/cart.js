@@ -930,8 +930,16 @@ function chatUpdateWaCta() {
       cta.removeAttribute('href');
       return;
     }
-    var msg = _chatLastUserText
-      ? 'Hola, vengo del chat de la página. Mi pregunta: ' + _chatLastUserText
+    // Quitamos emojis del texto del cliente antes de meterlo en el mensaje
+    // de WhatsApp: si vino de un boton rapido del chat (ej. "💬 Hablar con
+    // una persona"), su propia etiqueta se usa como "pregunta" y no queremos
+    // que el emoji del boton aparezca ahi.
+    var textoLimpio = _chatLastUserText
+      .replace(/\p{Extended_Pictographic}/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    var msg = textoLimpio
+      ? 'Hola, vengo del chat de la página. Mi pregunta: ' + textoLimpio
       : 'Hola, vengo del chat de la página y quisiera más información 🍬';
     var sep = waLink.indexOf('?') > -1 ? '&' : '?';
     cta.href = waLink + sep + 'text=' + encodeURIComponent(msg);
