@@ -292,37 +292,6 @@ document.addEventListener('DOMContentLoaded', function () {
  
 });
 
-document.addEventListener('DOMContentLoaded', () => {
- 
-  // Abrir modal — cualquier elemento con [data-modal="id-del-modal"]
-  document.querySelectorAll('[data-modal]').forEach(trigger => {
-    trigger.addEventListener('click', e => {
-      e.preventDefault();
-      const modal = document.getElementById(trigger.dataset.modal);
-      if (modal) modal.classList.add('activo');
-    });
-  });
- 
-  // Cerrar con el botón "×"
-  document.querySelectorAll('.modal-overlay .modal-cerrar').forEach(btn => {
-    btn.addEventListener('click', () => {
-      btn.closest('.modal-overlay').classList.remove('activo');
-    });
-  });
- 
-  // Cerrar haciendo clic fuera de la caja blanca
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay) overlay.classList.remove('activo');
-    });
-  });
- 
-  // Cerrar con la tecla Escape
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      document.querySelectorAll('.modal-overlay.activo')
-        .forEach(m => m.classList.remove('activo'));
-    }
-  });
- 
-  });
+// Los modales de Términos/Privacidad del footer (antes se abrían solo
+// desde aquí) ahora se inicializan en cart.js -> initLegalModals(), que
+// se carga en todas las páginas y no solo en index.html.

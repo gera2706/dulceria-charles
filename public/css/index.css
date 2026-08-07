@@ -278,73 +278,11 @@
   .promo-banner { padding: 2rem 1.5rem; }
 }
 
-.modal-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 1000;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-}
- 
-.modal-overlay.activo {
-  display: flex;
-}
- 
-.modal-box {
-  background: #fff;
-  max-width: 640px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
-  border-radius: 10px;
-  padding: 32px;
-  position: relative;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-}
- 
-.modal-box h2 {
-  margin-top: 0;
-  color: #7a4b2a;
-}
- 
-.modal-box h3 {
-  margin-top: 24px;
-  margin-bottom: 8px;
-  color: #7a4b2a;
-  font-size: 1.05em;
-}
- 
-.modal-box p {
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
- 
-.modal-cerrar {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  background: none;
-  border: none;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  color: #666;
-}
- 
-.modal-cerrar:hover {
-  color: #000;
-}
- 
-/* Links del footer que abren un modal */
-.footer-legal-link {
-  color: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-  background: none;
-  border: none;
-  font: inherit;
-  padding: 0;
-}
+/* Los estilos de .modal-overlay / .modal-box / .modal-cerrar /
+   .footer-legal-link (modales de Términos y Aviso de Privacidad del
+   footer) se movieron a style.css: este archivo (index.css) solo se
+   carga en index.html, pero esos modales ahora existen en el footer de
+   TODAS las páginas (ver initLegalModals() en cart.js), así que su CSS
+   tiene que vivir en el archivo global o se veían sin estilo (y por lo
+   tanto "abiertos" siempre, sin fondo oscuro ni forma de cerrarlos) en
+   cualquier página que no fuera la portada. */

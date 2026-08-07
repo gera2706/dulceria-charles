@@ -23,11 +23,13 @@
       <a href="pedidos.html">Mis Pedidos</a>
       <a href="favoritos.html">Favoritos</a>
       <a href="contacto.html" class="active">Contacto</a>
+      <div class="nav-actions">
       <div class="nav-dropdown" id="nav-account-dropdown">
         <button type="button" class="nav-icon-btn" id="nav-account-btn" aria-label="Cuenta" aria-haspopup="true" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></button>
         <div class="nav-dropdown-panel nav-dropdown-panel--right" id="nav-account-panel"></div>
       </div>
       <a href="carrito.html" class="nav-icon-btn" aria-label="Carrito"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9.5" cy="20" r="1.3"/><circle cx="18" cy="20" r="1.3"/><path d="M2.5 3h2l2.3 12a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.3L21 7.5H6.2"/></svg><span class="cart-count" id="cart-count">0</span></a>
+      </div>
     </div>
     <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú">
       <span></span><span></span><span></span>
@@ -176,7 +178,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <p><a href="index.html" class="active">© 2026 Dulcería Charles</a> · Ciudad de México</p>
+      <p><a href="index.html" class="active">© 2026 Dulcería Charles</a> · Ciudad de México · <button class="footer-legal-link" data-modal="modal-terminos">Términos y Condiciones</button> · <button class="footer-legal-link" data-modal="modal-privacidad">Aviso de Privacidad</button></p>
     </div>
   </footer>
 
@@ -210,6 +212,149 @@
       }
     })();
   </script>
+  <div class="legal-modal-overlay" id="modal-terminos">
+  <div class="modal-box">
+    <button class="modal-cerrar" aria-label="Cerrar">&times;</button>
+    <h2>Términos y Condiciones</h2>
+    <p>Este contrato describe los términos y condiciones generales aplicables al uso
+       de los contenidos, productos y servicios ofrecidos a través de este sitio web
+       (el "Sitio"), del cual es titular Dulcería Charles, con domicilio en C. Niños
+       Héroes 304, Durango, Dgo., México. Al navegar, registrarte o realizar un pedido
+       en el Sitio aceptas estos términos en su totalidad; si no estás de acuerdo, te
+       pedimos no utilizar el Sitio.</p>
+
+    <h3>I. Del objeto</h3>
+    <p>El Sitio permite consultar el catálogo de dulces y productos de Dulcería
+       Charles, crear una cuenta, armar un carrito de compra, marcar productos como
+       favoritos y generar pedidos para pago y recolección. Los precios, existencias
+       (stock) e imágenes se muestran de forma orientativa y pueden actualizarse sin
+       previo aviso; el precio y disponibilidad válidos son los vigentes al momento
+       de confirmar el pedido.</p>
+
+    <h3>II. Del registro y la cuenta</h3>
+    <p>Para realizar un pedido es necesario crear una cuenta con nombre, correo
+       electrónico y contraseña. Eres responsable de mantener la confidencialidad de
+       tu contraseña y de toda actividad realizada desde tu cuenta. Debes
+       proporcionar datos verídicos y notificarnos si sospechas un uso no autorizado
+       de tu cuenta escribiendo a <a href="mailto:hola@dulceriacharles.com">hola@dulceriacharles.com</a>.</p>
+
+    <h3>III. Pedidos, pago y entrega</h3>
+    <p>Dulcería Charles opera bajo un modelo de recolección en tienda ("pickup"): no
+       se realizan envíos a domicilio. Una vez confirmado el pago, el pedido queda
+       disponible para recogerse en el domicilio indicado en la sección de contacto,
+       dentro del horario de atención publicado en el Sitio. Es responsabilidad del
+       cliente presentarse a recoger su pedido; Dulcería Charles podrá cancelar
+       pedidos no recogidos después de un plazo razonable, notificando previamente al
+       cliente cuando sea posible.</p>
+
+    <h3>IV. Cancelaciones y devoluciones</h3>
+    <p>Por tratarse de productos alimenticios, no se aceptan devoluciones una vez
+       entregado el pedido, salvo defecto de fabricación o error atribuible a
+       Dulcería Charles (producto equivocado, dañado o caducado), en cuyo caso el
+       cliente debe reportarlo dentro de las 24 horas siguientes a la recolección a
+       través de los datos de contacto del Sitio. Los pedidos aún no recolectados
+       pueden cancelarse contactando directamente a la tienda.</p>
+
+    <h3>V. Del usuario</h3>
+    <p>El usuario se compromete a utilizar el Sitio conforme a la ley y a estos
+       términos, a no intentar vulnerar su seguridad (por ejemplo, acceder sin
+       autorización a cuentas de otros usuarios o al panel administrativo) y a no
+       usar el Sitio con fines fraudulentos. El incumplimiento puede dar lugar a la
+       suspensión o cancelación de la cuenta.</p>
+
+    <h3>VI. Propiedad intelectual</h3>
+    <p>Los textos, imágenes, logotipo y demás contenidos del Sitio son propiedad de
+       Dulcería Charles o se usan con la autorización correspondiente. Queda
+       prohibida su reproducción total o parcial con fines comerciales sin
+       autorización previa por escrito.</p>
+
+    <h3>VII. Modificaciones</h3>
+    <p>Dulcería Charles podrá actualizar estos Términos y Condiciones en cualquier
+       momento; los cambios se publicarán en esta misma sección con su fecha de
+       actualización. El uso continuado del Sitio después de una modificación
+       implica la aceptación de los nuevos términos.</p>
+
+    <h3>VIII. Legislación aplicable</h3>
+    <p>Estos términos se rigen por las leyes aplicables en México. Para cualquier
+       controversia derivada del uso del Sitio, las partes se someten a los
+       tribunales competentes de Durango, Dgo., México, renunciando a cualquier otro
+       fuero que pudiera corresponderles por razón de su domicilio presente o
+       futuro.</p>
+
+    <p><em>Última actualización: agosto de 2026.</em></p>
+  </div>
+</div>
+
+  <div class="legal-modal-overlay" id="modal-privacidad">
+  <div class="modal-box">
+    <button class="modal-cerrar" aria-label="Cerrar">&times;</button>
+    <h2>Aviso de Privacidad y Uso de Datos</h2>
+    <p>Dulcería Charles, con domicilio en C. Niños Héroes 304, Durango, Dgo., México,
+       es responsable del tratamiento de tus datos personales conforme a la Ley
+       Federal de Protección de Datos Personales en Posesión de los Particulares.
+       Este aviso explica qué información recabamos a través del Sitio, para qué la
+       usamos y cómo puedes ejercer tus derechos sobre ella.</p>
+
+    <h3>I. Datos personales que recabamos</h3>
+    <p>Al crear una cuenta o realizar un pedido recabamos: nombre, correo
+       electrónico, contraseña y teléfono. Al confirmar un pedido guardamos además el
+       nombre de quien recogerá el producto y el teléfono de contacto, así como el
+       historial de pedidos y, si los usas, tus productos favoritos. No recabamos
+       datos de tarjetas ni de pago: esos se procesan directamente por la pasarela de
+       pago utilizada al momento de pagar, no por nuestros servidores.</p>
+
+    <h3>II. Cómo protegemos tus datos</h3>
+    <p>Tu contraseña nunca se guarda en texto plano: se almacena únicamente su hash
+       (una huella criptográfica que no puede revertirse). Lo mismo aplica al enlace
+       de recuperación de contraseña. Esto significa que ni siquiera nuestro propio
+       personal puede ver tu contraseña real.</p>
+
+    <h3>III. Finalidades del tratamiento</h3>
+    <p>Usamos tus datos para: crear y administrar tu cuenta, procesar y dar
+       seguimiento a tus pedidos, permitirte recuperar tu contraseña por correo,
+       contactarte sobre el estado de un pedido, y mejorar el catálogo y el
+       funcionamiento del Sitio. No usamos tus datos con fines de mercadotecnia de
+       terceros ni los vendemos, rentamos o compartimos con fines comerciales.</p>
+
+    <h3>IV. Cookies y almacenamiento local</h3>
+    <p>El Sitio no utiliza cookies de rastreo ni de publicidad de terceros. Para
+       funcionar, guarda en tu propio navegador (localStorage/sessionStorage de tu
+       dispositivo, nunca en servidores externos) datos técnicos como: tu sesión
+       iniciada, el contenido de tu carrito de compra, tus favoritos y tu preferencia
+       de modo claro/oscuro. Puedes borrar esta información en cualquier momento
+       desde la configuración de tu navegador; al hacerlo, es posible que se cierre
+       tu sesión o se vacíe tu carrito.</p>
+
+    <h3>V. Compartición de datos con terceros</h3>
+    <p>Solo compartimos los datos estrictamente necesarios con proveedores que nos
+       ayudan a operar el Sitio (por ejemplo, el proveedor de correo saliente
+       utilizado para enviar el enlace de recuperación de contraseña), quienes están
+       obligados a mantener la confidencialidad de esa información y no pueden
+       usarla para fines distintos.</p>
+
+    <h3>VI. Derechos ARCO</h3>
+    <p>Tienes derecho a Acceder, Rectificar y Cancelar tus datos personales, así
+       como a Oponerte a su tratamiento (derechos ARCO), y a revocar el
+       consentimiento que en su caso nos hayas otorgado. Para ejercerlos, escríbenos
+       a <a href="mailto:hola@dulceriacharles.com">hola@dulceriacharles.com</a>
+       indicando tu nombre y el correo con el que te registraste; atenderemos tu
+       solicitud en un plazo razonable.</p>
+
+    <h3>VII. Conservación de datos</h3>
+    <p>Conservamos tus datos mientras tu cuenta permanezca activa o sea necesario
+       para cumplir con las finalidades descritas en este aviso. Si solicitas la
+       cancelación de tu cuenta, eliminaremos o anonimizaremos tus datos personales
+       salvo que exista una obligación legal de conservarlos por más tiempo (por
+       ejemplo, registros de pedidos con fines fiscales).</p>
+
+    <h3>VIII. Cambios a este aviso</h3>
+    <p>Este aviso de privacidad puede actualizarse para reflejar cambios en el Sitio
+       o en la normativa aplicable. Cualquier modificación se publicará en esta misma
+       sección con su fecha de actualización.</p>
+
+    <p><em>Última actualización: agosto de 2026.</em></p>
+  </div>
+</div>
 </body>
 </html>
 

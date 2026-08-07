@@ -57,13 +57,30 @@ ul { list-style: none; }
   letter-spacing: -0.01em;
 }
 
-/* Links visible on desktop, hidden on mobile (drawer takes over) */
+/* Links visible on desktop, hidden on mobile (drawer takes over).
+   flex:1 hace que este bloque ocupe todo el espacio libre entre el logo
+   y el botón de menú (invisible en escritorio, ver .nav-toggle abajo);
+   así .nav-actions (Cuenta + Carrito) puede empujarse con margin-left:auto
+   hasta el borde derecho real de la barra, separado del resto de los
+   links — antes todo el grupo quedaba pegado al logo porque .nav-links
+   nunca crecía para llenar la barra. */
 .nav-links {
   display: none;
   align-items: center;
+  flex: 1;
   gap: 0.4rem;
-  margin-right: auto;
   margin-left: 1.5rem;
+}
+/* Cuenta + Carrito: separados del resto de los links con un espacio
+   amplio y una línea divisoria sutil, para que se vean como su propio
+   grupo (acciones de la cuenta) y no como dos links más del menú. */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: auto;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
 }
 .nav-links a {
   font-family: var(--font-body);
@@ -583,6 +600,67 @@ ul { list-style: none; }
   .nav-brand { font-size: 1.25rem; }
 }
 
+/* ===== MODALES DE TÉRMINOS / AVISO DE PRIVACIDAD (footer) =====
+   Antes vivían en index.css, que solo carga en index.html; ese modal
+   ahora está en el footer de TODAS las páginas (initLegalModals() en
+   cart.js), así que su CSS tiene que ser global.
+   Se llama ".legal-modal-overlay" y no ".modal-overlay" a propósito:
+   carrito.css ya tenía SU PROPIA ".modal-overlay" (el popup de "pedido
+   confirmado"), sin gate de display:none por defecto porque la oculta
+   con la clase ".hidden" en vez de ".activo". Al cargar ambas reglas en
+   la misma página, la de carrito.css (cargada después) le ganaba a esta
+   por orden de cascada y dejaba el modal de Términos SIEMPRE visible e
+   imposible de cerrar. Un nombre de clase propio evita ese choque para
+   siempre, aquí y con cualquier otro CSS de página que use ".modal-overlay"
+   a futuro. */
+.legal-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+.legal-modal-overlay.activo { display: flex; }
+.modal-box {
+  background: #fff;
+  max-width: 640px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: 10px;
+  padding: 32px;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+.modal-box h2 { margin-top: 0; color: #7a4b2a; }
+.modal-box h3 { margin-top: 24px; margin-bottom: 8px; color: #7a4b2a; font-size: 1.05em; }
+.modal-box p { line-height: 1.6; margin-bottom: 12px; }
+.modal-cerrar {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+}
+.modal-cerrar:hover { color: #000; }
+/* Links del footer que abren un modal */
+.footer-legal-link {
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font: inherit;
+  padding: 0;
+}
+
 /* ===== DARK MODE ===== */
 [data-theme="dark"] {
   --bg:         #1c1530;   /* violeta profundo */
@@ -635,6 +713,19 @@ ul { list-style: none; }
 [data-theme="dark"] .pedido-card,
 [data-theme="dark"] .pedidos-empty,
 [data-theme="dark"] .modal { background: var(--white); }
+/* Modal de Términos/Privacidad (public/index.html): tenía fondo blanco
+   fijo (.modal-box en index.css) mientras el texto heredaba var(--text),
+   que en modo oscuro es lavanda claro -> texto casi invisible sobre
+   blanco. Mismo tratamiento que el resto de tarjetas/modales de arriba. */
+[data-theme="dark"] .modal-box {
+  background: var(--white);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+}
+[data-theme="dark"] .modal-box h2,
+[data-theme="dark"] .modal-box h3 { color: var(--pink); }
+[data-theme="dark"] .modal-cerrar { color: var(--text-light); }
+[data-theme="dark"] .modal-cerrar:hover { color: var(--text); }
 /* El modal de producto usa un azul distinto al resto de las tarjetas
    (antes esto compartía --white con TODO lo de arriba; se separó
    para no romper el contraste de auth-card/confirm-items, que
@@ -880,6 +971,12 @@ ul { list-style: none; }
    vez de oscuro para no confundirlo con "no se puede comprar". */
 .card-out-badge--low { background: rgba(194,65,12,0.9); }
 
+/* Variante para "ya tienes todo el stock disponible en tu carrito":
+   no es un problema de la tienda (sí hay stock, nada más ya lo
+   apartaste todo), así que usa el rosa de la marca en vez del rojo/
+   ámbar de las otras variantes, que sí implican "no se puede comprar". */
+.card-out-badge--in-cart { background: var(--pink); }
+
 /* ===== SELECTOR DE CANTIDAD (+/-) =====
    Usado en el carrito (carrito.js), las tarjetas del catalogo/destacados
    (buildProductCard en cart.js) y el modal de detalle de producto —
@@ -905,7 +1002,24 @@ ul { list-style: none; }
 }
 .qty-btn:hover { transform: scale(1.3); }
 .qty-btn:disabled { color: var(--text-light); cursor: not-allowed; transform: none; }
-.qty-val { font-weight: 700; min-width: 24px; text-align: center; }
+/* .qty-val es un <input type="number"> (antes un <span>) para poder
+   teclear la cantidad y no solo usar +/-. Se le quita todo el estilo
+   nativo del navegador (borde, fondo, flechas del spinner) para que
+   siga viéndose como el numero "plano" de antes dentro de la pildora. */
+.qty-val {
+  font: inherit;
+  font-weight: 700;
+  width: 32px;
+  text-align: center;
+  border: none;
+  background: none;
+  color: inherit;
+  padding: 0;
+  -moz-appearance: textfield;
+}
+.qty-val::-webkit-outer-spin-button,
+.qty-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.qty-val:focus { outline: none; }
 
 /* Version compacta del stepper para la tarjeta del catalogo, en fila
    junto al boton "Agregar" (el de carrito.html es mas grande porque
@@ -913,7 +1027,7 @@ ul { list-style: none; }
 .card-qty-row { display: flex; gap: 0.5rem; align-items: center; }
 .card-qty-controls { padding: 0.15rem 0.4rem; flex-shrink: 0; }
 .card-qty-controls .qty-btn { font-size: 1rem; padding: 0 0.2rem; }
-.card-qty-controls .qty-val { min-width: 18px; font-size: 0.9rem; }
+.card-qty-controls .qty-val { width: 24px; font-size: 0.9rem; }
 .card-qty-row .btn-add { flex: 1; }
 
 /* Mismo stepper dentro del modal de detalle de producto, alineado con

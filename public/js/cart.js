@@ -250,6 +250,15 @@ async function migrateFavoritesOnLogin() {
    SECCIÓN: OPERACIONES DEL CARRITO
 ================================================================ */
 
+/* Cuántas piezas de este producto ya tiene el cliente en su carrito.
+   Se usa para calcular lo "disponible" en la tarjeta/modal: el stock
+   de la tienda menos lo que ya se apartó en este carrito (ver
+   buildProductCard y openProductModal más abajo). */
+function cartQtyOf(productId) {
+  var item = getCart().find(function(i) { return i.id === productId; });
+  return item ? item.qty : 0;
+}
+
 /* Agrega un producto al carrito.
    qty (opcional, default 1) → cuántas piezas agregar de una sola vez,
    viene del selector +/- de la tarjeta/modal en vez de dar un clic
@@ -577,7 +586,7 @@ function injectProductModal() {
         '<div class="prod-modal-actions">' +
           '<div class="qty-controls prod-modal-qty" id="prod-modal-qty">' +
             '<button type="button" class="qty-btn" id="prod-modal-qty-minus" aria-label="Menos">&#8722;</button>' +
-            '<span class="qty-val" id="prod-modal-qty-val">1</span>' +
+            '<input type="number" class="qty-val" id="prod-modal-qty-val" value="1" min="1" step="1" inputmode="numeric" aria-label="Cantidad">' +
             '<button type="button" class="qty-btn" id="prod-modal-qty-plus" aria-label="Más">+</button>' +
           '</div>' +
           '<button class="btn btn-primary" id="prod-modal-add">&#128722; Agregar al carrito</button>' +
@@ -599,10 +608,20 @@ function injectProductModal() {
 var _modalProductId = null; // guarda el ID del producto que está abierto en el modal
 
 /* Abre el modal con los datos de un producto específico.
-   Rellena todos los campos (imagen, nombre, categoría, precio, favorito). */
-function openProductModal(productId) {
-  var product = getAllProducts().find(function(p) { return p.id === productId; });
+   Rellena todos los campos (imagen, nombre, categoría, precio, favorito).
+   Acepta el objeto de producto completo (preferido: así el stock que se
+   muestra es el mismo, real, que ya traía la tarjeta) o, si solo se
+   tiene el id (por compatibilidad), lo busca en getAllProducts(). Antes
+   SIEMPRE volvía a buscar por id aquí, y en index.html/favoritos.html
+   ese catálogo en caché nunca se llena (solo catalogo.js llama
+   loadProducts()) — el modal caía al arreglo estático PRODUCTS, que no
+   trae stock, y dejaba pedir hasta 99 piezas de un producto agotado. */
+function openProductModal(productOrId) {
+  var product = (productOrId && typeof productOrId === 'object')
+    ? productOrId
+    : getAllProducts().find(function(p) { return p.id === productOrId; });
   if (!product) return;
+  var productId = product.id;
   _modalProductId = productId;
 
   var img     = document.getElementById('prod-modal-img');
@@ -616,44 +635,89 @@ function openProductModal(productId) {
   document.getElementById('prod-modal-desc').textContent  = PROD_DESCS[product.category] || 'Producto de calidad de Dulceria Charles.';
   document.getElementById('prod-modal-price').textContent = '$' + product.price;
 
-  /* Estado de stock: agotado deshabilita el botón, bajo muestra un aviso */
-  var outOfStock = product.stock !== undefined && product.stock <= 0;
-  var lowStock    = !outOfStock && product.stock !== undefined && product.stock_minimo !== undefined && product.stock <= product.stock_minimo;
+  /* Estado de stock: agotado deshabilita el botón, bajo muestra un aviso.
+     "Disponible" = stock de la tienda menos lo que ya está en tu propio
+     carrito (mismo criterio que la tarjeta del catálogo, ver
+     buildProductCard): si ya tienes las 20 piezas que había, el botón
+     de agregar no debe seguir ofreciendo agregar más aunque el producto
+     en sí no esté "agotado" en la tienda. */
+  var outOfStock    = product.stock !== undefined && product.stock <= 0;
+  var enCarrito     = cartQtyOf(productId);
+  var disponible    = product.stock !== undefined ? Math.max(product.stock - enCarrito, 0) : undefined;
+  var sinDisponible = !outOfStock && disponible !== undefined && disponible <= 0;
+  var lowStock      = !outOfStock && !sinDisponible && product.stock !== undefined &&
+                       product.stock_minimo !== undefined && product.stock <= product.stock_minimo;
   var addBtn = document.getElementById('prod-modal-add');
-  addBtn.disabled = outOfStock;
-  addBtn.innerHTML = outOfStock ? 'Agotado' : '&#128722; Agregar al carrito';
+  addBtn.disabled = outOfStock || sinDisponible;
+  addBtn.innerHTML = outOfStock ? 'Agotado' : sinDisponible ? 'Ya tienes todo el stock' : '&#128722; Agregar al carrito';
 
   var stockNote = document.getElementById('prod-modal-stock-note');
-  if (lowStock) {
+  if (sinDisponible) {
+    stockNote.textContent = 'Ya tienes todo el stock disponible en tu carrito';
+    stockNote.classList.remove('hidden');
+  } else if (lowStock) {
     stockNote.textContent = '¡Últimas ' + product.stock + ' piezas!';
     stockNote.classList.remove('hidden');
   } else {
     stockNote.classList.add('hidden');
   }
 
-  /* Selector de cantidad (+/-): se oculta si está agotado (nada que
-     elegir) y se resetea a 1 cada vez que se abre el modal, limitado
-     al stock disponible igual que en la tarjeta del catálogo. */
+  /* Selector de cantidad (+/- o tecleada a mano): se oculta si está
+     agotado o si ya no queda nada disponible para agregar (nada que
+     elegir), y se resetea a 1 cada vez que se abre el modal, limitado
+     a lo disponible igual que en la tarjeta del catálogo. qtyVal es un
+     <input type="number"> para poder escribir la cantidad directamente
+     y no solo con los botones. */
   var qtyWrap  = document.getElementById('prod-modal-qty');
   var qtyVal   = document.getElementById('prod-modal-qty-val');
   var qtyMinus = document.getElementById('prod-modal-qty-minus');
   var qtyPlus  = document.getElementById('prod-modal-qty-plus');
-  var maxQty   = product.stock !== undefined ? product.stock : 99;
+  var maxQty   = disponible !== undefined ? disponible : 99;
   var modalQty = 1;
 
-  function updateModalQtyBtns() {
-    qtyVal.textContent = modalQty;
-    qtyMinus.disabled  = modalQty <= 1;
-    qtyPlus.disabled   = modalQty >= maxQty;
+  function clampModalQty(val) {
+    val = parseInt(val, 10);
+    if (isNaN(val)) val = 1;
+    if (val < 1) val = 1;
+    if (val > maxQty) val = maxQty;
+    return val;
   }
 
-  if (outOfStock) {
+  function updateModalQtyBtns() {
+    qtyVal.value      = modalQty;
+    qtyMinus.disabled = modalQty <= 1;
+    qtyPlus.disabled  = modalQty >= maxQty;
+  }
+
+  if (outOfStock || sinDisponible) {
     qtyWrap.style.display = 'none';
   } else {
     qtyWrap.style.display = '';
+    qtyVal.max = maxQty;
     updateModalQtyBtns();
     qtyMinus.onclick = function() { if (modalQty > 1)     { modalQty--; updateModalQtyBtns(); } };
     qtyPlus.onclick  = function() { if (modalQty < maxQty) { modalQty++; updateModalQtyBtns(); } };
+
+    /* Escribir directo en el campo: no forzamos el límite mientras se
+       escribe (molestaría a media escritura, ej. al borrar para poner
+       otro número), solo habilitamos/deshabilitamos los botones con lo
+       que lleva escrito. El valor se corrige (clamp) al salir del campo
+       o presionar Enter. */
+    qtyVal.oninput = function() {
+      var raw = parseInt(qtyVal.value, 10);
+      modalQty = isNaN(raw) ? modalQty : raw;
+      qtyMinus.disabled = modalQty <= 1;
+      qtyPlus.disabled  = modalQty >= maxQty;
+    };
+    qtyVal.onchange = function() {
+      var clamped = clampModalQty(qtyVal.value);
+      if (parseInt(qtyVal.value, 10) > maxQty) {
+        showToast('Lo sentimos, por el momento solo tenemos ' + maxQty + (maxQty === 1 ? ' pieza disponible' : ' piezas disponibles') + ' de ' + product.name + '.');
+      }
+      modalQty = clamped;
+      updateModalQtyBtns();
+    };
+    qtyVal.onkeydown = function(e) { if (e.key === 'Enter') qtyVal.blur(); };
   }
 
   var favBtn = document.getElementById('prod-modal-fav');
@@ -672,6 +736,7 @@ function openProductModal(productId) {
   };
 
   document.getElementById('prod-modal-add').onclick = function() {
+    modalQty = clampModalQty(qtyVal.value); // por si se escribió y no se salió del campo
     addToCart(productId, modalQty);
     closeProductModal(); // cerramos el modal después de agregar
   };
@@ -783,6 +848,40 @@ async function initFooterContacto() {
 
   var waLink = getWaLink(cfg);
   if (waEl && waLink) waEl.href = waLink;
+}
+
+/* ================================================================
+   SECCIÓN: MODALES LEGALES (Términos y Condiciones / Aviso de Privacidad)
+   Genérico para cualquier modal con [data-modal="id"] como disparador
+   y .legal-modal-overlay/.modal-cerrar como estructura (vive aquí, no
+   en index.js, porque cart.js se carga en TODAS las páginas con footer;
+   antes solo funcionaba en index.html).
+   Usa la clase .legal-modal-overlay (no .modal-overlay) porque
+   carrito.css ya define su propia .modal-overlay para el popup de
+   "pedido confirmado" (oculto con .hidden, no con .activo); si
+   compartíamos el nombre, esa regla de carrito.css (cargada después de
+   style.css) le ganaba por cascada y el modal legal quedaba siempre
+   visible y sin forma de cerrarse. */
+function initLegalModals() {
+  document.querySelectorAll('[data-modal]').forEach(function(trigger) {
+    trigger.addEventListener('click', function(e) {
+      e.preventDefault();
+      var modal = document.getElementById(trigger.dataset.modal);
+      if (modal) modal.classList.add('activo');
+    });
+  });
+
+  document.querySelectorAll('.legal-modal-overlay .modal-cerrar').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      btn.closest('.legal-modal-overlay').classList.remove('activo');
+    });
+  });
+
+  document.querySelectorAll('.legal-modal-overlay').forEach(function(overlay) {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) overlay.classList.remove('activo');
+    });
+  });
 }
 
 /* ================================================================
@@ -1232,6 +1331,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   initFooterContacto();
 
+  /* 4c. Modales de Términos y Condiciones / Aviso de Privacidad del footer */
+  initLegalModals();
+
   /* 5. Inicializar el drawer de autenticación (definido en auth.js) */
   initAuthDrawer();
 
@@ -1283,8 +1385,11 @@ document.addEventListener('DOMContentLoaded', function() {
     overlay.addEventListener('click', closeDrawer); // clic en el fondo → cerrar
 
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { closeDrawer(); closeProductModal(); closeChatPanel(); closeNavDropdowns(); }
-      // La tecla Escape cierra cualquier cosa abierta (drawer, modal, chat o desplegable)
+      if (e.key === 'Escape') {
+        closeDrawer(); closeProductModal(); closeChatPanel(); closeNavDropdowns();
+        document.querySelectorAll('.legal-modal-overlay.activo').forEach(function(m) { m.classList.remove('activo'); });
+      }
+      // La tecla Escape cierra cualquier cosa abierta (drawer, modal, chat, desplegable o modal legal)
     });
   }
 
@@ -1327,12 +1432,24 @@ function buildProductCard(product) {
   // product.stock puede venir undefined en algún caso viejo/no migrado;
   // en ese caso lo tratamos como "hay existencia" para no romper nada.
   var outOfStock = product.stock !== undefined && product.stock <= 0;
+
+  /* "Disponible" = stock de la tienda menos lo que ya tienes en tu
+     propio carrito. Antes el tope del selector era el stock TOTAL sin
+     restar esto: si ya tenías las 20 piezas que había en tu carrito, la
+     tarjeta seguía mostrando "Agregar" habilitado y el selector hasta
+     20 de nuevo — addToCart() lo bloqueaba en silencio (con un toast),
+     pero la tarjeta nunca cambiaba de aspecto, ni recargando la página,
+     porque outOfStock solo miraba el stock total (seguía siendo > 0). */
+  var enCarrito  = cartQtyOf(product.id);
+  var disponible = product.stock !== undefined ? Math.max(product.stock - enCarrito, 0) : undefined;
+  var sinDisponible = !outOfStock && disponible !== undefined && disponible <= 0;
+
   // "Queda poco": mismo criterio que el modal de detalle (stock <= stock_minimo).
-  var lowStock   = !outOfStock && product.stock !== undefined &&
+  var lowStock   = !outOfStock && !sinDisponible && product.stock !== undefined &&
                    product.stock_minimo !== undefined && product.stock <= product.stock_minimo;
   // Tope del selector +/-: si no sabemos el stock (producto viejo sin migrar),
   // dejamos un tope alto para no bloquear la compra sin motivo.
-  var maxQty = product.stock !== undefined ? product.stock : 99;
+  var maxQty = disponible !== undefined ? disponible : 99;
 
   /* Construimos el HTML de la tarjeta como string.
      Incluye: imagen, botón de favorito, nombre, categoría, precio,
@@ -1346,6 +1463,7 @@ function buildProductCard(product) {
         (fav ? '&#10084;&#65039;' : '&#9825;') +
       '</button>' +
       (outOfStock ? '<span class="card-out-badge">Agotado</span>'
+        : sinDisponible ? '<span class="card-out-badge card-out-badge--in-cart">Ya está en tu carrito</span>'
         : lowStock ? '<span class="card-out-badge card-out-badge--low">¡Quedan ' + product.stock + '!</span>' : '') +
     '</div>' +
     '<div class="card-body">' +
@@ -1356,10 +1474,12 @@ function buildProductCard(product) {
     '<div class="card-actions">' +
       (outOfStock
         ? '<button class="btn-add" disabled>Agotado</button>'
+        : sinDisponible
+        ? '<button class="btn-add" disabled>Ya en tu carrito</button>'
         : '<div class="card-qty-row">' +
             '<div class="qty-controls card-qty-controls">' +
               '<button type="button" class="qty-btn card-qty-minus" aria-label="Menos">&#8722;</button>' +
-              '<span class="qty-val card-qty-val">1</span>' +
+              '<input type="number" class="qty-val card-qty-val" value="1" min="1" max="' + maxQty + '" step="1" inputmode="numeric" aria-label="Cantidad">' +
               '<button type="button" class="qty-btn card-qty-plus" aria-label="Más">+</button>' +
             '</div>' +
             '<button class="btn-add">Agregar</button>' +
@@ -1370,7 +1490,7 @@ function buildProductCard(product) {
      Excepto si el clic fue en el botón de favorito (lo manejamos por separado) */
   card.querySelector('.card-img-wrap').addEventListener('click', function(e) {
     if (e.target.classList.contains('card-fav')) return; // ignorar clic en el corazón
-    openProductModal(product.id);
+    openProductModal(product); // el objeto completo, con el stock real que ya trae esta tarjeta
   });
   card.querySelector('.card-img-wrap').style.cursor = 'pointer';
 
@@ -1388,19 +1508,28 @@ function buildProductCard(product) {
     }
   });
 
-  /* Selector de cantidad (+/-): solo existe si hay stock (outOfStock ya
-     deshabilitó el botón "Agotado" y no dibujó el stepper). Se limita
-     entre 1 y maxQty para que no se pueda pedir más de lo que hay. */
-  if (!outOfStock) {
-    var qtyVal   = card.querySelector('.card-qty-val');
+  /* Selector de cantidad (+/-): solo existe si hay stock disponible para
+     agregar (outOfStock/sinDisponible ya deshabilitaron el botón y no
+     dibujaron el stepper). Se limita entre 1 y maxQty (lo disponible,
+     no el stock total) para que no se pueda pedir más de lo que hay. */
+  if (!outOfStock && !sinDisponible) {
+    var qtyVal   = card.querySelector('.card-qty-val'); // <input type="number">
     var qtyMinus = card.querySelector('.card-qty-minus');
     var qtyPlus  = card.querySelector('.card-qty-plus');
     var selectedQty = 1;
 
+    function clampCardQty(val) {
+      val = parseInt(val, 10);
+      if (isNaN(val)) val = 1;
+      if (val < 1) val = 1;
+      if (val > maxQty) val = maxQty;
+      return val;
+    }
+
     function updateQtyBtns() {
-      qtyVal.textContent    = selectedQty;
-      qtyMinus.disabled     = selectedQty <= 1;
-      qtyPlus.disabled      = selectedQty >= maxQty;
+      qtyVal.value       = selectedQty;
+      qtyMinus.disabled  = selectedQty <= 1;
+      qtyPlus.disabled   = selectedQty >= maxQty;
     }
     updateQtyBtns();
 
@@ -1413,13 +1542,38 @@ function buildProductCard(product) {
       if (selectedQty < maxQty) { selectedQty++; updateQtyBtns(); }
     });
 
-    /* Clic en "Agregar" — usa la cantidad elegida en el stepper y
-       la regresa a 1 después, para que la próxima vez no se quede
-       "pegada" en lo último que se pidió. */
-    card.querySelector('.btn-add').addEventListener('click', function() {
-      addToCart(product.id, selectedQty);
-      selectedQty = 1;
+    /* Escribir la cantidad directo en el campo (igual que en el modal
+       de detalle): no se corrige mientras se escribe, solo al salir
+       del campo o presionar Enter, para no estorbar a media escritura. */
+    qtyVal.addEventListener('click', function(e) { e.stopPropagation(); }); // no abrir el modal del producto
+    qtyVal.addEventListener('input', function(e) {
+      e.stopPropagation();
+      var raw = parseInt(qtyVal.value, 10);
+      selectedQty = isNaN(raw) ? selectedQty : raw;
+      qtyMinus.disabled = selectedQty <= 1;
+      qtyPlus.disabled  = selectedQty >= maxQty;
+    });
+    qtyVal.addEventListener('change', function(e) {
+      e.stopPropagation();
+      if (parseInt(qtyVal.value, 10) > maxQty) {
+        showToast('Lo sentimos, por el momento solo tenemos ' + maxQty + (maxQty === 1 ? ' pieza disponible' : ' piezas disponibles') + ' de ' + product.name + '.');
+      }
+      selectedQty = clampCardQty(qtyVal.value);
       updateQtyBtns();
+    });
+    qtyVal.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') qtyVal.blur();
+    });
+
+    /* Clic en "Agregar" — usa la cantidad elegida en el stepper. Después
+       reconstruimos la tarjeta en vez de solo resetear el stepper a 1:
+       si con esto ya se llevó todo el stock disponible al carrito, la
+       tarjeta tiene que reflejarlo AHORA (badge "Ya está en tu carrito",
+       botón deshabilitado), no hasta que se recargue la página. */
+    card.querySelector('.btn-add').addEventListener('click', function() {
+      selectedQty = clampCardQty(qtyVal.value); // por si se escribió sin salir del campo
+      addToCart(product.id, selectedQty);
+      card.replaceWith(buildProductCard(product));
     });
   }
 

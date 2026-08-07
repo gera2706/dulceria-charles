@@ -1,23 +1,26 @@
 -- ============================================================
---  DULCERÍA CHARLES — Esquema de base de datos
---  MySQL 8.x  |  Ejecutar en MySQL Workbench
+--  DULCERÍA CHARLES — Esquema para HOSTING COMPARTIDO (cPanel)
 --
---  Este es el ÚNICO archivo .sql del proyecto. Al ejecutarlo completo
---  (Ctrl+Shift+Enter en Workbench) BORRA la base de datos si ya
---  existía y la vuelve a crear desde cero, siempre con el esquema
---  más reciente (incluye stock, proveedor, etc.).
+--  Versión especial de dulceria_charles.sql para usarse en un
+--  hosting compartido: NO incluye DROP DATABASE / CREATE DATABASE
+--  / USE, porque el usuario de la base de datos del hosting no
+--  tiene permiso para crear o borrar bases completas (eso ya lo
+--  hace el "MySQL Database Wizard" de cPanel por ti).
 --
---  ⚠️ ADVERTENCIA: esto BORRA todo lo que haya en dulceria_charles
---  (usuarios, pedidos, productos que hayas agregado tú). Úsalo solo
---  cuando quieras reiniciar la base de datos desde cero.
+--  Regenerado el 2026-08-07 a partir de dulceria_charles.sql para
+--  que coincida exactamente con el esquema real: incluye las
+--  columnas reset_token/reset_token_expira (recuperación de
+--  contraseña), los 8 triggers de auditoría, los 3 procedimientos
+--  almacenados y las 3 vistas — la versión anterior de este
+--  archivo era de antes de esas features y le faltaban.
+--
+--  CÓMO USARLO:
+--  1. En cPanel, entra a phpMyAdmin.
+--  2. En la columna izquierda, haz clic en tu base de datos
+--     (algo como "usuario_dulceria_charles").
+--  3. Ve a la pestaña "Import" / "Importar" (arriba).
+--  4. Elige este archivo y dale a "Go" / "Importar".
 -- ============================================================
-
-DROP DATABASE IF EXISTS dulceria_charles;
-
-CREATE DATABASE dulceria_charles
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE dulceria_charles;
 
 -- ── USUARIOS ──────────────────────────────────────────────
 -- reset_token / reset_token_expira: recuperación de contraseña por
