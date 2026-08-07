@@ -71,27 +71,28 @@
       <section class="checkout-card" id="step-1">
         <h2 class="checkout-title">📍 Recoger en tienda</h2>
 
-        <!-- Tarjeta de información de pickup (cargada dinámicamente desde la API) -->
-        <div id="pickup-info-card" style="
-          background: linear-gradient(135deg,#fdf0fb,#ede9fe);
-          border-radius:14px; padding:1.2rem 1.4rem;
-          margin-bottom:1.4rem; border:1px solid #e9d5ff;
-        ">
-          <div style="display:flex;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
-            <div style="flex:1;min-width:160px;">
-              <p style="margin:0 0 0.3rem;font-weight:700;color:var(--purple);font-size:0.95rem;">📍 Dirección</p>
-              <p id="pickup-direccion" style="margin:0;font-size:0.88rem;color:var(--text);">Cargando…</p>
+        <!-- Tarjeta de información de pickup (cargada dinámicamente desde la API).
+             Estilos en pago.css (antes eran inline con colores fijos que nunca
+             se oscurecían en modo oscuro — el texto var(--text) se volvía claro
+             pero el fondo seguía siendo un pastel claro fijo, quedando casi
+             ilegible). El override de modo oscuro vive en style.css junto a los
+             demás [data-theme="dark"]. -->
+        <div id="pickup-info-card" class="pickup-info-card">
+          <div class="pickup-info-row">
+            <div class="pickup-info-col">
+              <p class="pickup-info-label">📍 Dirección</p>
+              <p id="pickup-direccion" class="pickup-info-value">Cargando…</p>
             </div>
-            <div style="flex:1;min-width:160px;">
-              <p style="margin:0 0 0.3rem;font-weight:700;color:var(--purple);font-size:0.95rem;">🕐 Horario</p>
-              <p id="pickup-horario" style="margin:0;font-size:0.88rem;color:var(--text);">Cargando…</p>
+            <div class="pickup-info-col">
+              <p class="pickup-info-label">🕐 Horario</p>
+              <p id="pickup-horario" class="pickup-info-value">Cargando…</p>
             </div>
-            <div style="flex:1;min-width:160px;">
-              <p style="margin:0 0 0.3rem;font-weight:700;color:var(--purple);font-size:0.95rem;">📞 Teléfono</p>
-              <a id="pickup-telefono" href="#" style="display:block;margin:0;font-size:0.88rem;color:var(--text);">Cargando…</a>
+            <div class="pickup-info-col">
+              <p class="pickup-info-label">📞 Teléfono</p>
+              <a id="pickup-telefono" href="#" class="pickup-info-value pickup-info-value--link">Cargando…</a>
             </div>
           </div>
-          <p style="margin:0.8rem 0 0;font-size:0.82rem;color:#7c3aed;background:rgba(124,58,237,0.08);padding:0.5rem 0.8rem;border-radius:8px;">
+          <p class="pickup-info-note">
             🎉 Pasa a recoger tu pedido en la tienda directamente.
           </p>
         </div>

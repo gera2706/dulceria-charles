@@ -300,3 +300,27 @@ hr { border: none; border-top: 1px solid var(--border); }
   font-weight: 600;
   margin-top: 0.2rem;
 }
+
+/* ===== TARJETA DE INFO DE PICKUP =====
+   El override de modo oscuro (fondo mas oscuro para que var(--text)
+   siga contrastando) vive en style.css junto a los demas [data-theme="dark"]. */
+.pickup-info-card {
+  background: linear-gradient(135deg, #fdf0fb, #ede9fe);
+  border-radius: 14px;
+  padding: 1.2rem 1.4rem;
+  margin-bottom: 1.4rem;
+  border: 1px solid #e9d5ff;
+}
+.pickup-info-row { display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+.pickup-info-col { flex: 1; min-width: 160px; }
+.pickup-info-label { margin: 0 0 0.3rem; font-weight: 700; color: var(--purple); font-size: 0.95rem; }
+.pickup-info-value { margin: 0; font-size: 0.88rem; color: var(--text); }
+.pickup-info-value--link { display: block; }
+.pickup-info-note {
+  margin: 0.8rem 0 0;
+  font-size: 0.82rem;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+}

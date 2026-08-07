@@ -251,10 +251,14 @@ async function migrateFavoritesOnLogin() {
 ================================================================ */
 
 /* Agrega un producto al carrito.
-   Si el producto ya está en el carrito → aumenta su cantidad en 1.
-   Si no estaba → lo agrega como nuevo con qty:1.
+   qty (opcional, default 1) → cuántas piezas agregar de una sola vez,
+   viene del selector +/- de la tarjeta/modal en vez de dar un clic
+   por cada pieza.
+   Si el producto ya está en el carrito → suma qty a lo que ya tenía.
+   Si no estaba → lo agrega como nuevo con esa cantidad.
    Al terminar muestra una notificación (toast) y anima el badge. */
-function addToCart(productId) {
+function addToCart(productId, qty) {
+  qty = qty || 1;
   var product  = getAllProducts().find(function(p) { return p.id === productId; });
   // getAllProducts() devuelve los productos cargados (del caché o del array estático)
   if (!product) return; // si el producto no existe, no hacemos nada
@@ -268,9 +272,26 @@ function addToCart(productId) {
 
   var cart     = getCart();
   var existing = cart.find(function(i) { return i.id === productId; });
+  var yaEnCarrito = existing ? existing.qty : 0;
+  var recortado   = false; // avisamos distinto si tuvimos que bajar la cantidad pedida
+
+  // Tope: no dejamos que el carrito acumule más piezas de las que hay
+  // en existencia — así se evita llegar hasta el pago y que el backend
+  // rechace el pedido por falta de stock (ver validación en pedidos.js).
+  if (product.stock !== undefined) {
+    var disponible = product.stock - yaEnCarrito;
+    if (qty > disponible) {
+      qty = disponible;
+      recortado = true;
+    }
+    if (qty <= 0) {
+      showToast('Ya tienes en tu carrito todo el stock disponible de ' + product.name);
+      return;
+    }
+  }
 
   if (existing) {
-    existing.qty += 1; // ya estaba → sumamos 1
+    existing.qty += qty; // ya estaba → sumamos la cantidad pedida
   } else {
     // No estaba → lo agregamos con sus datos básicos
     // Solo guardamos lo necesario para el carrito (no toda la info del producto)
@@ -280,12 +301,14 @@ function addToCart(productId) {
       category: product.category,
       price:    product.price,
       image:    product.image,
-      qty:      1
+      qty:      qty
     });
   }
 
   saveCart(cart);
-  showToast(product.name + ' agregado'); // notificación flotante
+  showToast(recortado
+    ? 'Solo quedaban ' + qty + ' — se agregó lo último de ' + product.name
+    : product.name + ' agregado' + (qty > 1 ? ' (x' + qty + ')' : ''));
   bounceCartBadge();                     // animación en el número del carrito
 }
 
@@ -446,6 +469,55 @@ function dcConfirm(msg, okLabel) {
 }
 
 /* ================================================================
+   SECCIÓN: AVISO PROPIO (reemplaza al alert() nativo)
+   Mismo estilo que dcConfirm, pero con un solo botón "Aceptar" — para
+   mensajes informativos/de error donde no hay nada que cancelar.
+   Uso: await dcAlert('Algo salió mal.');
+================================================================ */
+function _injectAlertDialog() {
+  if (document.getElementById('dc-alert-overlay')) return;
+
+  var overlay = document.createElement('div');
+  overlay.id        = 'dc-alert-overlay';
+  overlay.className = 'dc-confirm-overlay'; // reusa el mismo CSS que dcConfirm
+  overlay.innerHTML =
+    '<div class="dc-confirm-box">' +
+      '<p class="dc-confirm-msg" id="dc-alert-msg"></p>' +
+      '<div class="dc-confirm-actions">' +
+        '<button class="btn btn-primary" id="dc-alert-ok">Aceptar</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function dcAlert(msg) {
+  _injectAlertDialog();
+  return new Promise(function (resolve) {
+    var overlay = document.getElementById('dc-alert-overlay');
+    var msgEl   = document.getElementById('dc-alert-msg');
+    var okBtn   = document.getElementById('dc-alert-ok');
+
+    msgEl.textContent = msg;
+
+    function finish() {
+      overlay.classList.remove('open');
+      okBtn.removeEventListener('click', onOk);
+      overlay.removeEventListener('click', onOverlayClick);
+      document.removeEventListener('keydown', onKeydown);
+      resolve();
+    }
+    function onOk()            { finish(); }
+    function onOverlayClick(e) { if (e.target === overlay) finish(); }
+    function onKeydown(e)      { if (e.key === 'Escape') finish(); }
+
+    okBtn.addEventListener('click', onOk);
+    overlay.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeydown);
+    overlay.classList.add('open');
+  });
+}
+
+/* ================================================================
    SECCIÓN: MODO OSCURO
    Guarda la preferencia del tema en localStorage para que
    persista entre páginas y sesiones.
@@ -503,6 +575,11 @@ function injectProductModal() {
         '<p class="prod-modal-price" id="prod-modal-price"></p>' +
         '<p class="prod-modal-stock-note hidden" id="prod-modal-stock-note"></p>' +
         '<div class="prod-modal-actions">' +
+          '<div class="qty-controls prod-modal-qty" id="prod-modal-qty">' +
+            '<button type="button" class="qty-btn" id="prod-modal-qty-minus" aria-label="Menos">&#8722;</button>' +
+            '<span class="qty-val" id="prod-modal-qty-val">1</span>' +
+            '<button type="button" class="qty-btn" id="prod-modal-qty-plus" aria-label="Más">+</button>' +
+          '</div>' +
           '<button class="btn btn-primary" id="prod-modal-add">&#128722; Agregar al carrito</button>' +
           '<button class="prod-modal-fav" id="prod-modal-fav">&#9825;</button>' +
         '</div>' +
@@ -554,6 +631,31 @@ function openProductModal(productId) {
     stockNote.classList.add('hidden');
   }
 
+  /* Selector de cantidad (+/-): se oculta si está agotado (nada que
+     elegir) y se resetea a 1 cada vez que se abre el modal, limitado
+     al stock disponible igual que en la tarjeta del catálogo. */
+  var qtyWrap  = document.getElementById('prod-modal-qty');
+  var qtyVal   = document.getElementById('prod-modal-qty-val');
+  var qtyMinus = document.getElementById('prod-modal-qty-minus');
+  var qtyPlus  = document.getElementById('prod-modal-qty-plus');
+  var maxQty   = product.stock !== undefined ? product.stock : 99;
+  var modalQty = 1;
+
+  function updateModalQtyBtns() {
+    qtyVal.textContent = modalQty;
+    qtyMinus.disabled  = modalQty <= 1;
+    qtyPlus.disabled   = modalQty >= maxQty;
+  }
+
+  if (outOfStock) {
+    qtyWrap.style.display = 'none';
+  } else {
+    qtyWrap.style.display = '';
+    updateModalQtyBtns();
+    qtyMinus.onclick = function() { if (modalQty > 1)     { modalQty--; updateModalQtyBtns(); } };
+    qtyPlus.onclick  = function() { if (modalQty < maxQty) { modalQty++; updateModalQtyBtns(); } };
+  }
+
   var favBtn = document.getElementById('prod-modal-fav');
   _updateModalFavBtn(favBtn, isFavorite(productId));
 
@@ -570,7 +672,7 @@ function openProductModal(productId) {
   };
 
   document.getElementById('prod-modal-add').onclick = function() {
-    addToCart(productId);
+    addToCart(productId, modalQty);
     closeProductModal(); // cerramos el modal después de agregar
   };
 
@@ -1225,9 +1327,16 @@ function buildProductCard(product) {
   // product.stock puede venir undefined en algún caso viejo/no migrado;
   // en ese caso lo tratamos como "hay existencia" para no romper nada.
   var outOfStock = product.stock !== undefined && product.stock <= 0;
+  // "Queda poco": mismo criterio que el modal de detalle (stock <= stock_minimo).
+  var lowStock   = !outOfStock && product.stock !== undefined &&
+                   product.stock_minimo !== undefined && product.stock <= product.stock_minimo;
+  // Tope del selector +/-: si no sabemos el stock (producto viejo sin migrar),
+  // dejamos un tope alto para no bloquear la compra sin motivo.
+  var maxQty = product.stock !== undefined ? product.stock : 99;
 
   /* Construimos el HTML de la tarjeta como string.
-     Incluye: imagen, botón de favorito, nombre, categoría, precio y botón de carrito */
+     Incluye: imagen, botón de favorito, nombre, categoría, precio,
+     selector de cantidad (+/-) y botón de carrito. */
   card.innerHTML =
     '<div class="card-img-wrap">' +
       '<img class="card-img" src="' + escapeHtml(imgSrc) + '" alt="' + escapeHtml(product.name) + '" ' +
@@ -1236,7 +1345,8 @@ function buildProductCard(product) {
       '<button class="card-fav' + (fav ? ' active' : '') + '" data-id="' + product.id + '">' +
         (fav ? '&#10084;&#65039;' : '&#9825;') +
       '</button>' +
-      (outOfStock ? '<span class="card-out-badge">Agotado</span>' : '') +
+      (outOfStock ? '<span class="card-out-badge">Agotado</span>'
+        : lowStock ? '<span class="card-out-badge card-out-badge--low">¡Quedan ' + product.stock + '!</span>' : '') +
     '</div>' +
     '<div class="card-body">' +
       '<p class="card-name">'  + escapeHtml(product.name)     + '</p>' +
@@ -1246,7 +1356,14 @@ function buildProductCard(product) {
     '<div class="card-actions">' +
       (outOfStock
         ? '<button class="btn-add" disabled>Agotado</button>'
-        : '<button class="btn-add">Agregar al carrito</button>') +
+        : '<div class="card-qty-row">' +
+            '<div class="qty-controls card-qty-controls">' +
+              '<button type="button" class="qty-btn card-qty-minus" aria-label="Menos">&#8722;</button>' +
+              '<span class="qty-val card-qty-val">1</span>' +
+              '<button type="button" class="qty-btn card-qty-plus" aria-label="Más">+</button>' +
+            '</div>' +
+            '<button class="btn-add">Agregar</button>' +
+          '</div>') +
     '</div>';
 
   /* Clic en la imagen → abre el modal de detalle del producto
@@ -1271,10 +1388,40 @@ function buildProductCard(product) {
     }
   });
 
-  /* Clic en "Agregar al carrito" */
-  card.querySelector('.btn-add').addEventListener('click', function() {
-    addToCart(product.id);
-  });
+  /* Selector de cantidad (+/-): solo existe si hay stock (outOfStock ya
+     deshabilitó el botón "Agotado" y no dibujó el stepper). Se limita
+     entre 1 y maxQty para que no se pueda pedir más de lo que hay. */
+  if (!outOfStock) {
+    var qtyVal   = card.querySelector('.card-qty-val');
+    var qtyMinus = card.querySelector('.card-qty-minus');
+    var qtyPlus  = card.querySelector('.card-qty-plus');
+    var selectedQty = 1;
+
+    function updateQtyBtns() {
+      qtyVal.textContent    = selectedQty;
+      qtyMinus.disabled     = selectedQty <= 1;
+      qtyPlus.disabled      = selectedQty >= maxQty;
+    }
+    updateQtyBtns();
+
+    qtyMinus.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (selectedQty > 1) { selectedQty--; updateQtyBtns(); }
+    });
+    qtyPlus.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (selectedQty < maxQty) { selectedQty++; updateQtyBtns(); }
+    });
+
+    /* Clic en "Agregar" — usa la cantidad elegida en el stepper y
+       la regresa a 1 después, para que la próxima vez no se quede
+       "pegada" en lo último que se pidió. */
+    card.querySelector('.btn-add').addEventListener('click', function() {
+      addToCart(product.id, selectedQty);
+      selectedQty = 1;
+      updateQtyBtns();
+    });
+  }
 
   return card; // devolvemos el elemento listo para insertar en el HTML
 }

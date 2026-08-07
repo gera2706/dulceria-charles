@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     } catch (e) {
       btn.disabled    = false;
       btn.textContent = '✅ Confirmar pedido 🎉';
-      alert('Error al procesar el pedido: ' + e.message);
+      await dcAlert('Error al procesar el pedido: ' + e.message);
     }
   });
 

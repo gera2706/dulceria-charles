@@ -74,10 +74,10 @@ document.addEventListener('DOMContentLoaded', () => {
         form.classList.add('hidden');
         successBox.classList.remove('hidden');
       } else {
-        alert('Hubo un problema al enviar tu mensaje. Intenta de nuevo.');
+        await dcAlert('Hubo un problema al enviar tu mensaje. Intenta de nuevo.');
       }
     } catch (err) {
-      alert('No se pudo enviar el mensaje. Revisa tu conexión e intenta de nuevo.');
+      await dcAlert('No se pudo enviar el mensaje. Revisa tu conexión e intenta de nuevo.');
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = originalText;

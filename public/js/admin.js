@@ -436,7 +436,7 @@ document.addEventListener('DOMContentLoaded', function () {
       renderProductos();
       showToast('Producto eliminado');
     } catch (e) {
-      alert('Error: ' + e.message);
+      await dcAlert('Error: ' + e.message);
     }
   });
 
@@ -538,7 +538,7 @@ document.addEventListener('DOMContentLoaded', function () {
             await apiCambiarEstadoPedido(+sel.dataset.id, sel.value);
             showToast('Estado actualizado ✓');
           } catch (e) {
-            alert('Error: ' + e.message);
+            await dcAlert('Error: ' + e.message);
           }
         });
       });
@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showToast(btn.dataset.nombre + ' ahora es administrador ✓');
             renderUsuarios();
           } catch (e) {
-            alert('Error: ' + e.message);
+            await dcAlert('Error: ' + e.message);
           }
         });
       });
@@ -603,7 +603,7 @@ document.addEventListener('DOMContentLoaded', function () {
             showToast(btn.dataset.nombre + ' ya no es administrador ✓');
             renderUsuarios();
           } catch (e) {
-            alert('Error: ' + e.message);
+            await dcAlert('Error: ' + e.message);
           }
         });
       });
@@ -701,7 +701,7 @@ document.addEventListener('DOMContentLoaded', function () {
             _allProductos = [];
             renderCatsList();
           } catch (e) {
-            alert('Error: ' + e.message);
+            await dcAlert('Error: ' + e.message);
           }
         });
       });
@@ -716,7 +716,7 @@ document.addEventListener('DOMContentLoaded', function () {
             _allProductos = [];
             renderCatsList();
           } catch (e) {
-            alert('Error: ' + e.message);
+            await dcAlert('Error: ' + e.message);
           }
         });
       });
@@ -846,7 +846,7 @@ document.addEventListener('DOMContentLoaded', function () {
             renderTrashList();
             renderProductos();
           } catch (e) {
-            alert('Error: ' + e.message);
+            await dcAlert('Error: ' + e.message);
           }
         });
       });
@@ -998,7 +998,7 @@ document.addEventListener('DOMContentLoaded', function () {
           renderChatbotFaqs();
           _refreshChatPreview();
         } catch (e) {
-          alert('Error: ' + e.message);
+          await dcAlert('Error: ' + e.message);
         }
       });
     });
