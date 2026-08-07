@@ -20,13 +20,19 @@ CREATE DATABASE dulceria_charles
 USE dulceria_charles;
 
 -- ── USUARIOS ──────────────────────────────────────────────
+-- reset_token / reset_token_expira: recuperación de contraseña por
+-- correo. Guardamos un HASH del token (sha256), nunca el token en
+-- texto plano — igual que con las contraseñas, así si alguien lee
+-- la base de datos no puede fabricar un link de reseteo válido.
 CREATE TABLE IF NOT EXISTS usuarios (
-  id             INT AUTO_INCREMENT PRIMARY KEY,
-  nombre         VARCHAR(100)  NOT NULL,
-  email          VARCHAR(150)  NOT NULL UNIQUE,
-  password       VARCHAR(255)  NOT NULL,
-  rol            ENUM('cliente','admin') DEFAULT 'cliente',
-  fecha_registro DATETIME      DEFAULT CURRENT_TIMESTAMP
+  id                  INT AUTO_INCREMENT PRIMARY KEY,
+  nombre              VARCHAR(100)  NOT NULL,
+  email               VARCHAR(150)  NOT NULL UNIQUE,
+  password            VARCHAR(255)  NOT NULL,
+  rol                 ENUM('cliente','admin') DEFAULT 'cliente',
+  fecha_registro      DATETIME      DEFAULT CURRENT_TIMESTAMP,
+  reset_token         VARCHAR(64)   DEFAULT NULL,
+  reset_token_expira  DATETIME      DEFAULT NULL
 ) ENGINE=InnoDB;
 
 -- ── CATEGORÍAS ────────────────────────────────────────────

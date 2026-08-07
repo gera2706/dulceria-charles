@@ -53,6 +53,22 @@ const meLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Espera unos minutos.' }
 });
 
+// Limita cuántas veces se puede pedir un correo de recuperación por
+// IP: sin esto, alguien podría usar el formulario para mandar spam
+// de correos de "recupera tu contraseña" a una víctima, o intentar
+// adivinar qué correos están registrados probando muchos a la vez.
+const olvidePasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Demasiados intentos. Espera unos minutos antes de volver a intentar.' }
+});
+
+const crypto = require('crypto');
+// Módulo nativo de Node (no hay que instalarlo) — lo usamos para
+// generar el token de reseteo y para hashearlo antes de guardarlo.
+
+const { enviarCorreoReseteo } = require('../mailer');
+
 /* ----------------------------------------------------------------
    RUTA: POST /api/auth/registro
    PROPÓSITO: Crear una cuenta nueva en el sistema.
@@ -270,6 +286,119 @@ router.put('/me', authMiddleware, meLimiter, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al actualizar el perfil.' });
+  }
+});
+
+/* ----------------------------------------------------------------
+   RUTA: POST /api/auth/olvide-password
+   PROPÓSITO: Primer paso de la recuperación de contraseña — el
+   cliente escribe su correo y, si existe una cuenta con ese correo,
+   le mandamos un link de un solo uso para elegir una contraseña
+   nueva.
+   ACCESO: Público
+   RECIBE: { email }
+   DEVUELVE: { ok: true } SIEMPRE, exista o no la cuenta — igual que
+   en /login, no delatamos qué correos están registrados.
+
+   ¿CÓMO FUNCIONA EL TOKEN?
+   1. Generamos 32 bytes aleatorios (tokenPlano) — esto es lo que va
+      en el link que recibe el cliente por correo.
+   2. Guardamos en la BD un HASH sha256 de ese token, no el token en
+      sí — igual que con las contraseñas: si alguien lee la base de
+      datos, no puede fabricar un link de reseteo válido a partir del
+      hash guardado.
+   3. El link expira en 1 hora (reset_token_expira).
+---------------------------------------------------------------- */
+router.post('/olvide-password', olvidePasswordLimiter, async (req, res) => {
+  const { email } = req.body;
+
+  if (!email)
+    return res.status(400).json({ error: 'El correo es obligatorio.' });
+
+  const emailLimpio = email.toLowerCase().trim();
+
+  try {
+    const [rows] = await db.query('SELECT id, nombre FROM usuarios WHERE email = ?', [emailLimpio]);
+
+    if (rows.length) {
+      const user = rows[0];
+
+      const tokenPlano = crypto.randomBytes(32).toString('hex');
+      const tokenHash   = crypto.createHash('sha256').update(tokenPlano).digest('hex');
+      const expira      = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+      await db.query(
+        'UPDATE usuarios SET reset_token = ?, reset_token_expira = ? WHERE id = ?',
+        [tokenHash, expira, user.id]
+      );
+
+      const origen = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
+      const link   = origen + '/resetear-password.html?token=' + tokenPlano;
+
+      try {
+        await enviarCorreoReseteo(emailLimpio, user.nombre, link);
+      } catch (mailErr) {
+        // No devolvemos este error al frontend tal cual — eso delataría
+        // que el correo SÍ existe (a diferencia del caso "no existe",
+        // que responde igual que el éxito). Solo lo dejamos en el log
+        // del servidor para que el admin se entere si el envío falla.
+        console.error('Error enviando correo de reseteo:', mailErr.message);
+      }
+    }
+
+    // Mismo mensaje exista o no la cuenta.
+    res.json({ ok: true, message: 'Si el correo existe, te enviamos un link para restablecer tu contraseña.' });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error en el servidor.' });
+  }
+});
+
+/* ----------------------------------------------------------------
+   RUTA: POST /api/auth/resetear-password
+   PROPÓSITO: Segundo paso — el cliente llega desde el link del
+   correo con el token en la URL y elige su contraseña nueva.
+   ACCESO: Público (la seguridad la da el token, no una sesión)
+   RECIBE: { token, passwordNueva }
+   DEVUELVE: { ok: true } o un error si el token es inválido/expiró.
+---------------------------------------------------------------- */
+router.post('/resetear-password', async (req, res) => {
+  const { token, passwordNueva } = req.body;
+
+  if (!token || !passwordNueva)
+    return res.status(400).json({ error: 'Faltan datos.' });
+
+  if (passwordNueva.length < 8)
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+
+  try {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    // reset_token_expira > NOW(): si ya pasó la hora, no cuenta como
+    // válido aunque el hash coincida.
+    const [rows] = await db.query(
+      'SELECT id FROM usuarios WHERE reset_token = ? AND reset_token_expira > NOW()',
+      [tokenHash]
+    );
+
+    if (!rows.length)
+      return res.status(400).json({ error: 'El link de recuperación es inválido o ya expiró. Solicita uno nuevo.' });
+
+    const hash = await bcrypt.hash(passwordNueva, 10);
+
+    // Limpiamos el token al usarlo: un link de reseteo es de un solo
+    // uso, si alguien lo reenvía después ya no debe funcionar.
+    await db.query(
+      'UPDATE usuarios SET password = ?, reset_token = NULL, reset_token_expira = NULL WHERE id = ?',
+      [hash, rows[0].id]
+    );
+
+    res.json({ ok: true });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error en el servidor.' });
   }
 });
 

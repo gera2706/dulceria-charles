@@ -148,6 +148,29 @@ async function apiRegistro(nombre, email, password) {
   return data.user;
 }
 
+/* Pide el correo de recuperación de contraseña. No requiere sesión
+   (es justo para cuando NO se puede iniciar sesión). El backend
+   responde { ok:true } exista o no la cuenta, así que del lado del
+   frontend no hay nada que distinguir — siempre se muestra el mismo
+   mensaje de éxito. */
+async function apiOlvidePassword(email) {
+  return apiFetch('/auth/olvide-password', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  });
+}
+
+/* Segundo paso: cambia la contraseña usando el token que llegó por
+   correo (en la URL de resetear-password.html). Si el token es
+   inválido o ya expiró, apiFetch lanza el error tal cual lo mandó
+   el servidor. */
+async function apiResetearPassword(token, passwordNueva) {
+  return apiFetch('/auth/resetear-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, passwordNueva })
+  });
+}
+
 /* Actualiza el nombre/email (y opcionalmente la contraseña) del
    usuario logueado. El servidor devuelve un token NUEVO ya con los
    datos actualizados; lo guardamos igual que en login/registro para
