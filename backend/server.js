@@ -41,6 +41,27 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 // Creamos la aplicación Express. Todas las configuraciones se hacen sobre "app".
 
+/* ── Confiar en el proxy del hosting ───────────────────────────
+   En producción, el sitio no recibe las peticiones directamente:
+   pasan primero por el servidor web del hosting (LiteSpeed), que
+   las reenvía a este proceso de Node y le agrega un encabezado
+   X-Forwarded-For con la IP real de quien visita el sitio.
+
+   Sin esta línea, Express IGNORA ese encabezado por seguridad
+   (para que nadie lo falsifique) y usa la IP de la conexión que
+   sí ve directamente — que siempre es la del propio proxy, la
+   MISMA para todos los visitantes. Eso hacía que express-rate-limit
+   (más abajo) contara a todos los clientes como si fueran uno solo:
+   bastaba con que varias personas usaran el sitio a la vez para que
+   se agotara el límite de "10 intentos de login" o el de "300
+   peticiones" entre TODOS, y el siguiente visitante recibiera
+   "Demasiados intentos" sin haber hecho nada.
+
+   El "1" significa "confía en un solo salto de proxy delante de
+   mí" (el de LiteSpeed) — así Express sí usa la IP real de cada
+   visitante para separar sus contadores. */
+app.set('trust proxy', 1);
+
 /* ── MIDDLEWARES GLOBALES ──────────────────────────────────────
    Estos middlewares se ejecutan en TODAS las peticiones que
    lleguen al servidor, antes de que lleguen a su ruta.
