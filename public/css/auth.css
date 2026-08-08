@@ -88,6 +88,7 @@
   cursor: pointer; font-size: 1.1rem;
   color: var(--text-light);
   line-height: 1; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 
 /* submit */
@@ -182,3 +183,76 @@
 @media (max-width: 480px) {
   .auth-card { padding: 2rem 1.3rem 1.6rem; }
 }
+
+/* ===== MI CUENTA — encabezado + accesos rápidos =====
+   Antes mi-cuenta.html era solo el formulario de editar perfil, metido
+   solo en .auth-card — se veía muy vacío comparado con el resto del
+   sitio. Este bloque va ANTES de .auth-wrapper (no adentro): .auth-wrapper
+   está pensado para centrar una sola tarjeta a pantalla completa, y
+   anidar contenido ahí lo estira raro. */
+.cuenta-hub {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 0;
+}
+.cuenta-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1.8rem;
+}
+.cuenta-avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 600;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.cuenta-header-name {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: 1.4rem;
+  color: var(--text);
+  margin: 0 0 0.15rem;
+}
+.cuenta-header-email { color: var(--text-light); font-size: 0.92rem; margin: 0 0 0.4rem; }
+.cuenta-header-rol {
+  display: inline-block;
+  font-size: 0.72rem; font-weight: 700;
+  padding: 0.15rem 0.7rem;
+  border-radius: 50px;
+  background: rgba(167,139,250,0.15);
+  color: var(--purple);
+}
+
+.cuenta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.cuenta-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.1rem 1.2rem;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  text-align: left;
+  font-family: 'Nunito', sans-serif;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.cuenta-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.cuenta-card-icon { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
+.cuenta-card-title { font-weight: 700; color: var(--text); font-size: 0.95rem; margin: 0 0 0.2rem; }
+.cuenta-card-desc  { color: var(--text-light); font-size: 0.8rem; line-height: 1.35; margin: 0; }
+.cuenta-card.cuenta-card--danger .cuenta-card-title { color: #b91c1c; }
+
+[data-theme="dark"] .cuenta-card { background: var(--white); }
+[data-theme="dark"] .cuenta-header-rol { background: rgba(167,139,250,0.2); }

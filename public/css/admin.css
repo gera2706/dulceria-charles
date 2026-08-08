@@ -136,6 +136,11 @@
   color: #c2410c !important;
   border-color: #f2b25c !important;
 }
+#btn-filter-agotado.active {
+  background: #fde8e8 !important;
+  color: #b91c1c !important;
+  border-color: #e2685f !important;
+}
 
 /* ── Buttons ── */
 .btn-admin-add {
@@ -174,7 +179,15 @@
   background: var(--white);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  overflow: hidden;
+  /* Antes era "overflow:hidden": si la tabla era más ancha que el
+     contenedor (columnas de más en pantallas angostas), el exceso
+     simplemente se recortaba y desaparecía —por eso en celular la
+     columna "Acciones" de Usuarios ni se mostraba. Con overflow-x:auto
+     esa parte se puede alcanzar haciendo scroll horizontal en vez de
+     perderse. overflow-y se deja en hidden para conservar las esquinas
+     redondeadas de la tabla. */
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 .admin-table {
   width: 100%;
@@ -414,8 +427,23 @@
 }
 @media (max-width: 600px) {
   .admin-layout { flex-direction: column; }
-  .admin-sidebar { width: 100%; height: auto; flex-direction: row; padding: 0.5rem; position: static; }
+  /* flex-wrap para que el botón de "Modo oscuro" (que no es un
+     .admin-nav-btn y por eso conserva su texto completo) baje a su
+     propia línea en vez de salirse de la pantalla sin poder tocarlo. */
+  .admin-sidebar { width: 100%; height: auto; flex-direction: row; flex-wrap: wrap; justify-content: center; padding: 0.5rem; position: static; }
   .admin-sidebar-title { display: none; }
-  .admin-nav-btn { padding: 0.6rem 0.8rem; font-size: 0.82rem; }
+  /* La regla base .admin-nav-btn tiene width:100% (pensada para el
+     riel vertical). En fila, eso hacía que cada botón ocupara todo el
+     ancho y "envolviera" uno por línea igual —por fuera se veía como
+     una columna, no como una fila de iconos. */
+  .admin-nav-btn { padding: 0.6rem 0.8rem; font-size: 0.82rem; width: auto; }
   .admin-table { font-size: 0.78rem; }
+
+  /* Formularios (Configuración del sitio, modal de producto, modal de
+     pregunta del chatbot): en pantallas angostas dos campos uno junto
+     al otro no caben y el contenido se corta. Se apilan en una sola
+     columna. */
+  .admin-form-row { flex-direction: column; gap: 0; }
+  .admin-modal { padding: 1.3rem; }
+  #sec-configuracion .admin-table-wrap { padding: 1.2rem 1rem !important; }
 }
