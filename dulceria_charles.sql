@@ -27,7 +27,9 @@ USE dulceria_charles;
 CREATE TABLE IF NOT EXISTS usuarios (
   id                  INT AUTO_INCREMENT PRIMARY KEY,
   nombre              VARCHAR(100)  NOT NULL,
+  apellido            VARCHAR(100)  DEFAULT NULL,
   email               VARCHAR(150)  NOT NULL UNIQUE,
+  telefono            VARCHAR(20)   DEFAULT NULL,
   password            VARCHAR(255)  NOT NULL,
   rol                 ENUM('cliente','admin') DEFAULT 'cliente',
   fecha_registro      DATETIME      DEFAULT CURRENT_TIMESTAMP,
@@ -87,6 +89,12 @@ CREATE TABLE IF NOT EXISTS productos (
   proveedor       VARCHAR(150),
   stock           INT           NOT NULL DEFAULT 20,
   stock_minimo    INT           NOT NULL DEFAULT 5,
+  -- Último nivel de alerta de stock que ya se le avisó al dueño por
+  -- correo (ver backend/utils/stockAlertas.js). Evita mandar un correo
+  -- por cada unidad que se vende mientras el producto sigue "bajo":
+  -- solo se manda uno nuevo cuando el nivel EMPEORA (ninguna→bajo,
+  -- bajo→agotado). Vuelve a 'ninguna' solo cuando se repone stock.
+  alerta_stock_enviada ENUM('ninguna','bajo','agotado') NOT NULL DEFAULT 'ninguna',
   fecha_creacion  DATETIME      DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_productos_categoria FOREIGN KEY (categoria) REFERENCES categorias(nombre)
     ON UPDATE CASCADE ON DELETE RESTRICT,
@@ -124,6 +132,13 @@ CREATE TABLE IF NOT EXISTS pedidos (
   nombre_envio  VARCHAR(150),
   telefono      VARCHAR(20),
   fecha         DATETIME      DEFAULT CURRENT_TIMESTAMP,
+  -- Cancelaciones: quién canceló y por qué. NULL mientras el pedido no
+  -- esté cancelado. cancelado_por distingue si fue el propio cliente
+  -- (POST /api/pedidos/:id/cancelar) o el admin (PATCH /:id/estado)
+  -- para poder avisarle a la otra parte (ver backend/mailer.js →
+  -- enviarAvisoCancelacion).
+  motivo_cancelacion VARCHAR(255),
+  cancelado_por      ENUM('cliente','admin'),
   CONSTRAINT fk_pedidos_usuario FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
   INDEX idx_usuario_id (usuario_id),
   INDEX idx_estado     (estado)
@@ -143,6 +158,30 @@ CREATE TABLE IF NOT EXISTS pedido_items (
   CONSTRAINT fk_pedido_items_producto FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE SET NULL,
   CONSTRAINT chk_pedido_items_cantidad CHECK (cantidad > 0),
   INDEX idx_pedido_id (pedido_id)
+) ENGINE=InnoDB;
+
+-- ── AVISOS DE STOCK ───────────────────────────────────────
+-- Bitácora de avisos de stock bajo/agotado mandados al dueño (por
+-- correo, ver backend/mailer.js → enviarAlertaStock). Dos orígenes:
+--   'sistema' → el backend detectó que un producto cruzó el umbral
+--               de stock bajo o se agotó (ver backend/utils/stockAlertas.js)
+--   'cliente' → un cliente con un pedido incompleto tocó "Avisar al
+--               dueño" porque el producto que quería ya se agotó
+--               (ver POST /api/pedidos/:id/avisar-agotado)
+-- Se usa para la sección "🔔 Avisos" del panel admin (punto 3 y 6
+-- del pedido de features de agosto/2026).
+CREATE TABLE IF NOT EXISTS avisos_stock (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  producto_id   INT NOT NULL,
+  tipo          ENUM('bajo','agotado') NOT NULL,
+  origen        ENUM('sistema','cliente') NOT NULL,
+  usuario_id    INT,
+  pedido_id     INT,
+  fecha         DATETIME DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_avisos_stock_producto FOREIGN KEY (producto_id) REFERENCES productos(id) ON DELETE CASCADE,
+  CONSTRAINT fk_avisos_stock_usuario  FOREIGN KEY (usuario_id)  REFERENCES usuarios(id)  ON DELETE SET NULL,
+  CONSTRAINT fk_avisos_stock_pedido   FOREIGN KEY (pedido_id)   REFERENCES pedidos(id)   ON DELETE SET NULL,
+  INDEX idx_avisos_stock_fecha (fecha)
 ) ENGINE=InnoDB;
 
 -- ── FAVORITOS ─────────────────────────────────────────────
