@@ -29,6 +29,16 @@
 
 const nodemailer = require('nodemailer');
 
+/* Escapa texto que viene de un usuario (nombre, motivo de cancelación...)
+   antes de meterlo en el HTML del correo — sin esto, alguien podría
+   escribir un "motivo" con etiquetas HTML y que se rendericen en el
+   correo del dueño/cliente en vez de mostrarse como texto plano. */
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 let _transporter = null;
 
 /* Reusamos un solo transporter para todo el proceso, en vez de crear
@@ -78,4 +88,143 @@ async function enviarCorreoReseteo(destino, nombre, linkReseteo) {
   });
 }
 
-module.exports = { enviarCorreoReseteo };
+/* Envía al DUEÑO (misma cuenta que manda los correos, SMTP_USER) un
+   aviso de stock bajo o agotado. Dos orígenes posibles:
+   - 'sistema': el backend detectó automáticamente que un producto
+     cruzó el umbral (ver backend/utils/stockAlertas.js).
+   - 'cliente': un cliente con un pedido incompleto avisó a propósito
+     porque el producto que quería ya no está (ver
+     POST /api/pedidos/:id/avisar-agotado en routes/pedidos.js).
+   No lanza el error hacia arriba si falla — un correo de alerta que
+   no salió no debe tumbar la venta ni el aviso del cliente; solo se
+   registra en consola (ver uso en stockAlertas.js/pedidos.js). */
+async function enviarAlertaStock({ nombre, stock, stockMinimo, tipo, origen, cliente, pedidoId }) {
+  const transporter = getTransporter();
+  const destino = process.env.SMTP_USER; // el dueño se avisa a sí mismo, misma cuenta que envía
+
+  const esAgotado = tipo === 'agotado';
+  const asunto = (esAgotado ? '🚫 Se agotó: ' : '⚠️ Stock bajo: ') + nombre;
+
+  const nombreSeguro   = escapeHtml(nombre);
+  const clienteSeguro  = escapeHtml(cliente);
+
+  const contextoCliente = origen === 'cliente'
+    ? '<p>Un cliente' + (cliente ? ' (<strong>' + clienteSeguro + '</strong>)' : '') +
+      ' con un pedido pendiente' + (pedidoId ? ' (#' + pedidoId + ')' : '') +
+      ' avisó que este producto ya no está disponible.</p>'
+    : '<p>El sistema detectó este cambio automáticamente al procesar una venta.</p>';
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || ('"Dulcería Charles" <' + process.env.SMTP_USER + '>'),
+    to: destino,
+    subject: asunto,
+    html:
+      '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#333;">' +
+        '<h2 style="color:#d94c85;">🍬 Dulcería Charles</h2>' +
+        '<p>' + (esAgotado
+          ? 'El producto <strong>' + nombreSeguro + '</strong> se quedó sin existencias (stock: 0).'
+          : 'El producto <strong>' + nombreSeguro + '</strong> llegó a su nivel de stock bajo (quedan ' + stock + ', alerta configurada en ' + stockMinimo + ').') +
+        '</p>' +
+        contextoCliente +
+        '<p style="font-size:0.85rem;color:#888;">Entra al panel de administración → Productos para revisarlo y reabastecer.</p>' +
+      '</div>',
+    text:
+      (esAgotado
+        ? 'El producto "' + nombre + '" se quedó sin existencias (stock: 0).'
+        : 'El producto "' + nombre + '" llegó a su nivel de stock bajo (quedan ' + stock + ').') +
+      (origen === 'cliente' ? '\n\nUn cliente avisó porque lo quería comprar y ya no está disponible.' : '') +
+      '\n\nRevisa el panel de administración → Productos.'
+  });
+}
+
+/* Avisa que un pedido se canceló. Sirve para las dos direcciones:
+   - Cliente cancela su propio pedido → se avisa al DUEÑO (destino =
+     SMTP_USER), con el motivo que escribió el cliente.
+   - Admin cancela el pedido de un cliente → se avisa al CLIENTE
+     (destino = su correo registrado), con el motivo que haya puesto
+     el admin (opcional).
+   No lanza el error hacia arriba por la misma razón que
+   enviarAlertaStock: un correo que no salió no debe tumbar la
+   cancelación en sí (ver uso en routes/pedidos.js). */
+async function enviarAvisoCancelacion({ destino, paraCliente, pedidoId, motivo, nombreCliente }) {
+  const transporter = getTransporter();
+
+  const asunto = paraCliente
+    ? '❌ Tu pedido #' + pedidoId + ' fue cancelado'
+    : '❌ Pedido #' + pedidoId + ' cancelado por el cliente';
+
+  const motivoHtml = motivo
+    ? '<p><strong>Motivo:</strong> ' + escapeHtml(motivo) + '</p>'
+    : '<p style="color:#888;">No se especificó un motivo.</p>';
+
+  const cuerpoHtml = paraCliente
+    ? '<p>Tu pedido <strong>#' + pedidoId + '</strong> fue cancelado por la tienda.</p>' + motivoHtml +
+      '<p>Si tienes dudas, puedes escribirnos respondiendo este correo o por WhatsApp.</p>'
+    : '<p>El cliente <strong>' + escapeHtml(nombreCliente || 'un cliente') + '</strong> canceló su pedido <strong>#' + pedidoId + '</strong>.</p>' + motivoHtml +
+      '<p style="font-size:0.85rem;color:#888;">Si el pedido ya estaba confirmado, el stock reservado ya se devolvió al inventario automáticamente.</p>';
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || ('"Dulcería Charles" <' + process.env.SMTP_USER + '>'),
+    to: destino,
+    subject: asunto,
+    html:
+      '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#333;">' +
+        '<h2 style="color:#d94c85;">🍬 Dulcería Charles</h2>' +
+        cuerpoHtml +
+      '</div>',
+    text:
+      (paraCliente
+        ? 'Tu pedido #' + pedidoId + ' fue cancelado por la tienda.'
+        : 'El cliente ' + (nombreCliente || '') + ' canceló su pedido #' + pedidoId + '.') +
+      (motivo ? '\n\nMotivo: ' + motivo : '\n\nNo se especificó un motivo.')
+  });
+}
+
+/* Manda al dueño el mensaje que alguien llenó en el formulario de
+   Contacto del sitio (contacto.html). Antes ese formulario mandaba los
+   mensajes a un formulario de Formspree de un tercero — configurado
+   con el correo de quien lo haya creado en su momento, no
+   necesariamente el del dueño — así que los mensajes podían estar
+   llegando a otro lado sin que nadie se diera cuenta. Ahora usa el
+   mismo SMTP que ya manda las demás alertas del sitio, directo al
+   correo de contacto configurado en el panel admin.
+   Responde-a (reply-to) es el correo de quien escribió el mensaje,
+   para que baste con darle "Responder" en el correo. */
+async function enviarMensajeContacto({ destino, nombre, email, telefono, asunto, mensaje }) {
+  const transporter = getTransporter();
+
+  const ASUNTOS = {
+    pedido: 'Consulta sobre pedido',
+    producto: 'Información de producto',
+    mayoreo: 'Compra por mayoreo',
+    otro: 'Otro'
+  };
+  const asuntoTexto = ASUNTOS[asunto] || asunto || 'Sin asunto';
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || ('"Dulcería Charles" <' + process.env.SMTP_USER + '>'),
+    to: destino,
+    replyTo: email,
+    subject: '📬 Contacto: ' + asuntoTexto + ' — ' + nombre,
+    html:
+      '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#333;">' +
+        '<h2 style="color:#d94c85;">🍬 Dulcería Charles — Nuevo mensaje de contacto</h2>' +
+        '<p><strong>Nombre:</strong> ' + escapeHtml(nombre) + '</p>' +
+        '<p><strong>Correo:</strong> ' + escapeHtml(email) + '</p>' +
+        (telefono ? '<p><strong>Teléfono:</strong> ' + escapeHtml(telefono) + '</p>' : '') +
+        '<p><strong>Asunto:</strong> ' + escapeHtml(asuntoTexto) + '</p>' +
+        '<p><strong>Mensaje:</strong></p>' +
+        '<p style="white-space:pre-wrap;background:#f7f2fa;padding:0.8rem 1rem;border-radius:8px;">' + escapeHtml(mensaje) + '</p>' +
+        '<p style="font-size:0.85rem;color:#888;">Responde directo a este correo para contestarle a ' + escapeHtml(nombre) + '.</p>' +
+      '</div>',
+    text:
+      'Nuevo mensaje de contacto\n\n' +
+      'Nombre: ' + nombre + '\n' +
+      'Correo: ' + email + '\n' +
+      (telefono ? 'Teléfono: ' + telefono + '\n' : '') +
+      'Asunto: ' + asuntoTexto + '\n\n' +
+      mensaje
+  });
+}
+
+module.exports = { enviarCorreoReseteo, enviarAlertaStock, enviarAvisoCancelacion, enviarMensajeContacto };

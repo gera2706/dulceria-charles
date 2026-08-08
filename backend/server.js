@@ -128,6 +128,8 @@ app.use('/api/config',     require('./routes/config'));      // /api/config/cont
 app.use('/api/categorias', require('./routes/categorias'));
 app.use('/api/chatbot-faq', require('./routes/chatbot_faq')); // preguntas frecuentes del chatbot del sitio
 app.use('/api/upload',    require('./routes/upload')); // /api/categorias
+app.use('/api/avisos-stock', require('./routes/avisos'));    // panel admin: avisos de stock bajo/agotado
+app.use('/api/auditorias',   require('./routes/auditorias')); // panel admin: HTML de auditorías (solo admin)
 
 /* ── MANEJADOR DE RUTAS NO ENCONTRADAS ────────────────────────
    Este middleware se ejecuta cuando ninguna ruta anterior
