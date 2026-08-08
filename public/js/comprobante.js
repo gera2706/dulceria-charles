@@ -56,6 +56,24 @@ document.addEventListener('DOMContentLoaded', async function () {
   /* ── Calcular totales (calcTotalPedido está en js/cart.js) ── */
   var total = calcTotalPedido(pedido);
   var estadoInfo = ESTADO_INFO[pedido.estado] || { label: pedido.estado, color: '#999' };
+  var cancelado = pedido.estado === 'cancelado';
+
+  /* El bloque de "confirmado" antes era siempre igual (palomita verde +
+     "¡Pedido confirmado!") sin importar el estado real — un pedido
+     cancelado se veía IGUAL que uno vigente, con el único aviso en el
+     badge chiquito de más abajo. Riesgo real: alguien en la tienda ve
+     el comprobante, ve la palomita verde y surte un pedido que ya no
+     debía surtirse. Si está cancelado, cambia a ✕ roja y texto claro
+     de que no se debe entregar. */
+  var confirmHtml = cancelado
+    ? '<div class="check-circle check-circle--cancel">✕</div>' +
+      '<span class="confirmed-title confirmed-title--cancel">Pedido cancelado</span>' +
+      '<span class="confirmed-sub">No entregar — este pedido ya no está vigente.' +
+        (pedido.motivo_cancelacion ? ' Motivo: ' + escapeHtml(pedido.motivo_cancelacion) + '.' : '') +
+      '</span>'
+    : '<div class="check-circle">✓</div>' +
+      '<span class="confirmed-title">¡Pedido confirmado!</span>' +
+      '<span class="confirmed-sub">Tu pedido ha sido registrado exitosamente.</span>';
 
   /* ── Info de la tienda ── */
   var storeDir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? ', ' + cfg.contacto_ciudad : '');
@@ -89,11 +107,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         '</div>' +
         '<hr class="t-dash">' +
 
-        /* Confirmado */
+        /* Confirmado (o cancelado, ver confirmHtml arriba) */
         '<div class="confirmed">' +
-          '<div class="check-circle">✓</div>' +
-          '<span class="confirmed-title">¡Pedido confirmado!</span>' +
-          '<span class="confirmed-sub">Tu pedido ha sido registrado exitosamente.</span>' +
+          confirmHtml +
         '</div>' +
         '<hr class="t-dash">' +
 
@@ -102,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async function () {
           '<div class="order-label">Número de pedido</div>' +
           '<div class="order-number">#' + String(pedido.id).padStart(4, '0') + '</div>' +
           '<div class="order-date">' + fmtFecha(pedido.fecha) + '</div>' +
-          '<div><span class="estado-badge">' + estadoInfo.label + '</span></div>' +
+          '<div><span class="estado-badge" style="background:' + estadoInfo.color + '22;color:' + estadoInfo.color + ';">' + estadoInfo.label + '</span></div>' +
         '</div>' +
         '<hr class="t-dash">' +
 
@@ -134,14 +150,20 @@ document.addEventListener('DOMContentLoaded', async function () {
           '📍 ' + (storeDir || '—') + '<br>' +
           '🕐 ' + (storeHor || '—') + '<br>' +
           '📞 ' + (storeTelHref ? '<a href="' + storeTelHref + '">' + storeTel + '</a>' : storeTel) +
-          '<span class="pickup-note">✅ Presenta este comprobante al recoger tu pedido.</span>' +
+          (cancelado
+            ? '<span class="pickup-note" style="color:var(--t-error);">✕ Este pedido está cancelado, no hay nada que recoger.</span>'
+            : '<span class="pickup-note">✅ Presenta este comprobante al recoger tu pedido.</span>') +
         '</div>' +
         '<hr class="t-dash">' +
 
-        /* Footer del ticket */
+        /* Footer del ticket — antes traía "hola@dulceriacharles.com" fijo
+           en el código (una dirección que ni siquiera existe), en vez
+           del correo real configurado en Configuración > Contacto (el
+           resto del ticket ya usaba cfg.contacto_email para todo lo
+           demás, esto se había quedado suelto). */
         '<div class="ticket-footer">' +
           '<span class="gracias">¡Gracias por tu compra!</span>' +
-          '<p>hola@dulceriacharles.com<br>★ ★ ★ ★ ★</p>' +
+          '<p>' + escapeHtml(cfg.contacto_email || '—') + '<br>★ ★ ★ ★ ★</p>' +
         '</div>' +
 
       '</div>' +

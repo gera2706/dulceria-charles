@@ -8,6 +8,7 @@
   --t-muted: #888;
   --t-border: #ecdfe7;
   --t-success: #16a34a;
+  --t-error: #dc2626;
 }
 @media (prefers-color-scheme: dark) {
   :root { --t-bg:#1a1525; --t-ticket:#241d30; --t-text:#f0eaf8; --t-muted:#9b8fb5; --t-border:#3d2f5a; }
@@ -67,6 +68,16 @@ body { background: var(--t-bg); }
 }
 .confirmed-title { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; color: var(--t-purple); display: block; }
 .confirmed-sub { font-size: 0.72rem; color: var(--t-muted); }
+
+/* Pedido cancelado: antes este bloque siempre se veía igual que uno
+   confirmado (palomita verde + "¡Pedido confirmado!"), con el único
+   aviso en el badge chiquito de más abajo — fácil de pasar por alto
+   y surtir un pedido que ya no aplica. Ícono, título y fondo del
+   ticket quedan en rojo para que sea imposible confundirlo de un
+   vistazo, incluso impreso en blanco y negro (la ✕ ya se distingue
+   de la ✓ por forma, no solo por color). */
+.check-circle--cancel { background: var(--t-error); }
+.confirmed-title--cancel { color: var(--t-error); }
 
 /* ── Número de pedido ── */
 .order-num { text-align: center; margin: 0.8rem 0; }
