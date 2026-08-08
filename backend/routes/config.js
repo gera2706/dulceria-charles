@@ -6,9 +6,21 @@
    Ejemplo: clave="contacto_telefono", valor="+52 55 1234 5678"
 ============================================================ */
 
-const router = require('express').Router();
-const db     = require('../db');
+const router     = require('express').Router();
+const db         = require('../db');
+const rateLimit  = require('express-rate-limit');
+const mailer     = require('../mailer');
 const { adminMiddleware } = require('../middleware/auth');
+
+// El formulario de Contacto es público (no requiere login) y cada envío
+// manda un correo — sin límite, cualquiera podría usarlo para bombardear
+// la bandeja del dueño. Mismo criterio que olvidePasswordLimiter en
+// auth.js.
+const contactoLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Demasiados mensajes enviados. Espera unos minutos antes de volver a intentar.' }
+});
 
 /* ------------------------------------------------------------
    GET /api/config/contacto
@@ -66,6 +78,51 @@ router.put('/contacto', adminMiddleware, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Error al guardar configuración.' });
+  }
+});
+
+/* ------------------------------------------------------------
+   POST /api/config/contacto-mensaje
+   Recibe el formulario de la página Contacto y le manda un correo
+   al dueño (al contacto_email configurado en el panel admin — el
+   mismo que se muestra públicamente en la página, así que el mensaje
+   siempre llega a donde el dueño dice que hay que escribirle).
+   Reemplaza al formulario de Formspree que se usaba antes: ese
+   dependía de un tercero configurado con el correo de quien lo haya
+   creado, no necesariamente el del dueño.
+   ES PÚBLICO (cualquier visitante puede escribir), pero limitado por
+   contactoLimiter para que no se pueda usar para mandar spam.
+   Recibe: { nombre, email, telefono?, asunto, mensaje }
+------------------------------------------------------------ */
+router.post('/contacto-mensaje', contactoLimiter, async (req, res) => {
+  const { nombre, email, telefono, asunto, mensaje } = req.body;
+
+  if (!nombre || !email || !mensaje)
+    return res.status(400).json({ error: 'Nombre, correo y mensaje son obligatorios.' });
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email))
+    return res.status(400).json({ error: 'El correo no tiene un formato válido.' });
+
+  try {
+    const [rows] = await db.query(
+      "SELECT valor FROM configuracion WHERE clave = 'contacto_email'"
+    );
+    // Si el admin todavía no configuró un correo de contacto, usamos
+    // la misma cuenta que manda los demás correos (SMTP_USER) como
+    // respaldo — así el formulario nunca se queda sin destino.
+    const destino = (rows[0] && rows[0].valor) || process.env.SMTP_USER;
+    if (!destino) return res.status(500).json({ error: 'El sitio todavía no tiene un correo de contacto configurado.' });
+
+    await mailer.enviarMensajeContacto({
+      destino, nombre: nombre.trim(), email: email.trim(),
+      telefono: telefono ? telefono.trim() : '', asunto, mensaje: mensaje.trim()
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error al enviar mensaje de contacto:', err);
+    res.status(500).json({ error: 'No se pudo enviar tu mensaje. Intenta de nuevo más tarde.' });
   }
 });
 
