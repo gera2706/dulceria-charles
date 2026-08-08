@@ -127,7 +127,11 @@ router.post('/registro', async (req, res) => {
     // promover a otro usuario a admin.
 
     // Preparamos los datos del usuario para devolverlos
-    const user  = { id: result.insertId, nombre: nombre.trim(), email: email.toLowerCase().trim(), rol: 'cliente' };
+    // (apellido/teléfono se llenan después desde Mi cuenta, no en el registro)
+    const user  = {
+      id: result.insertId, nombre: nombre.trim(), apellido: null,
+      email: email.toLowerCase().trim(), telefono: null, rol: 'cliente'
+    };
     // result.insertId = el ID que MySQL asignó automáticamente al nuevo usuario
     // NUNCA incluimos el hash en la respuesta
 
@@ -186,7 +190,10 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
 
     // Login exitoso: generamos token con los datos del usuario
-    const payload = { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol };
+    const payload = {
+      id: user.id, nombre: user.nombre, apellido: user.apellido,
+      email: user.email, telefono: user.telefono, rol: user.rol
+    };
     // Incluimos el rol en el token para que el middleware pueda
     // verificar si es admin sin consultar la BD en cada petición.
 
@@ -229,7 +236,7 @@ router.get('/me', authMiddleware, (req, res) => {
              saludo/nombre se actualice sin tener que reiniciar sesión.
 ---------------------------------------------------------------- */
 router.put('/me', authMiddleware, meLimiter, async (req, res) => {
-  const { nombre, email, passwordActual, passwordNueva } = req.body;
+  const { nombre, apellido, telefono, email, passwordActual, passwordNueva } = req.body;
 
   if (!nombre || !email)
     return res.status(400).json({ error: 'Nombre y correo son obligatorios.' });
@@ -265,21 +272,29 @@ router.put('/me', authMiddleware, meLimiter, async (req, res) => {
       nuevoHash = await bcrypt.hash(passwordNueva, 10);
     }
 
+    // apellido y teléfono son opcionales — '' se guarda como NULL en
+    // vez de una cadena vacía, para que se vea igual que "nunca se llenó".
+    const apellidoLimpio = apellido && apellido.trim() ? apellido.trim() : null;
+    const telefonoLimpio = telefono && telefono.trim() ? telefono.trim() : null;
+
     if (nuevoHash) {
       await db.query(
-        'UPDATE usuarios SET nombre = ?, email = ?, password = ? WHERE id = ?',
-        [nombre.trim(), emailLimpio, nuevoHash, req.user.id]
+        'UPDATE usuarios SET nombre = ?, apellido = ?, email = ?, telefono = ?, password = ? WHERE id = ?',
+        [nombre.trim(), apellidoLimpio, emailLimpio, telefonoLimpio, nuevoHash, req.user.id]
       );
     } else {
       await db.query(
-        'UPDATE usuarios SET nombre = ?, email = ? WHERE id = ?',
-        [nombre.trim(), emailLimpio, req.user.id]
+        'UPDATE usuarios SET nombre = ?, apellido = ?, email = ?, telefono = ? WHERE id = ?',
+        [nombre.trim(), apellidoLimpio, emailLimpio, telefonoLimpio, req.user.id]
       );
     }
 
-    // El token viejo tiene el nombre/email ANTIGUOS. Generamos uno nuevo
-    // para que el frontend lo reemplace y todo quede sincronizado.
-    const user  = { id: req.user.id, nombre: nombre.trim(), email: emailLimpio, rol: req.user.rol };
+    // El token viejo tiene los datos ANTIGUOS. Generamos uno nuevo para
+    // que el frontend lo reemplace y todo quede sincronizado.
+    const user  = {
+      id: req.user.id, nombre: nombre.trim(), apellido: apellidoLimpio,
+      email: emailLimpio, telefono: telefonoLimpio, rol: req.user.rol
+    };
     const token = _signToken(user);
 
     res.json({ token, user });
