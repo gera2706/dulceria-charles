@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (btn.dataset.section === 'usuarios')      renderUsuarios();
       if (btn.dataset.section === 'configuracion') renderConfiguracion();
       if (btn.dataset.section === 'chatbot')       renderChatbotFaqs();
+      if (btn.dataset.section === 'auditorias')    renderAuditorias();
     });
   });
 
@@ -68,7 +69,11 @@ document.addEventListener('DOMContentLoaded', function () {
         { icon: '⏳', value: inconclusos,       label: 'Pedidos inconclusos' },
         { icon: '👥', value: clientes.length,   label: 'Clientes' },
         { icon: '💰', value: fmt(revenue),      label: 'Ingresos totales', raw: true },
-        { icon: '⚠️', value: bajoStock.length + agotados.length, label: 'Stock bajo / agotado', click: true },
+        // Antes era una sola tarjeta "Stock bajo / agotado" combinada —
+        // separadas para que se vea de un vistazo cuál de las dos cosas
+        // está pasando, sin tener que entrar a Productos a averiguarlo.
+        { icon: '📉', value: bajoStock.length, label: 'Stock bajo', click: 'bajo' },
+        { icon: '🚫', value: agotados.length,  label: 'Agotado',    click: 'agotado' },
       ];
 
       var wrap = document.getElementById('stat-cards');
@@ -82,8 +87,12 @@ document.addEventListener('DOMContentLoaded', function () {
           '<span class="stat-label">' + c.label + '</span>';
         if (c.click) {
           div.addEventListener('click', function () {
-            _stockFiltroActivo = true;
-            document.getElementById('btn-filter-stock').classList.add('active');
+            // Cada tarjeta activa SOLO su propio filtro (antes las dos
+            // se activaban juntas porque era una sola tarjeta combinada).
+            _stockFiltroActivo   = c.click === 'bajo';
+            _agotadoFiltroActivo = c.click === 'agotado';
+            document.getElementById('btn-filter-stock').classList.toggle('active', _stockFiltroActivo);
+            document.getElementById('btn-filter-agotado').classList.toggle('active', _agotadoFiltroActivo);
             document.querySelector('.admin-nav-btn[data-section="productos"]').click();
           });
         }
@@ -132,27 +141,95 @@ document.addEventListener('DOMContentLoaded', function () {
             '</div>';
         }).join('');
       }
+
+      renderAvisosStock(); // aparte: si falla, no debe tumbar el resto del dashboard
     } catch (e) {
       console.error('Dashboard error:', e);
     }
   }
 
+  /* Ícono según origen del aviso — para que se distinga de un vistazo
+     si lo detectó el sistema solo o si vino de un cliente pidiendo que
+     le avisen al dueño (el tipo, bajo/agotado, ya lo dice la tarjeta
+     en la que aparece — ver renderAvisosStock). */
+  var AVISO_ORIGEN_ICON = { sistema: '🔔', cliente: '🙋' };
+
+  /* Pinta una lista de avisos (ya filtrados por tipo) dentro de un
+     contenedor. Separado en su propia función porque ahora hay dos
+     tarjetas — bajo y agotado — que comparten exactamente el mismo
+     formato de fila. */
+  function _renderAvisosLista(wrap, avisos) {
+    if (!avisos.length) {
+      wrap.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">Sin avisos recientes.</p>';
+      return;
+    }
+    wrap.innerHTML = avisos.slice(0, 6).map(function (a) {
+      var icon = AVISO_ORIGEN_ICON[a.origen] || '🔔';
+      var detalle = a.origen === 'cliente'
+        ? 'Cliente avisó' + (a.cliente_nombre ? ' (' + escapeHtml(a.cliente_nombre) + ')' : '') + (a.pedido_id ? ' · pedido #' + a.pedido_id : '')
+        : 'Detectado automáticamente';
+      return '<div style="padding:0.4rem 0;border-bottom:1px solid #f3eeff;font-size:0.85rem;">' +
+        '<div style="display:flex;justify-content:space-between;">' +
+          '<span>' + icon + ' ' + escapeHtml(a.producto_nombre || 'Producto eliminado') + '</span>' +
+          '<span style="color:var(--text-light);font-size:0.78rem;">' + fmtFechaCorta(a.fecha) + '</span>' +
+        '</div>' +
+        '<div style="color:var(--text-light);font-size:0.78rem;">' + detalle + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  /* Avisos de stock recientes (widgets del dashboard), separados en
+     "bajo" y "agotado" — antes era una sola lista mezclada. Aparte de
+     renderDashboard() para que un fallo aquí (ej. instalación vieja
+     sin la tabla avisos_stock todavía) no tumbe el resto del panel. */
+  async function renderAvisosStock() {
+    var wrapBajo    = document.getElementById('dash-avisos-bajo');
+    var wrapAgotado = document.getElementById('dash-avisos-agotado');
+    if (!wrapBajo || !wrapAgotado) return;
+    try {
+      var avisos = await apiGetAvisosStock();
+      _renderAvisosLista(wrapBajo,    avisos.filter(function (a) { return a.tipo === 'bajo'; }));
+      _renderAvisosLista(wrapAgotado, avisos.filter(function (a) { return a.tipo === 'agotado'; }));
+    } catch (e) {
+      wrapBajo.innerHTML    = '<p style="color:var(--text-light);font-size:0.88rem;">Sin avisos recientes.</p>';
+      wrapAgotado.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">Sin avisos recientes.</p>';
+    }
+  }
+
+  /* Formato corto de fecha para el widget de avisos: "8 ago" */
+  function fmtFechaCorta(str) {
+    if (!str) return '';
+    return new Date(str).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  }
+
   /* ══════════════════════════════════════
      PRODUCTOS
   ══════════════════════════════════════ */
-  var prodSearchInput = document.getElementById('prod-search');
-  var prodFilterCat   = document.getElementById('prod-filter-cat');
-  var btnFilterStock  = document.getElementById('btn-filter-stock');
+  var prodSearchInput  = document.getElementById('prod-search');
+  var prodFilterCat    = document.getElementById('prod-filter-cat');
+  var btnFilterStock   = document.getElementById('btn-filter-stock');
+  var btnFilterAgotado = document.getElementById('btn-filter-agotado');
 
   prodSearchInput.addEventListener('input', renderProductos);
   prodFilterCat.addEventListener('change', renderProductos);
 
-  /* Activado desde la tarjeta "Stock bajo / agotado" del dashboard,
-     o al hacer clic directamente en este botón del toolbar. */
-  var _stockFiltroActivo = false;
+  /* Dos filtros independientes (antes "Solo bajo stock" también incluía
+     los agotados, mezclando ambos grupos en un solo botón):
+       - _stockFiltroActivo:   stock > 0 y <= stock_minimo (bajo, pero no agotado)
+       - _agotadoFiltroActivo: stock <= 0 (agotado)
+     Cada uno se activa/desactiva por su cuenta. Si se activan los dos a
+     la vez, se muestran ambos grupos juntos (igual que la tarjeta del
+     dashboard, que los cuenta juntos). */
+  var _stockFiltroActivo   = false;
+  var _agotadoFiltroActivo = false;
   btnFilterStock.addEventListener('click', function () {
     _stockFiltroActivo = !_stockFiltroActivo;
     btnFilterStock.classList.toggle('active', _stockFiltroActivo);
+    renderProductos();
+  });
+  btnFilterAgotado.addEventListener('click', function () {
+    _agotadoFiltroActivo = !_agotadoFiltroActivo;
+    btnFilterAgotado.classList.toggle('active', _agotadoFiltroActivo);
     renderProductos();
   });
 
@@ -206,7 +283,12 @@ document.addEventListener('DOMContentLoaded', function () {
       var rows = _allProductos.filter(function (p) {
         var matchQ     = !query   || p.nombre.toLowerCase().includes(query);
         var matchCat   = !catFilt || p.categoria === catFilt;
-        var matchStock = !_stockFiltroActivo || p.stock <= p.stock_minimo;
+        var esBajo    = p.stock > 0 && p.stock <= p.stock_minimo;
+        var esAgotado = p.stock <= 0;
+        // Sin filtros de stock activos: no se filtra por stock. Con uno o
+        // ambos activos: coincide si cae en cualquiera de los grupos activos.
+        var matchStock = (!_stockFiltroActivo && !_agotadoFiltroActivo) ||
+          (_stockFiltroActivo && esBajo) || (_agotadoFiltroActivo && esAgotado);
         return matchQ && matchCat && matchStock;
       });
 
@@ -214,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function () {
       tbody.innerHTML = '';
 
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-light);">Sin resultados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-light);">Sin resultados.</td></tr>';
         document.getElementById('prod-count').textContent = '';
         return;
       }
@@ -231,7 +313,6 @@ document.addEventListener('DOMContentLoaded', function () {
             (p.destacado ? 'Quitar de destacados' : 'Marcar como destacado') +
             '" style="background:none;border:none;cursor:pointer;font-size:1.15rem;line-height:1;padding:0.2rem;">' +
             (p.destacado ? '⭐' : '☆') + '</button></td>' +
-          '<td style="color:var(--text-light);font-size:0.82rem;">' + escapeHtml(p.proveedor || '—') + '</td>' +
           '<td><div class="td-actions">' +
             '<button class="btn-admin-sm btn-edit"   data-id="' + p.id + '">✏️ Editar</button>' +
             '<button class="btn-admin-sm btn-delete" data-id="' + p.id + '">🗑️ Eliminar</button>' +
@@ -344,7 +425,6 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('pf-name').value       = '';
       document.getElementById('pf-price').value      = '';
       document.getElementById('pf-image').value      = '';
-      document.getElementById('pf-proveedor').value  = '';
       document.getElementById('pf-stock').value      = 20;
       document.getElementById('pf-stock-min').value  = 5;
       document.getElementById('pf-featured').checked = false;
@@ -357,7 +437,6 @@ document.addEventListener('DOMContentLoaded', function () {
       document.getElementById('pf-name').value       = product.nombre;
       document.getElementById('pf-price').value      = product.precio;
       document.getElementById('pf-image').value      = product.imagen || '';
-      document.getElementById('pf-proveedor').value  = product.proveedor || '';
       document.getElementById('pf-stock').value      = product.stock;
       document.getElementById('pf-stock-min').value  = product.stock_minimo;
       document.getElementById('pf-featured').checked = !!product.destacado;
@@ -378,7 +457,6 @@ document.addEventListener('DOMContentLoaded', function () {
     var precio      = parseFloat(document.getElementById('pf-price').value);
     var categoria   = document.getElementById('pf-cat').value;
     var imagen      = document.getElementById('pf-image').value.trim();
-    var proveedor   = document.getElementById('pf-proveedor').value.trim();
     var stock       = parseInt(document.getElementById('pf-stock').value, 10);
     var stockMinimo = parseInt(document.getElementById('pf-stock-min').value, 10);
     var destacado   = document.getElementById('pf-featured').checked;
@@ -392,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (isNaN(stockMinimo) || stockMinimo < 0) { errEl.textContent = 'La alerta de stock bajo no puede ser negativa.'; return; }
     errEl.textContent = '';
 
-    var datos = { nombre, categoria, precio, imagen, destacado, proveedor, stock: stock, stock_minimo: stockMinimo };
+    var datos = { nombre, categoria, precio, imagen, destacado, stock: stock, stock_minimo: stockMinimo };
 
     try {
       if (editId !== null) {
@@ -477,8 +555,10 @@ document.addEventListener('DOMContentLoaded', function () {
         var estadoInfo = ESTADO_LABELS[o.estado] || { text: o.estado, color: '#999' };
         var badge = '<span style="background:' + estadoInfo.color + '20;color:' + estadoInfo.color + ';padding:2px 8px;border-radius:50px;font-size:0.78rem;font-weight:700;">' + estadoInfo.text + '</span>';
 
-        /* selector de estado */
-        var select = '<select class="ord-estado-select" data-id="' + o.id + '" style="font-size:0.8rem;padding:3px 6px;border-radius:6px;border:1px solid #ddd;">';
+        /* selector de estado. data-prev guarda el valor actual para
+           poder regresarlo si se cancela el pedido y el admin se
+           arrepiente en el diálogo del motivo (ver abajo). */
+        var select = '<select class="ord-estado-select" data-id="' + o.id + '" data-prev="' + o.estado + '" style="font-size:0.8rem;padding:3px 6px;border-radius:6px;border:1px solid #ddd;">';
         Object.keys(ESTADO_LABELS).forEach(function (est) {
           select += '<option value="' + est + '"' + (o.estado === est ? ' selected' : '') + '>' + ESTADO_LABELS[est].text + '</option>';
         });
@@ -515,6 +595,12 @@ document.addEventListener('DOMContentLoaded', function () {
           // background/color con variables: antes era #faf7ff fijo, que en modo
           // oscuro dejaba texto claro sobre fondo claro y se volvía ilegible.
           '<td colspan="7" style="background:var(--bg);color:var(--text);padding:0.8rem 1.2rem;">' +
+            (o.estado === 'cancelado'
+              ? '<div style="font-size:0.8rem;color:#b91c1c;margin-bottom:0.6rem;">✕ Cancelado por <strong>' +
+                  (o.cancelado_por === 'cliente' ? 'el cliente' : 'la tienda') + '</strong>' +
+                  (o.motivo_cancelacion ? ' — ' + escapeHtml(o.motivo_cancelacion) : ' (sin motivo especificado)') +
+                '</div>'
+              : '') +
             '<div style="font-size:0.78rem;font-weight:700;color:var(--purple);margin-bottom:0.4rem;">🍬 Productos del pedido</div>' +
             itemsHtml +
             (o.nombre_envio ? '<div style="margin-top:0.6rem;font-size:0.8rem;color:var(--text-light);">👤 ' + escapeHtml(o.nombre_envio) + (o.telefono ? ' · +52 ' + escapeHtml(o.telefono) : '') + '</div>' : '') +
@@ -531,13 +617,31 @@ document.addEventListener('DOMContentLoaded', function () {
         tbody.appendChild(trDetail);
       });
 
-      /* Cambiar estado desde la tabla */
+      /* Cambiar estado desde la tabla. Si el nuevo estado es "cancelado",
+         primero se pide un motivo (opcional para el admin, a diferencia
+         del cliente) — se le manda por correo al cliente para que sepa
+         por qué (ver PATCH /:id/estado en routes/pedidos.js). */
       tbody.querySelectorAll('.ord-estado-select').forEach(function (sel) {
         sel.addEventListener('change', async function () {
+          var nuevoEstado = sel.value;
+          var motivo;
+
+          if (nuevoEstado === 'cancelado') {
+            motivo = await dcPrompt('¿Por qué se cancela el pedido #' + sel.dataset.id + '? (se le avisa al cliente por correo)', {
+              placeholder: 'Opcional — ej: producto agotado, cliente no contestó…',
+              okLabel: 'Cancelar pedido',
+              cancelLabel: 'No cancelar'
+            });
+            if (motivo === null) { sel.value = sel.dataset.prev; return; } // se arrepintió
+          }
+
           try {
-            await apiCambiarEstadoPedido(+sel.dataset.id, sel.value);
+            await apiCambiarEstadoPedido(+sel.dataset.id, nuevoEstado, motivo);
+            sel.dataset.prev = nuevoEstado;
             showToast('Estado actualizado ✓');
+            renderPedidos(); // repinta la fila (badge + detalle) con el motivo ya guardado
           } catch (e) {
+            sel.value = sel.dataset.prev; // el cambio no se aplicó, no dejamos el <select> mintiendo
             await dcAlert('Error: ' + e.message);
           }
         });
@@ -1086,6 +1190,81 @@ document.addEventListener('DOMContentLoaded', function () {
       errEl.textContent = e.message;
     }
   });
+
+  /* ══════════════════════════════════════
+     AUDITORÍAS
+     Lista los reportes HTML de docs/auditorias/ (backend/routes/
+     auditorias.js — solo accesible con sesión de admin). "Ver" pide
+     el HTML con el token de admin (fetch, no <a href> normal, porque
+     un link no puede mandar el header de autorización) y lo abre en
+     una pestaña nueva como blob: URL.
+  ══════════════════════════════════════ */
+  async function renderAuditorias() {
+    var listEl  = document.getElementById('auditorias-list');
+    var emptyEl = document.getElementById('auditorias-empty');
+    listEl.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">Cargando…</p>';
+    emptyEl.classList.add('hidden');
+
+    var archivos;
+    try {
+      archivos = await apiGetAuditorias();
+    } catch (e) {
+      listEl.innerHTML = '<p style="color:#e74c3c;font-size:0.88rem;">Error al cargar las auditorías: ' + e.message + '</p>';
+      return;
+    }
+
+    if (!archivos.length) {
+      listEl.innerHTML = '';
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    listEl.innerHTML = '';
+    archivos.forEach(function (a) {
+      var row = document.createElement('div');
+      row.className = 'admin-table-wrap';
+      row.style.cssText = 'padding:0.9rem 1.2rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;';
+      row.innerHTML =
+        '<div>' +
+          '<div style="font-weight:700;color:var(--text);">🔍 ' + escapeHtml(a.nombre) + '</div>' +
+          '<div style="font-size:0.78rem;color:var(--text-light);">' + fmtFechaCorta(a.fecha) + ' · ' + _fmtTamano(a.tamano) + '</div>' +
+        '</div>' +
+        '<button class="btn-admin-sm btn-edit btn-ver-auditoria" data-nombre="' + escapeHtml(a.nombre) + '">👁️ Ver</button>';
+      listEl.appendChild(row);
+    });
+
+    listEl.querySelectorAll('.btn-ver-auditoria').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        var textoOriginal = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Abriendo…';
+        try {
+          var html = await apiGetAuditoriaHtml(btn.dataset.nombre);
+          // charset=utf-8 explícito: sin esto el navegador puede adivinar
+          // mal la codificación del blob y los acentos salen como "Ã³".
+          var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+          var url  = URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          // Revoca el blob más tarde — la pestaña nueva ya lo cargó,
+          // no hace falta mantenerlo vivo indefinidamente en memoria.
+          setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+        } catch (e) {
+          showToast('Error al abrir la auditoría: ' + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = textoOriginal;
+        }
+      });
+    });
+  }
+
+  /* Tamaño de archivo legible: 5241 → "5.1 KB" */
+  function _fmtTamano(bytes) {
+    if (!bytes && bytes !== 0) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
 
   /* ══ Subir imagen al servidor ══
      Usa FormData para enviar el archivo como multipart/form-data.
