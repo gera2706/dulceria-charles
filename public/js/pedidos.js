@@ -49,6 +49,18 @@ document.addEventListener('DOMContentLoaded', async function () {
     return;
   }
 
+  /* Todo lo de cargar + pintar la lista está en una función propia
+     (antes era código suelto en el DOMContentLoaded) para poder
+     volver a llamarla después de cancelar un pedido, sin recargar
+     toda la página. */
+  await cargarYRenderizarPedidos();
+
+  /* El botón "limpiar historial" ya no aplica porque los pedidos
+     están en la BD (no en localStorage), así que lo ocultamos */
+  var btnClear = document.getElementById('btn-clear');
+  if (btnClear) btnClear.style.display = 'none';
+
+  async function cargarYRenderizarPedidos() {
   /* Mostramos estado de carga mientras esperamos la respuesta */
   list.innerHTML = '<p style="text-align:center;color:var(--text-light);padding:2rem;">Cargando pedidos…</p>';
 
@@ -77,6 +89,19 @@ document.addEventListener('DOMContentLoaded', async function () {
   orders.forEach(function (order, idx) {
     var estadoInfo   = ESTADO_INFO[order.estado] || { label: order.estado, color: '#999' };
     var isInconcluso = order.estado === 'pendiente_finalizar'; // pedidos sin completar
+
+    /* El cliente puede cancelar mientras el pedido no se haya entregado
+       ni esté ya cancelado. Uno "entregado" es un caso de devolución/
+       reclamo, no un simple cancelar — ese pasa por hablarle a la
+       tienda, no por este botón (ver también POST /:id/cancelar). */
+    var puedeCancelar = order.estado === 'pendiente_finalizar' || order.estado === 'pendiente_entregar';
+    var cancelBtnHtml = puedeCancelar
+      ? '<button type="button" class="btn-cancelar-pedido" data-pedido="' + order.id + '" ' +
+          'style="background:none;color:#b91c1c;border:1.5px solid #e2685f;padding:0.45rem 1rem;' +
+          'border-radius:50px;font-weight:700;font-size:0.82rem;cursor:pointer;">' +
+          '✕ Cancelar pedido' +
+        '</button>'
+      : '';
 
     /* Total a mostrar en el encabezado — calculado desde items si el campo es 0
        (calcTotalPedido está en js/cart.js, compartida con admin.js/comprobante.js) */
@@ -109,15 +134,27 @@ document.addEventListener('DOMContentLoaded', async function () {
     body.className = 'pedido-body';
 
     /* Lista de productos del pedido
-       Los items vienen con campos de BD: nombre/precio/cantidad */
+       Los items vienen con campos de BD: nombre/precio/cantidad, y
+       stock_actual (agregado en el backend, ver agruparPedidosConItems
+       en routes/pedidos.js) — null si el producto ya no existe,
+       un número (incluido 0) si sigue existiendo. Solo nos importa
+       para marcar "Agotado" en pedidos que siguen incompletos: uno ya
+       entregado o confirmado no cambia aunque el producto se agote
+       después, ese cliente ya se llevó lo que compró. */
     var items = order.items || [];
+    var itemsAgotados = isInconcluso
+      ? items.filter(function (item) { return item.stock_actual !== null && item.stock_actual !== undefined && item.stock_actual <= 0; })
+      : [];
     var itemsHtml = items.length
       ? items.map(function (item) {
-          var nombre = escapeHtml(item.nombre || item.name || '—');
-          var precio = parseFloat(item.precio || item.price || 0);
-          var qty    = item.cantidad || item.qty || 1;
+          var nombre  = escapeHtml(item.nombre || item.name || '—');
+          var precio  = parseFloat(item.precio || item.price || 0);
+          var qty     = item.cantidad || item.qty || 1;
+          var agotado = isInconcluso && item.stock_actual !== null && item.stock_actual !== undefined && item.stock_actual <= 0;
           return '<div class="pedido-item">' +
-            '<div class="pedido-item-info"><strong>' + nombre + '</strong><span>x' + qty + '</span></div>' +
+            '<div class="pedido-item-info"><strong>' + nombre + '</strong><span>x' + qty + '</span>' +
+              (agotado ? '<span style="color:#b91c1c;font-weight:700;font-size:0.78rem;">🚫 Agotado</span>' : '') +
+            '</div>' +
             '<span class="pedido-item-price">' + fmt(precio * qty) + '</span>' +
           '</div>';
         }).join('')
@@ -133,19 +170,79 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     /* Contenido del cuerpo varía según si el pedido está incompleto o no */
     if (isInconcluso) {
-      /* Pedido inconcluso: mostramos aviso y botón para continuar */
+      /* Pedido inconcluso: aviso distinto según si lo que dejó a medias
+         sigue disponible o ya se agotó mientras tanto. Si algo se
+         agotó, ya no tiene caso ofrecer "Continuar compra" (el backend
+         lo va a rechazar de todos modos, ver validarYDescontarStock) —
+         en vez de eso se ofrece avisar al dueño. */
+      var avisoHtml;
+      if (itemsAgotados.length) {
+        avisoHtml =
+          '<div class="pedido-section" style="background:#fdecea;border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.8rem;">' +
+            '<p style="margin:0 0 0.6rem;font-size:0.88rem;color:#7f1d1d;">🚫 <strong>' +
+              (itemsAgotados.length > 1 ? 'Estos productos ya no están disponibles' : (escapeHtml(itemsAgotados[0].nombre) + ' ya no está disponible')) +
+            '</strong> — se agotaron antes de que terminaras la compra. Ya no se puede continuar con este pedido tal cual.</p>' +
+            '<button type="button" class="btn-avisar-dueno" data-pedido="' + order.id + '" ' +
+              'style="background:#b91c1c;color:#fff;border:none;padding:0.5rem 1.1rem;border-radius:50px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-right:0.5rem;">' +
+              '🔔 Avisar al dueño' +
+            '</button>' +
+            cancelBtnHtml +
+            '<span class="aviso-dueno-msg" style="display:none;margin-left:0.6rem;font-size:0.85rem;color:#7f1d1d;font-weight:700;">✅ Ya le avisamos, gracias</span>' +
+          '</div>';
+      } else {
+        avisoHtml =
+          '<div class="pedido-section" style="background:#fff8e1;border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.8rem;">' +
+            '<p style="margin:0 0 0.6rem;font-size:0.88rem;color:#92400e;">⚠️ Este pedido quedó <strong>incompleto</strong>. ' +
+            /* El link lleva a pago.html con el ID del pedido para retomarlo */
+            '<a href="pago.html?retomar=' + order.id + '" style="color:#d97706;font-weight:700;">Continuar compra →</a></p>' +
+            cancelBtnHtml +
+          '</div>';
+      }
       body.innerHTML =
-        '<div class="pedido-section" style="background:#fff8e1;border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.8rem;">' +
-          '<p style="margin:0;font-size:0.88rem;color:#92400e;">⚠️ Este pedido quedó <strong>incompleto</strong>. ' +
-          /* El link lleva a pago.html con el ID del pedido para retomarlo */
-          '<a href="pago.html?retomar=' + order.id + '" style="color:#d97706;font-weight:700;">Continuar compra →</a></p>' +
-        '</div>' +
+        avisoHtml +
         '<div class="pedido-section"><h4>🍬 Productos</h4></div>' +
         '<div class="pedido-items">' + itemsHtml + '</div>' +
         totalsHtml;
+
+      // Botón "Avisar al dueño": manda un aviso por cada producto agotado
+      // de este pedido (normalmente solo hay uno). Se deshabilita después
+      // para que no se pueda mandar de nuevo por accidente.
+      var btnAvisar = body.querySelector('.btn-avisar-dueno');
+      if (btnAvisar) {
+        btnAvisar.addEventListener('click', async function () {
+          btnAvisar.disabled = true;
+          btnAvisar.textContent = 'Avisando…';
+          try {
+            for (const item of itemsAgotados) {
+              await apiAvisarAgotado(order.id, item.producto_id);
+            }
+            btnAvisar.style.display = 'none';
+            body.querySelector('.aviso-dueno-msg').style.display = 'inline';
+          } catch (e) {
+            btnAvisar.disabled = false;
+            btnAvisar.textContent = '🔔 Avisar al dueño';
+            await dcAlert(e.message);
+          }
+        });
+      }
     } else {
-      /* Pedido completo: mostramos info de pickup, método de pago y productos */
+      /* Pedido completo (o cancelado/entregado): info de pickup, método
+         de pago y productos. Si quedó cancelado, mostramos quién lo
+         canceló y por qué — útil tanto si lo canceló el cliente (para
+         recordarlo) como si lo canceló la tienda (para que sepa la razón). */
+      var canceladoHtml = '';
+      if (order.estado === 'cancelado') {
+        var quien = order.cancelado_por === 'admin' ? 'La tienda canceló este pedido' : 'Cancelaste este pedido';
+        canceladoHtml =
+          '<div class="pedido-section" style="background:#fdecea;border-radius:10px;padding:0.8rem 1rem;margin-bottom:0.8rem;">' +
+            '<p style="margin:0;font-size:0.88rem;color:#7f1d1d;">✕ <strong>' + quien + '</strong>' +
+              (order.motivo_cancelacion ? ' — ' + escapeHtml(order.motivo_cancelacion) : '') +
+            '</p>' +
+          '</div>';
+      }
       body.innerHTML =
+        canceladoHtml +
+        (cancelBtnHtml ? '<div class="pedido-section" style="text-align:right;">' + cancelBtnHtml + '</div>' : '') +
         '<div class="pedido-section">' +
           '<h4>📍 Recoger en tienda</h4>' +
           '<p><strong>' + escapeHtml(order.nombre_envio || '—') + '</strong>' +
@@ -172,6 +269,34 @@ document.addEventListener('DOMContentLoaded', async function () {
         '</div>';
     }
 
+    // Botón "Cancelar pedido": puede aparecer en cualquiera de las tres
+    // ramas de arriba (inconcluso normal, inconcluso agotado, o
+    // confirmado/pendiente por entregar) — un solo listener cubre los
+    // tres casos porque solo hay uno por tarjeta.
+    var btnCancelar = body.querySelector('.btn-cancelar-pedido');
+    if (btnCancelar) {
+      btnCancelar.addEventListener('click', async function () {
+        var motivo = await dcPrompt('¿Por qué quieres cancelar el pedido #' + order.id + '?', {
+          placeholder: 'Ej: ya no lo necesito, lo pedí por error…',
+          required: true,
+          okLabel: 'Cancelar pedido',
+          cancelLabel: 'Volver'
+        });
+        if (motivo === null) return; // se arrepintió / cerró el diálogo
+
+        btnCancelar.disabled = true;
+        btnCancelar.textContent = 'Cancelando…';
+        try {
+          await apiCancelarPedido(order.id, motivo);
+          await cargarYRenderizarPedidos(); // vuelve a pintar la lista con el estado ya actualizado
+        } catch (err) {
+          btnCancelar.disabled = false;
+          btnCancelar.textContent = '✕ Cancelar pedido';
+          await dcAlert(err.message);
+        }
+      });
+    }
+
     card.appendChild(header);
     card.appendChild(body);
     list.appendChild(card);
@@ -179,9 +304,5 @@ document.addEventListener('DOMContentLoaded', async function () {
     /* El primer pedido (más reciente) se muestra abierto automáticamente */
     if (idx === 0) card.classList.add('open');
   });
-
-  /* El botón "limpiar historial" ya no aplica porque los pedidos
-     están en la BD (no en localStorage), así que lo ocultamos */
-  var btnClear = document.getElementById('btn-clear');
-  if (btnClear) btnClear.style.display = 'none';
+  } // fin cargarYRenderizarPedidos()
 });

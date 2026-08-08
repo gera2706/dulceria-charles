@@ -527,6 +527,77 @@ function dcAlert(msg) {
 }
 
 /* ================================================================
+   SECCIÓN: DIÁLOGO CON CAMPO DE TEXTO (reemplaza al prompt() nativo)
+   Mismo estilo que dcConfirm/dcAlert, pero con una caja de texto —
+   para pedir un motivo corto (ej. "¿Por qué cancelas este pedido?").
+   Uso: var motivo = await dcPrompt('¿Por qué cancelas?', {
+          placeholder: 'Ej: ya no lo necesito', required: true, okLabel: 'Cancelar pedido'
+        });
+   Devuelve el texto escrito, o null si se cerró/canceló el diálogo.
+   Si required es true, el botón de confirmar no hace nada mientras
+   el campo esté vacío (no se puede "aceptar" un motivo en blanco).
+================================================================ */
+function _injectPromptDialog() {
+  if (document.getElementById('dc-prompt-overlay')) return;
+
+  var overlay = document.createElement('div');
+  overlay.id        = 'dc-prompt-overlay';
+  overlay.className = 'dc-confirm-overlay';
+  overlay.innerHTML =
+    '<div class="dc-confirm-box">' +
+      '<p class="dc-confirm-msg" id="dc-prompt-msg"></p>' +
+      '<textarea class="dc-prompt-input" id="dc-prompt-input" rows="3"></textarea>' +
+      '<div class="dc-confirm-actions" style="margin-top:1rem;">' +
+        '<button class="btn btn-outline" id="dc-prompt-cancel">Cancelar</button>' +
+        '<button class="btn btn-primary" id="dc-prompt-ok">Aceptar</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function dcPrompt(msg, opts) {
+  opts = opts || {};
+  _injectPromptDialog();
+  return new Promise(function (resolve) {
+    var overlay  = document.getElementById('dc-prompt-overlay');
+    var msgEl    = document.getElementById('dc-prompt-msg');
+    var input    = document.getElementById('dc-prompt-input');
+    var okBtn    = document.getElementById('dc-prompt-ok');
+    var cancelBtn = document.getElementById('dc-prompt-cancel');
+
+    msgEl.textContent   = msg;
+    input.value         = opts.value || '';
+    input.placeholder   = opts.placeholder || '';
+    okBtn.textContent   = opts.okLabel || 'Aceptar';
+    cancelBtn.textContent = opts.cancelLabel || 'Cancelar';
+
+    function finish(result) {
+      overlay.classList.remove('open');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlayClick);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(result);
+    }
+    function onOk() {
+      var val = input.value.trim();
+      if (opts.required && !val) { input.focus(); return; } // no deja mandar vacío
+      finish(val);
+    }
+    function onCancel()        { finish(null); }
+    function onOverlayClick(e) { if (e.target === overlay) finish(null); }
+    function onKeydown(e)      { if (e.key === 'Escape') finish(null); }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlayClick);
+    document.addEventListener('keydown', onKeydown);
+    overlay.classList.add('open');
+    setTimeout(function () { input.focus(); }, 50); // después de que termine la transición de apertura
+  });
+}
+
+/* ================================================================
    SECCIÓN: MODO OSCURO
    Guarda la preferencia del tema en localStorage para que
    persista entre páginas y sesiones.
@@ -645,8 +716,12 @@ function openProductModal(productOrId) {
   var enCarrito     = cartQtyOf(productId);
   var disponible    = product.stock !== undefined ? Math.max(product.stock - enCarrito, 0) : undefined;
   var sinDisponible = !outOfStock && disponible !== undefined && disponible <= 0;
-  var lowStock      = !outOfStock && !sinDisponible && product.stock !== undefined &&
-                       product.stock_minimo !== undefined && product.stock <= product.stock_minimo;
+  // Igual que en buildProductCard: sobre lo que REALMENTE queda
+  // disponible para agregar (ya restando lo que tienes en el carrito),
+  // no sobre el stock total de la tienda.
+  var stockEfectivo = disponible !== undefined ? disponible : product.stock;
+  var lowStock      = !outOfStock && !sinDisponible && stockEfectivo !== undefined &&
+                       product.stock_minimo !== undefined && stockEfectivo <= product.stock_minimo;
   var addBtn = document.getElementById('prod-modal-add');
   addBtn.disabled = outOfStock || sinDisponible;
   addBtn.innerHTML = outOfStock ? 'Agotado' : sinDisponible ? 'Ya tienes todo el stock' : '&#128722; Agregar al carrito';
@@ -656,7 +731,7 @@ function openProductModal(productOrId) {
     stockNote.textContent = 'Ya tienes todo el stock disponible en tu carrito';
     stockNote.classList.remove('hidden');
   } else if (lowStock) {
-    stockNote.textContent = '¡Últimas ' + product.stock + ' piezas!';
+    stockNote.textContent = '¡Últimas ' + stockEfectivo + ' piezas!';
     stockNote.classList.remove('hidden');
   } else {
     stockNote.classList.add('hidden');
@@ -882,6 +957,65 @@ function initLegalModals() {
       if (e.target === overlay) overlay.classList.remove('activo');
     });
   });
+}
+
+/* ================================================================
+   SECCIÓN: MODAL DE AYUDA
+   Antes "Ayuda" (en el drawer y el desplegable de Cuenta, ver auth.js)
+   mandaba a contacto.html. Ahora abre esta guía en un modal, con el
+   mismo look que Términos/Privacidad (.legal-modal-overlay/.modal-box)
+   — pero se inyecta por JS en vez de duplicar el HTML en cada página,
+   porque "Ayuda" aparece en TODAS las páginas (hasta login/registro,
+   que no tienen footer con los modales legales).
+   Uso: openHelpModal() — la inyecta sola la primera vez que se llama.
+================================================================ */
+function injectHelpModal() {
+  if (document.getElementById('modal-ayuda')) return; // ya está inyectado
+
+  var overlay = document.createElement('div');
+  overlay.className = 'legal-modal-overlay';
+  overlay.id = 'modal-ayuda';
+  overlay.innerHTML =
+    '<div class="modal-box">' +
+      '<button class="modal-cerrar" aria-label="Cerrar">&times;</button>' +
+      '<h2>❓ Centro de ayuda</h2>' +
+      '<p>Una guía rápida de cómo funciona Dulcería Charles, desde crear tu cuenta hasta recoger tu pedido.</p>' +
+
+      '<h3>1. 🧾 Cómo registrarte</h3>' +
+      '<p>Toca <strong>Crear cuenta</strong> en el menú, escribe tu nombre, correo y una contraseña de al menos 8 caracteres. ' +
+      'Es gratis y toma menos de un minuto — no pedimos tarjeta ni datos de pago para registrarte.</p>' +
+
+      '<h3>2. 🛒 Cómo comprar</h3>' +
+      '<p>1) Elige tus productos en el <strong>Catálogo</strong> y agrégalos al carrito.<br>' +
+      '2) Ve al carrito y toca <strong>Realizar pedido</strong>.<br>' +
+      '3) Confirma tu nombre, teléfono y método de pago.<br>' +
+      '4) Pasa a recoger tu pedido a la tienda dentro del horario de atención, y pagas en efectivo al recogerlo.</p>' +
+
+      '<h3>3. ✨ Ventajas de tener una cuenta</h3>' +
+      '<p>• Tus <strong>favoritos</strong> quedan guardados entre visitas.<br>' +
+      '• Puedes ver el <strong>historial y estado</strong> de todos tus pedidos.<br>' +
+      '• Si dejas un pedido a medias, puedes retomarlo después sin volver a armar el carrito.<br>' +
+      '• Si un producto que querías se agota, puedes avisarle a la tienda con un clic.<br>' +
+      '• Tus datos de contacto quedan guardados para pedidos más rápidos la próxima vez.</p>' +
+
+      '<h3>4. 💳 Métodos de pago y entrega</h3>' +
+      '<p>Por ahora solo manejamos <strong>pago en efectivo</strong>, directo al recoger tu pedido en tienda — no hacemos envíos a domicilio.</p>' +
+
+      '<p style="margin-top:1.4rem;">¿Sigues con dudas? <a href="contacto.html">Escríbenos por WhatsApp o visita la página de Contacto →</a></p>' +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('.modal-cerrar').addEventListener('click', function() {
+    overlay.classList.remove('activo');
+  });
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) overlay.classList.remove('activo');
+  });
+}
+
+function openHelpModal() {
+  injectHelpModal();
+  document.getElementById('modal-ayuda').classList.add('activo');
 }
 
 /* ================================================================
@@ -1334,6 +1468,16 @@ document.addEventListener('DOMContentLoaded', function() {
   /* 4c. Modales de Términos y Condiciones / Aviso de Privacidad del footer */
   initLegalModals();
 
+  /* 4d. "Mis Pedidos" y "Favoritos" del nav (navbar + drawer) son solo
+     para cuentas registradas — un visitante no tiene ni lo uno ni lo
+     otro. Los links llevan la clase .nav-auth-only en el HTML; aquí
+     nada más se ocultan si no hay sesión. */
+  if (!isLoggedIn()) {
+    document.querySelectorAll('.nav-auth-only').forEach(function (el) {
+      el.style.display = 'none';
+    });
+  }
+
   /* 5. Inicializar el drawer de autenticación (definido en auth.js) */
   initAuthDrawer();
 
@@ -1444,9 +1588,32 @@ function buildProductCard(product) {
   var disponible = product.stock !== undefined ? Math.max(product.stock - enCarrito, 0) : undefined;
   var sinDisponible = !outOfStock && disponible !== undefined && disponible <= 0;
 
+  // Los badges de "queda poco"/"hay de sobra" se calculan sobre lo que
+  // REALMENTE le queda disponible al cliente (disponible = stock de la
+  // tienda menos lo que ya tiene en su carrito), no sobre el stock total
+  // de la tienda — antes usaban product.stock directo, así que si el
+  // cliente ya se había llevado casi todo al carrito, el badge se
+  // quedaba pegado en "Más de 10" aunque en realidad ya no quedaran ni
+  // 5 piezas para agregar.
+  var stockEfectivo = disponible !== undefined ? disponible : product.stock;
+
   // "Queda poco": mismo criterio que el modal de detalle (stock <= stock_minimo).
-  var lowStock   = !outOfStock && !sinDisponible && product.stock !== undefined &&
-                   product.stock_minimo !== undefined && product.stock <= product.stock_minimo;
+  var lowStock   = !outOfStock && !sinDisponible && stockEfectivo !== undefined &&
+                   product.stock_minimo !== undefined && stockEfectivo <= product.stock_minimo;
+
+  // "Hay de sobra": lo opuesto de "queda poco" — stock cómodo, muy por
+  // encima del mínimo. En vez de mostrar el número exacto de piezas
+  // (info que no le sirve al cliente y sí a la competencia), redondeamos
+  // hacia abajo al número "bonito" más grande que siga siendo cierto:
+  // con 107 en existencia decimos "Más de 100", no "Más de 107".
+  var plentyThreshold = null;
+  if (!outOfStock && !sinDisponible && !lowStock && stockEfectivo !== undefined) {
+    [100, 50, 20, 10, 5].some(function (n) {
+      if (stockEfectivo > n) { plentyThreshold = n; return true; }
+      return false;
+    });
+  }
+
   // Tope del selector +/-: si no sabemos el stock (producto viejo sin migrar),
   // dejamos un tope alto para no bloquear la compra sin motivo.
   var maxQty = disponible !== undefined ? disponible : 99;
@@ -1464,7 +1631,8 @@ function buildProductCard(product) {
       '</button>' +
       (outOfStock ? '<span class="card-out-badge">Agotado</span>'
         : sinDisponible ? '<span class="card-out-badge card-out-badge--in-cart">Ya está en tu carrito</span>'
-        : lowStock ? '<span class="card-out-badge card-out-badge--low">¡Quedan ' + product.stock + '!</span>' : '') +
+        : lowStock ? '<span class="card-out-badge card-out-badge--low">¡Quedan ' + stockEfectivo + '!</span>'
+        : plentyThreshold ? '<span class="card-out-badge card-out-badge--plenty">Más de ' + plentyThreshold + ' disponibles</span>' : '') +
     '</div>' +
     '<div class="card-body">' +
       '<p class="card-name">'  + escapeHtml(product.name)     + '</p>' +

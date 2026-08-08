@@ -266,11 +266,32 @@ async function apiGetPedido(id) { return apiFetch('/pedidos/' + id); }
 /* Todos los pedidos (para el panel admin) */
 async function apiGetTodosPedidos() { return apiFetch('/pedidos'); }
 
-/* Cambia el estado de un pedido desde el admin */
-async function apiCambiarEstadoPedido(id, estado) {
+/* Cambia el estado de un pedido desde el admin. motivo es opcional —
+   solo se usa (y solo importa) cuando estado es 'cancelado', para
+   avisarle al cliente por qué (ver PATCH /:id/estado en pedidos.js). */
+async function apiCambiarEstadoPedido(id, estado, motivo) {
   return apiFetch('/pedidos/' + id + '/estado', {
     method: 'PATCH',
-    body: JSON.stringify({ estado })
+    body: JSON.stringify({ estado, motivo })
+  });
+}
+
+/* Cliente con un pedido incompleto avisa al dueño que un producto ya
+   se agotó (ver pedidos.html → js/pedidos.js). */
+async function apiAvisarAgotado(pedidoId, productoId) {
+  return apiFetch('/pedidos/' + pedidoId + '/avisar-agotado', {
+    method: 'POST',
+    body: JSON.stringify({ producto_id: productoId })
+  });
+}
+
+/* El cliente cancela su propio pedido (a diferencia de
+   apiCambiarEstadoPedido, que es solo para el admin). motivo es
+   obligatorio — el backend lo rechaza si viene vacío. */
+async function apiCancelarPedido(id, motivo) {
+  return apiFetch('/pedidos/' + id + '/cancelar', {
+    method: 'POST',
+    body: JSON.stringify({ motivo })
   });
 }
 
@@ -317,6 +338,39 @@ async function apiEliminarChatbotFaq(id)       { return apiFetch('/chatbot-faq/'
 
 async function apiGetContacto()          { return apiFetch('/config/contacto'); }
 async function apiGuardarContacto(datos) { return apiFetch('/config/contacto', { method: 'PUT', body: JSON.stringify(datos) }); }
+
+/* Envía el formulario de la página Contacto — reemplaza al POST directo
+   a Formspree que se usaba antes (ver contacto.js). Público, no
+   necesita sesión. */
+async function apiEnviarContacto(datos) {
+  return apiFetch('/config/contacto-mensaje', { method: 'POST', body: JSON.stringify(datos) });
+}
+
+/* ================================================================
+   AVISOS DE STOCK (panel admin)
+   Ver backend/routes/avisos.js.
+================================================================ */
+async function apiGetAvisosStock() { return apiFetch('/avisos-stock'); }
+
+/* ================================================================
+   AUDITORÍAS (panel admin)
+   Ver backend/routes/auditorias.js. apiGetAuditoriaHtml() NO usa
+   apiFetch porque la respuesta es HTML crudo, no JSON — se maneja
+   con fetch() directo, pero igual mandando el token de admin.
+================================================================ */
+async function apiGetAuditorias() { return apiFetch('/auditorias'); }
+
+async function apiGetAuditoriaHtml(nombre) {
+  const token = getToken();
+  const res = await fetch(API_BASE + '/auditorias/' + encodeURIComponent(nombre), {
+    headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Error al obtener la auditoría.');
+  }
+  return res.text();
+}
 
 /* ================================================================
    FUNCIÓN INTERNA: _saveSession

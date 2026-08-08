@@ -51,10 +51,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (eliminados.length || corregidos.length) {
       saveCart(cartCorregido);
       cart = cartCorregido;
+      // Esto pasa sin que el cliente haga nada (alguien más compró el
+      // producto mientras estaba en su carrito) — antes se avisaba con
+      // un toast que desaparecía en 2.5s y era fácil no alcanzar a leerlo.
+      // Al ser un cambio silencioso e importante (le quitamos algo de su
+      // carrito), usamos el modal con "Aceptar" en vez del toast.
       if (eliminados.length) {
-        showToast('Ya no tenemos ' + (eliminados.length > 1 ? 'existencias de estos productos' : eliminados[0]) + ' — se ' + (eliminados.length > 1 ? 'quitaron' : 'quitó') + ' de tu carrito.');
+        dcAlert('Ya no tenemos ' + (eliminados.length > 1 ? 'existencias de estos productos' : eliminados[0]) + ' — se ' + (eliminados.length > 1 ? 'quitaron' : 'quitó') + ' de tu carrito.');
       } else {
-        showToast(corregidos.length > 1
+        dcAlert(corregidos.length > 1
           ? 'Bajamos la cantidad de ' + corregidos.length + ' productos porque ya no hay tantas piezas disponibles.'
           : 'Solo quedan piezas limitadas de ' + corregidos[0] + ' — ajustamos la cantidad en tu carrito.');
       }

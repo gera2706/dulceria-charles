@@ -49,6 +49,24 @@
 .price-filter label { font-size: 0.9rem; color: var(--text-light); display: block; margin-bottom: 0.4rem; }
 input[type="range"] { width: 100%; accent-color: var(--pink); }
 
+/* Campo para escribir el precio máximo a mano, además del slider de
+   arriba — mismo look que .search-input para que se sienta parte del
+   mismo grupo de filtros. */
+.price-max-input {
+  width: 100%;
+  margin-top: 0.6rem;
+  padding: 0.5rem 0.8rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+  color: var(--text);
+  background: var(--white);
+}
+.price-max-input:focus { border-color: var(--pink); }
+
 .search-input {
   width: 100%;
   padding: 0.5rem 0.8rem;

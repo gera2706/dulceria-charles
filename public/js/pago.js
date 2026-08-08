@@ -230,7 +230,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     } catch (e) {
       btn.disabled    = false;
       btn.textContent = '✅ Confirmar pedido 🎉';
-      await dcAlert('Error al procesar el pedido: ' + e.message);
+      // Antes se anteponía "Error al procesar el pedido: " a e.message,
+      // lo que quedaba redundante con mensajes como el de falta de stock
+      // (ya escrito en tono de disculpa desde el backend, ver pedidos.js).
+      // Los mensajes del backend ya están redactados para mostrarse solos.
+      await dcAlert(e.message);
     }
   });
 

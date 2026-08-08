@@ -74,8 +74,17 @@ function initAuthDrawer() {
     regA.href      = 'registro.html';
     regA.innerHTML = ICON_USERPLUS + ' Crear cuenta';
 
+    var ayudaVisitanteA = document.createElement('a');
+    ayudaVisitanteA.href      = '#';
+    ayudaVisitanteA.innerHTML = ICON_HELP + ' Ayuda';
+    ayudaVisitanteA.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (typeof openHelpModal === 'function') openHelpModal();
+    });
+
     drawer.appendChild(loginA);
     drawer.appendChild(regA);
+    drawer.appendChild(ayudaVisitanteA);
 
   } else {
     /* El nombre y el rol ya se muestran en el saludo del encabezado
@@ -99,8 +108,12 @@ function initAuthDrawer() {
     }
 
     var ayudaA = document.createElement('a');
-    ayudaA.href      = 'contacto.html';
+    ayudaA.href      = '#';
     ayudaA.innerHTML = ICON_HELP + ' Ayuda';
+    ayudaA.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (typeof openHelpModal === 'function') openHelpModal();
+    });
     drawer.appendChild(ayudaA);
 
     var logoutBtn = document.createElement('button');
@@ -217,8 +230,17 @@ function initNavAccountMenu() {
     regA.href = 'registro.html';
     regA.innerHTML = ICON_USERPLUS + ' Crear cuenta';
 
+    var ayudaVisitanteA = document.createElement('a');
+    ayudaVisitanteA.href = '#';
+    ayudaVisitanteA.innerHTML = ICON_HELP + ' Ayuda';
+    ayudaVisitanteA.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (typeof openHelpModal === 'function') openHelpModal();
+    });
+
     wrap.appendChild(loginA);
     wrap.appendChild(regA);
+    wrap.appendChild(ayudaVisitanteA);
 
     // Botón solo con el ícono cuando no hay sesión (antes ya era así,
     // pero lo reafirmamos por si initNavAccountMenu se vuelve a llamar
@@ -248,8 +270,12 @@ function initNavAccountMenu() {
     }
 
     var ayudaA = document.createElement('a');
-    ayudaA.href = 'contacto.html';
+    ayudaA.href = '#';
     ayudaA.innerHTML = ICON_HELP + ' Ayuda';
+    ayudaA.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (typeof openHelpModal === 'function') openHelpModal();
+    });
     wrap.appendChild(ayudaA);
 
     var hr = document.createElement('hr');

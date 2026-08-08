@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   var filterList   = document.getElementById('filter-list');
   var priceRange   = document.getElementById('price-range');
   var priceVal     = document.getElementById('price-val');
+  var priceMaxInput = document.getElementById('price-max-input');
   var searchInput  = document.getElementById('search-input');
   var sortSelect   = document.getElementById('sort-select');
   var resultsCount = document.getElementById('results-count');
@@ -121,6 +122,23 @@ document.addEventListener('DOMContentLoaded', async function () {
   priceRange.addEventListener('input', function () {
     maxPrice = +priceRange.value;
     priceVal.textContent = maxPrice;
+    priceMaxInput.value  = maxPrice; // el campo manual se mueve junto con el slider
+    renderProducts();
+  });
+
+  /* Campo manual: mismo filtro que el slider, pero con la precisión de
+     escribir el número exacto en vez de arrastrar. Los dos quedan
+     sincronizados en ambas direcciones. change (no input) para no
+     refiltrar mientras el usuario todavía está escribiendo el número. */
+  priceMaxInput.addEventListener('change', function () {
+    var val = parseInt(priceMaxInput.value, 10);
+    var min = +priceRange.min, max = +priceRange.max;
+    if (isNaN(val)) { priceMaxInput.value = maxPrice; return; } // vacío/no numérico: no tocar el filtro
+    val = Math.min(Math.max(val, min), max); // lo mantenemos dentro del rango del slider
+    priceMaxInput.value = val;
+    maxPrice = val;
+    priceRange.value = val;
+    priceVal.textContent = val;
     renderProducts();
   });
 

@@ -740,6 +740,7 @@ ul { list-style: none; }
 [data-theme="dark"] .form-group textarea,
 [data-theme="dark"] .phone-wrap input,
 [data-theme="dark"] .search-input,
+[data-theme="dark"] .price-max-input,
 [data-theme="dark"] #sort-select {
   background: #2e2249;
   color: var(--text);
@@ -976,6 +977,11 @@ ul { list-style: none; }
    apartaste todo), así que usa el rosa de la marca en vez del rojo/
    ámbar de las otras variantes, que sí implican "no se puede comprar". */
 .card-out-badge--in-cart { background: var(--pink); }
+
+/* Variante para "hay de sobra" (stock cómodamente por encima de la
+   alerta de stock bajo) — verde, para que se lea como algo bueno/
+   tranquilizador y no se confunda con las variantes de advertencia. */
+.card-out-badge--plenty { background: rgba(21,128,61,0.9); }
 
 /* ===== SELECTOR DE CANTIDAD (+/-) =====
    Usado en el carrito (carrito.js), las tarjetas del catalogo/destacados
@@ -1292,6 +1298,26 @@ body.drawer-is-open .dc-chat-panel { opacity: 0; transform: translateY(16px) sca
 }
 .dc-confirm-actions { display: flex; gap: 0.7rem; justify-content: center; }
 .dc-confirm-actions .btn { padding: 0.55rem 1.3rem; font-size: 0.9rem; }
+
+/* Textarea de dcPrompt() — mismo cuadro que dcConfirm/dcAlert, con un
+   campo de texto agregado (ver cart.js). text-align left porque un
+   párrafo escrito centrado es difícil de leer. */
+.dc-prompt-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 60px;
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.92rem;
+  text-align: left;
+  color: var(--text);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.dc-prompt-input:focus { border-color: var(--pink); }
 
 /* ================================================================
    TRANSICIONES Y ANIMACIONES GLOBALES
