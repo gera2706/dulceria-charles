@@ -10,7 +10,10 @@
 
 const router = require('express').Router();
 const db     = require('../db');
+const mailer   = require('../mailer');
+const whatsapp = require('../whatsapp');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { revisarAlertaStock } = require('../utils/stockAlertas');
 
 const ESTADOS_VALIDOS = ['pendiente_finalizar','pendiente_entregar','entregado','cancelado'];
 
@@ -115,7 +118,7 @@ async function validarYDescontarStock(conn, items) {
     if (!rows.length) continue; // el producto fue eliminado; no bloqueamos el pedido por eso
 
     if (rows[0].stock < cantidad) {
-      const err = new Error('No hay suficiente stock de "' + rows[0].nombre + '" (quedan ' + rows[0].stock + ').');
+      const err = new Error('Lo sentimos, por el momento no hay suficiente "' + rows[0].nombre + '" (quedan ' + rows[0].stock + ').');
       err.status = 409; // "Conflicto": el pedido ya no se puede cumplir con lo que hay disponible
       throw err;
     }
@@ -143,16 +146,20 @@ function agruparPedidosConItems(rows) {
   const map = new Map();
   for (const row of rows) {
     if (!map.has(row.id)) {
-      const { item_id, item_nombre, item_precio, item_cantidad, item_producto_id, ...pedido } = row;
+      const { item_id, item_nombre, item_precio, item_cantidad, item_producto_id, item_stock_actual, ...pedido } = row;
       map.set(row.id, { ...pedido, items: [] });
     }
     if (row.item_id) {
       map.get(row.id).items.push({
-        id:          row.item_id,
-        producto_id: row.item_producto_id,
-        nombre:      row.item_nombre,
-        precio:      row.item_precio,
-        cantidad:    row.item_cantidad
+        id:            row.item_id,
+        producto_id:   row.item_producto_id,
+        nombre:        row.item_nombre,
+        precio:        row.item_precio,
+        cantidad:      row.item_cantidad,
+        // NULL si el producto ya no existe (fue eliminado); un número
+        // (incluido 0) si sigue existiendo. Lo usa pedidos.js del
+        // frontend para saber si un pedido incompleto quedó "agotado".
+        stock_actual:  row.item_stock_actual
       });
     }
   }
@@ -245,6 +252,14 @@ router.put('/:id/completar', authMiddleware, async (req, res) => {
     );
 
     await conn.commit();
+
+    // Después de confirmar la transacción (nunca antes: si algo de arriba
+    // fallara y se hiciera rollback, no queremos haber mandado ya un
+    // correo de "se agotó" por stock que en realidad no se llegó a vender).
+    if (estadoActual === 'pendiente_finalizar') {
+      for (const item of items) await revisarAlertaStock(db, item.producto_id);
+    }
+
     res.json({ ok: true });
   } catch (err) {
     if (conn) await conn.rollback();
@@ -283,6 +298,9 @@ router.post('/', authMiddleware, async (req, res) => {
     );
     await insertarItems(conn, result.insertId, itemsValidados);
     await conn.commit();
+
+    for (const item of itemsValidados) await revisarAlertaStock(db, item.producto_id);
+
     res.status(201).json({ ok: true, pedidoId: result.insertId });
   } catch (err) {
     if (conn) await conn.rollback();
@@ -322,11 +340,13 @@ router.get('/mios', authMiddleware, async (req, res) => {
     let sql =
       `SELECT p.id, p.subtotal, p.total,
               p.estado, p.metodo_pago, p.nombre_envio, p.telefono, p.fecha,
+              p.motivo_cancelacion, p.cancelado_por,
               pi.id AS item_id, pi.producto_id AS item_producto_id,
               pi.nombre AS item_nombre, pi.precio AS item_precio,
-              pi.cantidad AS item_cantidad
+              pi.cantidad AS item_cantidad, pr.stock AS item_stock_actual
        FROM pedidos p
        LEFT JOIN pedido_items pi ON pi.pedido_id = p.id
+       LEFT JOIN productos pr ON pr.id = pi.producto_id
        WHERE p.usuario_id = ?`;
     const vals = [req.user.id];
     if (idsPedidos) {
@@ -351,11 +371,13 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const [rows] = await db.query(
       `SELECT p.id, p.subtotal, p.total,
               p.estado, p.metodo_pago, p.nombre_envio, p.telefono, p.fecha,
+              p.motivo_cancelacion, p.cancelado_por,
               pi.id AS item_id, pi.producto_id AS item_producto_id,
               pi.nombre AS item_nombre, pi.precio AS item_precio,
-              pi.cantidad AS item_cantidad
+              pi.cantidad AS item_cantidad, pr.stock AS item_stock_actual
        FROM pedidos p
        LEFT JOIN pedido_items pi ON pi.pedido_id = p.id
+       LEFT JOIN productos pr ON pr.id = pi.producto_id
        WHERE p.id = ? AND p.usuario_id = ?`,
       [req.params.id, req.user.id]
     );
@@ -364,6 +386,85 @@ router.get('/:id', authMiddleware, async (req, res) => {
     res.json(pedido);
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener pedido.' });
+  }
+});
+
+/* ----------------------------------------------------------------
+   POST /api/pedidos/:id/avisar-agotado
+   El cliente tiene un pedido "pendiente_finalizar" (incompleto) con
+   un producto que ya se agotó, y toca "Avisar al dueño" en Mis
+   Pedidos. Manda un correo al dueño y deja constancia en
+   avisos_stock (origen 'cliente') para que se vea en el panel admin.
+   RECIBE: { producto_id }
+   No deja avisar dos veces por el mismo pedido+producto (evita que
+   varios clics manden varios correos): si ya existe un aviso de
+   'cliente' para ese pedido+producto, responde ok sin repetir nada.
+---------------------------------------------------------------- */
+router.post('/:id/avisar-agotado', authMiddleware, async (req, res) => {
+  const productoId = parseInt(req.body.producto_id, 10);
+  if (!productoId) return res.status(400).json({ error: 'Falta producto_id.' });
+
+  try {
+    // El pedido tiene que ser del usuario logueado y seguir incompleto —
+    // no tiene sentido avisar sobre un pedido ya cancelado o entregado.
+    const [pedidoRows] = await db.query(
+      'SELECT id, estado FROM pedidos WHERE id = ? AND usuario_id = ?',
+      [req.params.id, req.user.id]
+    );
+    if (!pedidoRows.length) return res.status(404).json({ error: 'Pedido no encontrado.' });
+    if (pedidoRows[0].estado !== 'pendiente_finalizar')
+      return res.status(409).json({ error: 'Este pedido ya no está pendiente.' });
+
+    // El producto tiene que estar realmente en ese pedido...
+    const [itemRows] = await db.query(
+      'SELECT id FROM pedido_items WHERE pedido_id = ? AND producto_id = ?',
+      [req.params.id, productoId]
+    );
+    if (!itemRows.length) return res.status(404).json({ error: 'Ese producto no está en el pedido.' });
+
+    // ...y realmente estar agotado (no dejamos "avisar" de un producto
+    // que sigue disponible, aunque alguien manipule la petición).
+    const [prodRows] = await db.query('SELECT nombre, stock FROM productos WHERE id = ?', [productoId]);
+    if (!prodRows.length) return res.status(404).json({ error: 'Producto no encontrado.' });
+    if (prodRows[0].stock > 0) return res.status(409).json({ error: 'Ese producto ya tiene existencias de nuevo.' });
+
+    // Evita reenviar el correo si el cliente le da varias veces al botón.
+    const [yaAvisado] = await db.query(
+      `SELECT id FROM avisos_stock WHERE pedido_id = ? AND producto_id = ? AND usuario_id = ? AND origen = 'cliente'`,
+      [req.params.id, productoId, req.user.id]
+    );
+    if (yaAvisado.length) return res.json({ ok: true, yaAvisado: true });
+
+    await db.query(
+      `INSERT INTO avisos_stock (producto_id, tipo, origen, usuario_id, pedido_id) VALUES (?,'agotado','cliente',?,?)`,
+      [productoId, req.user.id, req.params.id]
+    );
+
+    try {
+      await mailer.enviarAlertaStock({
+        nombre: prodRows[0].nombre,
+        stock: 0,
+        tipo: 'agotado',
+        origen: 'cliente',
+        cliente: req.user.nombre || req.user.email,
+        pedidoId: req.params.id
+      });
+    } catch (mailErr) {
+      // El aviso ya quedó registrado en avisos_stock (se ve en el panel
+      // igual); si solo falla el correo, no le mostramos un error al
+      // cliente por algo que no depende de él.
+      console.error('Error al enviar correo de aviso de stock:', mailErr);
+    }
+
+    // WhatsApp: canal aparte del correo, no truena si no está configurado.
+    await whatsapp.enviarWhatsAppDueno(
+      'Un cliente avisó que "' + prodRows[0].nombre + '" ya se agotó (pedido #' + req.params.id + ').'
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al avisar al dueño.' });
   }
 });
 
@@ -406,6 +507,7 @@ router.get('/', adminMiddleware, async (req, res) => {
     let sql =
       `SELECT p.id, p.subtotal, p.total,
               p.estado, p.metodo_pago, p.nombre_envio, p.telefono, p.fecha,
+              p.motivo_cancelacion, p.cancelado_por,
               u.nombre AS cliente_nombre, u.email AS cliente_email,
               pi.id AS item_id, pi.producto_id AS item_producto_id,
               pi.nombre AS item_nombre, pi.precio AS item_precio,
@@ -439,9 +541,11 @@ router.get('/', adminMiddleware, async (req, res) => {
    Cambia el estado de un pedido (admin). Valida que la transición
    tenga sentido (ver TRANSICIONES_VALIDAS) para evitar reabrir un
    pedido cancelado o duplicar la restauración de stock.
+   RECIBE: { estado, motivo } — motivo es opcional, solo se guarda
+   cuando estado es 'cancelado' (se le manda al cliente por correo).
 ---------------------------------------------------------------- */
 router.patch('/:id/estado', adminMiddleware, async (req, res) => {
-  const { estado } = req.body;
+  const { estado, motivo } = req.body;
   if (!ESTADOS_VALIDOS.includes(estado))
     return res.status(400).json({ error: 'Estado inválido.' });
 
@@ -450,7 +554,15 @@ router.patch('/:id/estado', adminMiddleware, async (req, res) => {
     conn = await db.getConnection();
     await conn.beginTransaction();
 
-    const [rows] = await conn.query('SELECT estado FROM pedidos WHERE id = ? FOR UPDATE', [req.params.id]);
+    // Traemos también el correo/nombre del cliente y el usuario_id:
+    // si el pedido termina cancelado, hay que avisarle por correo
+    // (ver mailer.enviarAvisoCancelacion más abajo).
+    const [rows] = await conn.query(
+      `SELECT p.estado, p.usuario_id, u.email AS cliente_email, u.nombre AS cliente_nombre
+       FROM pedidos p LEFT JOIN usuarios u ON u.id = p.usuario_id
+       WHERE p.id = ? FOR UPDATE`,
+      [req.params.id]
+    );
     if (!rows.length) {
       await conn.rollback();
       return res.status(404).json({ error: 'Pedido no encontrado.' });
@@ -471,6 +583,7 @@ router.patch('/:id/estado', adminMiddleware, async (req, res) => {
     // al inventario. Si venía de "pendiente_finalizar", nunca se
     // descontó nada, así que no hay nada que restaurar.
     const yaDescontado = ['pendiente_entregar', 'entregado'].includes(estadoAnterior);
+    const seCancela = estado === 'cancelado' && estadoAnterior !== 'cancelado';
     if (estado === 'cancelado' && yaDescontado) {
       const [items] = await conn.query(
         'SELECT producto_id, cantidad FROM pedido_items WHERE pedido_id = ?', [req.params.id]
@@ -478,13 +591,115 @@ router.patch('/:id/estado', adminMiddleware, async (req, res) => {
       await restaurarStock(conn, items);
     }
 
-    await conn.query('UPDATE pedidos SET estado = ? WHERE id = ?', [estado, req.params.id]);
+    if (seCancela) {
+      await conn.query(
+        'UPDATE pedidos SET estado = ?, motivo_cancelacion = ?, cancelado_por = \'admin\' WHERE id = ?',
+        [estado, motivo || null, req.params.id]
+      );
+    } else {
+      await conn.query('UPDATE pedidos SET estado = ? WHERE id = ?', [estado, req.params.id]);
+    }
+
     await conn.commit();
+
+    // Después de confirmar la transacción (mismo motivo que en
+    // /avisar-agotado: si algo de arriba fallara, no queremos haber
+    // avisado ya de una cancelación que no se llegó a aplicar).
+    if (seCancela && rows[0].cliente_email) {
+      try {
+        await mailer.enviarAvisoCancelacion({
+          destino: rows[0].cliente_email,
+          paraCliente: true,
+          pedidoId: req.params.id,
+          motivo: motivo || null
+        });
+      } catch (mailErr) {
+        console.error('Error al enviar correo de cancelación al cliente:', mailErr);
+      }
+    }
+
     res.json({ ok: true });
   } catch (err) {
     if (conn) await conn.rollback();
     console.error(err);
     res.status(500).json({ error: 'Error al actualizar estado.' });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
+/* ----------------------------------------------------------------
+   POST /api/pedidos/:id/cancelar
+   El CLIENTE cancela su propio pedido (a diferencia de PATCH
+   /:id/estado, que es solo para el admin). Solo se puede cancelar un
+   pedido que sigue "pendiente_finalizar" o "pendiente_entregar" —
+   uno ya "entregado" es un caso de devolución/reclamo, no un simple
+   cancelar, y ahí sí queremos que pase por el admin.
+   RECIBE: { motivo } — obligatorio, para que el dueño sepa por qué.
+---------------------------------------------------------------- */
+router.post('/:id/cancelar', authMiddleware, async (req, res) => {
+  const motivo = (req.body.motivo || '').trim();
+  if (!motivo) return res.status(400).json({ error: 'Escribe el motivo de la cancelación.' });
+
+  let conn;
+  try {
+    conn = await db.getConnection();
+    await conn.beginTransaction();
+
+    const [rows] = await conn.query(
+      'SELECT estado FROM pedidos WHERE id = ? AND usuario_id = ? FOR UPDATE',
+      [req.params.id, req.user.id]
+    );
+    if (!rows.length) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Pedido no encontrado.' });
+    }
+    const estadoAnterior = rows[0].estado;
+
+    if (!['pendiente_finalizar', 'pendiente_entregar'].includes(estadoAnterior)) {
+      await conn.rollback();
+      return res.status(409).json({ error: 'Este pedido ya no se puede cancelar desde aquí.' });
+    }
+
+    // "pendiente_entregar" ya había descontado stock al confirmarse —
+    // hay que devolverlo. "pendiente_finalizar" nunca descontó nada.
+    if (estadoAnterior === 'pendiente_entregar') {
+      const [items] = await conn.query(
+        'SELECT producto_id, cantidad FROM pedido_items WHERE pedido_id = ?', [req.params.id]
+      );
+      await restaurarStock(conn, items);
+    }
+
+    await conn.query(
+      `UPDATE pedidos SET estado = 'cancelado', motivo_cancelacion = ?, cancelado_por = 'cliente' WHERE id = ?`,
+      [motivo, req.params.id]
+    );
+
+    await conn.commit();
+
+    try {
+      await mailer.enviarAvisoCancelacion({
+        destino: process.env.SMTP_USER,
+        paraCliente: false,
+        pedidoId: req.params.id,
+        motivo: motivo,
+        nombreCliente: req.user.nombre || req.user.email
+      });
+    } catch (mailErr) {
+      console.error('Error al enviar correo de cancelación al dueño:', mailErr);
+    }
+
+    // WhatsApp: canal aparte del correo, no truena si no está configurado.
+    await whatsapp.enviarWhatsAppDueno(
+      (req.user.nombre || req.user.email) + ' canceló su pedido #' + req.params.id +
+      (motivo ? ' — ' + motivo : '')
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    if (conn) await conn.rollback();
+    console.error(err);
+    res.status(500).json({ error: 'Error al cancelar el pedido.' });
   } finally {
     if (conn) conn.release();
   }
