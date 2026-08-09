@@ -1,4 +1,47 @@
-﻿/* ===== VARIABLES ===== */
+﻿/* ============================================================
+   TIPOGRAFÍA — Fraunces (display) y Nunito (texto), auto-hospedadas
+   ============================================================
+   Antes se cargaban desde fonts.googleapis.com / fonts.gstatic.com
+   con un <link> en cada página. Se movieron aquí (public/fonts/)
+   por dos razones, ambas del escaneo de seguridad (ZAP) de agosto/2026:
+     1. Para poder poner una Content-Security-Policy estricta sin
+        tener que abrirle un hueco a un origen externo solo por las
+        fuentes.
+     2. El endpoint dinámico de Google Fonts no soporta un atributo
+        integrity="..." confiable — el archivo que devuelve cambia
+        según el navegador de quien lo pide, así que un hash fijo se
+        rompería para muchos visitantes. Auto-hospedar quita el
+        problema de raíz en vez de solo documentarlo.
+   Solo se incluyó el subset "latin" (cubre español con tildes/ñ/¿/¡)
+   y únicamente los pesos que el sitio realmente usa — se revisó
+   font-weight en todo public/css/*.css antes de descargar nada.
+   Nunito se sirve como fuente variable: un solo archivo cubre los
+   pesos 300/400/600/700/800 que se usan en el sitio (el navegador
+   elige el peso exacto dentro del rango declarado).
+   ============================================================ */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url('../fonts/nunito-variable-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/fraunces-600-normal-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fraunces';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/fraunces-600-italic-latin.woff2') format('woff2');
+}
+
+/* ===== VARIABLES ===== */
 :root {
   --pink:       #d94c85;
   --pink-dark:  #ad3468;

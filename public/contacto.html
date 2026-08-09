@@ -7,7 +7,6 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%8D%AC</text></svg>" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/contacto.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
 </head>
 <body>
 
@@ -188,30 +187,7 @@
   <script src="js/cart.js"></script>
   <script src="js/cat-icon.js"></script>
   <script src="js/contacto.js"></script>
-  <script>
-    /* Cargar info de contacto desde la API */
-    (async function () {
-      try {
-        var cfg = await apiGetContacto();
-        /* Dirección */
-        var dir = (cfg.contacto_direccion || '') + (cfg.contacto_ciudad ? '<br/>' + cfg.contacto_ciudad : '');
-        document.getElementById('ci-direccion').innerHTML = dir || '—';
-        /* Horario — separado por | */
-        var hor = (cfg.contacto_horario || '').split('|').join('<br/>');
-        document.getElementById('ci-horario').innerHTML = hor || '—';
-        /* Teléfono */
-        document.getElementById('ci-telefono').textContent = cfg.contacto_telefono || '—';
-        /* Email */
-        document.getElementById('ci-email').textContent = cfg.contacto_email || '—';
-        /* WhatsApp: getWaLink usa el link configurado o, si no hay, lo arma
-           con el teléfono real (ver cart.js) */
-        var waLink = getWaLink(cfg);
-        if (waLink) document.getElementById('ci-whatsapp').href = waLink;
-      } catch (e) {
-        console.warn('No se pudo cargar la configuración de contacto:', e);
-      }
-    })();
-  </script>
+  <script src="js/contacto-info.js"></script>
   <div class="legal-modal-overlay" id="modal-terminos">
   <div class="modal-box">
     <button class="modal-cerrar" aria-label="Cerrar">&times;</button>
