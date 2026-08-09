@@ -28,6 +28,7 @@
 ================================================================ */
 
 const nodemailer = require('nodemailer');
+const fs         = require('fs');
 
 /* Escapa texto que viene de un usuario (nombre, motivo de cancelación...)
    antes de meterlo en el HTML del correo — sin esto, alguien podría
@@ -227,4 +228,34 @@ async function enviarMensajeContacto({ destino, nombre, email, telefono, asunto,
   });
 }
 
-module.exports = { enviarCorreoReseteo, enviarAlertaStock, enviarAvisoCancelacion, enviarMensajeContacto };
+/* Envía el respaldo diario de la base de datos como adjunto al correo
+   del dueño. Es la copia "fuera del hosting": el Cron Job de cPanel
+   ya guarda una copia en el propio servidor (/home/<usuario>/backups/,
+   ver memoria db-backup-cron), pero esa copia vive en el MISMO
+   hosting que el sitio — si Namecheap llegara a fallar por completo
+   (el miedo real que motivó esto), se pierde junto con todo lo demás.
+   Mandarla también por correo deja una copia en la infraestructura de
+   Google, completamente independiente del hosting.
+   Quien genera el archivo y llama a esta función es
+   backend/scripts/backupDB.js — ver ahí el resto del proceso. */
+async function enviarRespaldoBD(destino, rutaArchivo, nombreArchivo, fechaTexto) {
+  const transporter = getTransporter();
+  const kb = (fs.statSync(rutaArchivo).size / 1024).toFixed(1);
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || ('"Dulcería Charles" <' + process.env.SMTP_USER + '>'),
+    to: destino,
+    subject: '🗄️ Respaldo de base de datos — ' + fechaTexto,
+    html:
+      '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#333;">' +
+        '<h2 style="color:#d94c85;">🍬 Dulcería Charles</h2>' +
+        '<p>Respaldo automático de la base de datos del <strong>' + escapeHtml(fechaTexto) + '</strong>.</p>' +
+        '<p>Archivo adjunto: <strong>' + escapeHtml(nombreArchivo) + '</strong> (' + kb + ' KB, comprimido).</p>' +
+        '<p style="color:#888;font-size:0.85rem;">Este correo se genera solo automáticamente. Guárdalo o archívalo: es la copia de tu base de datos que vive fuera del hosting, por si Namecheap llegara a fallar.</p>' +
+      '</div>',
+    text: 'Respaldo automático de la base de datos del ' + fechaTexto + '. Archivo adjunto: ' + nombreArchivo + ' (' + kb + ' KB).',
+    attachments: [{ filename: nombreArchivo, path: rutaArchivo }]
+  });
+}
+
+module.exports = { enviarCorreoReseteo, enviarAlertaStock, enviarAvisoCancelacion, enviarMensajeContacto, enviarRespaldoBD };
