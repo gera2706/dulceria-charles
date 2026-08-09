@@ -37,9 +37,57 @@ const express   = require('express');
 const cors      = require('cors');
 const path      = require('path');
 const rateLimit = require('express-rate-limit');
+const helmet    = require('helmet');
 
 const app = express();
 // Creamos la aplicación Express. Todas las configuraciones se hacen sobre "app".
+
+/* ── Cabeceras de seguridad (helmet) ───────────────────────────
+   Se agregó tras un escaneo de seguridad (OWASP ZAP, agosto/2026)
+   que encontró 3 huecos reales en las cabeceras de respuesta:
+     1. Sin Content-Security-Policy → un XSS que lograra inyectar
+        HTML podría cargar script/estilos de cualquier origen.
+     2. Sin protección anti-clickjacking (X-Frame-Options) → el
+        sitio se podía embeber en un <iframe> ajeno para trucos de
+        "clickjacking" (superponer botones invisibles encima).
+     3. Recursos de Google Fonts sin atributo de integridad (SRI) →
+        se resolvió aparte, auto-hospedando las fuentes (ver
+        public/css/style.css y public/fonts/), así que aquí ya no
+        hace falta abrirle un hueco a fonts.googleapis.com/gstatic.com.
+   helmet() solo, sin configurar nada, YA trae por defecto varias
+   cosas más que también salieron en el escaneo (todas de riesgo
+   bajo): Strict-Transport-Security (HSTS), X-Content-Type-Options,
+   y ocultar el header "X-Powered-By: Express" que delataba la
+   tecnología del backend.
+
+   La política de abajo es la mínima necesaria para que el sitio siga
+   funcionando igual — se armó revisando TODO public/ (cada <script>,
+   cada <link>, cada <iframe>) antes de escribirla, no es una plantilla
+   genérica. Los únicos orígenes externos que el sitio realmente usa:
+     - www.google.com → el iframe de Google Maps en contacto.html
+   Todo lo demás (scripts, imágenes, estilos, llamadas a la API) es
+   del propio dominio. */
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'"], // todos los <script> del sitio son propios (js/*.js) — ver commit que sacó los últimos inline a archivos aparte
+      styleSrc:   ["'self'", "'unsafe-inline'"], // el sitio usa bastantes style="" inline (toggles de mostrar/ocultar); migrarlos todos a clases CSS es un cambio grande aparte, no parte de este arreglo
+      imgSrc:     ["'self'", 'data:'], // 'data:' por el favicon (emoji en SVG inline)
+      fontSrc:    ["'self'"], // fuentes auto-hospedadas en public/fonts/, ya no dependen de Google
+      connectSrc: ["'self'"], // fetch()/XHR del frontend solo hablan con esta misma API
+      frameSrc:   ['https://www.google.com'], // el <iframe> de Google Maps en contacto.html
+      objectSrc:  ["'none'"],
+      baseUri:    ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"], // refuerzo moderno del anti-clickjacking, además del header X-Frame-Options de abajo
+    },
+  },
+  // Refuerzo clásico del anti-clickjacking (frameAncestors de arriba es
+  // el equivalente moderno, pero X-Frame-Options lo respetan también
+  // navegadores más viejos que no leen frame-ancestors).
+  frameguard: { action: 'deny' },
+}));
 
 /* ── Confiar en el proxy del hosting ───────────────────────────
    En producción, el sitio no recibe las peticiones directamente:
