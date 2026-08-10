@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sitemap de Dulcería Charles — le dice a Google qué páginas públicas existen
+  y cuáles vale la pena mostrar en resultados de búsqueda. Solo incluye las
+  páginas de contenido; las funcionales/privadas (carrito, pago, admin, etc.)
+  se excluyen aquí y en robots.txt.
+
+  Si agregas una página pública nueva, agrégala aquí también.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <url>
+    <loc>https://dulceria-charles.com/index.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <url>
+    <loc>https://dulceria-charles.com/catalogo.html</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <url>
+    <loc>https://dulceria-charles.com/contacto.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://dulceria-charles.com/registro.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://dulceria-charles.com/login.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.2</priority>
+  </url>
+
+</urlset>

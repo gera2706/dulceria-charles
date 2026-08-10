@@ -1,0 +1,18 @@
+# Dulcería Charles — robots.txt
+# Le decimos a Google (y demás buscadores) qué pueden indexar y qué no.
+
+User-agent: *
+Allow: /
+
+# Páginas privadas / funcionales — no aportan nada en resultados de búsqueda
+# y algunas requieren sesión iniciada, así que las dejamos fuera del rastreo.
+Disallow: /admin.html
+Disallow: /mi-cuenta.html
+Disallow: /pedidos.html
+Disallow: /carrito.html
+Disallow: /pago.html
+Disallow: /comprobante.html
+Disallow: /olvide-password.html
+Disallow: /resetear-password.html
+
+Sitemap: https://dulceria-charles.com/sitemap.xml
