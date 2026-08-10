@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (btn.dataset.section === 'configuracion') renderConfiguracion();
       if (btn.dataset.section === 'chatbot')       renderChatbotFaqs();
       if (btn.dataset.section === 'auditorias')    renderAuditorias();
+      if (btn.dataset.section === 'respaldos')     renderRespaldos();
     });
   });
 
@@ -1255,6 +1256,56 @@ document.addEventListener('DOMContentLoaded', function () {
           btn.textContent = textoOriginal;
         }
       });
+    });
+  }
+
+  /* ══════════════════════════════════════
+     RESPALDOS
+     Botón para generar un respaldo de la BD ahora mismo (backend/
+     routes/respaldos.js), sin esperar al Cron Job diario. El botón
+     es fijo en el HTML (no se recrea cada vez que se entra a la
+     sección), así que su listener se registra UNA sola vez aquí
+     abajo — renderRespaldos() solo actualiza los textos.
+  ══════════════════════════════════════ */
+  async function renderRespaldos() {
+    var infoEl = document.getElementById('respaldo-info');
+    infoEl.textContent = 'Cargando…';
+    try {
+      var data = await apiGetRespaldoInfo();
+      infoEl.textContent = data.ultimo
+        ? data.ultimo.nombre + ' — ' + data.ultimo.tamanoMB + ' MB — ' + fmtFechaCorta(data.ultimo.fecha)
+        : 'Todavía no se ha generado ningún respaldo en este servidor.';
+    } catch (e) {
+      infoEl.textContent = 'Error al consultar el estado: ' + e.message;
+    }
+  }
+
+  var btnGenerarRespaldo = document.getElementById('btn-generar-respaldo');
+  if (btnGenerarRespaldo) {
+    btnGenerarRespaldo.addEventListener('click', async function () {
+      var resultadoEl = document.getElementById('respaldo-resultado');
+      var textoOriginal = btnGenerarRespaldo.textContent;
+      btnGenerarRespaldo.disabled = true;
+      btnGenerarRespaldo.textContent = 'Generando… (puede tardar un momento)';
+      resultadoEl.textContent = '';
+      resultadoEl.style.color = '';
+      try {
+        var r = await apiGenerarRespaldo();
+        if (r.mailed) {
+          resultadoEl.style.color = 'var(--teal)';
+          resultadoEl.textContent = '✅ Respaldo generado (' + r.tamanoMB + ' MB) y enviado por correo a ' + r.destino + '.';
+        } else {
+          resultadoEl.style.color = '#c9821a';
+          resultadoEl.textContent = '⚠️ Respaldo local generado (' + r.tamanoMB + ' MB), pero no se mandó por correo: ' + r.motivo;
+        }
+        renderRespaldos(); // refresca "último respaldo" con el que se acaba de generar
+      } catch (e) {
+        resultadoEl.style.color = '#e74c3c';
+        resultadoEl.textContent = '❌ ' + e.message;
+      } finally {
+        btnGenerarRespaldo.disabled = false;
+        btnGenerarRespaldo.textContent = textoOriginal;
+      }
     });
   }
 

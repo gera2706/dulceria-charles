@@ -373,6 +373,13 @@ async function apiGetAuditoriaHtml(nombre) {
 }
 
 /* ================================================================
+   RESPALDOS (panel admin)
+   Ver backend/routes/respaldos.js.
+================================================================ */
+async function apiGetRespaldoInfo() { return apiFetch('/respaldos'); }
+async function apiGenerarRespaldo() { return apiFetch('/respaldos', { method: 'POST' }); }
+
+/* ================================================================
    FUNCIÓN INTERNA: _saveSession
    Guarda los datos del usuario (nombre, email, rol) en el storage
    para que auth.js pueda saber si hay sesión activa sin tener que

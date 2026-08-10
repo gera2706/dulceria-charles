@@ -117,6 +117,11 @@
         <span class="nav-icon">🔍</span><span>Auditorías</span>
       </button>
 
+      <span class="admin-sidebar-title">Mantenimiento</span>
+      <button class="admin-nav-btn" data-section="respaldos">
+        <span class="nav-icon">🗄️</span><span>Respaldos</span>
+      </button>
+
       <!-- Antes el admin no tenía forma de cambiar de tema: el botón
            normalmente vive en el footer, y admin.html no tiene footer.
            cart.js ya busca #dark-toggle en cualquier página, así que
@@ -347,6 +352,29 @@
         <div id="auditorias-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
         <div class="admin-empty hidden" id="auditorias-empty">
           <span>🔍</span>Todavía no se ha subido ninguna auditoría a este servidor.
+        </div>
+      </section>
+
+      <!-- ── SECCIÓN: RESPALDOS ──────────────────────────────────
+           Botón para generar un respaldo de la base de datos AHORA
+           (backend/routes/respaldos.js), sin esperar al Cron Job
+           diario. Muestra info del último respaldo local que exista
+           en el servidor. Lógica en renderRespaldos() de admin.js.
+      ──────────────────────────────────────────────────────────── -->
+      <section class="admin-section" id="sec-respaldos">
+        <h2 class="admin-section-title">🗄️ Respaldos</h2>
+        <p style="color:var(--text-light);font-size:0.88rem;margin-bottom:1rem;max-width:640px;">
+          La base de datos se respalda sola todos los días (copia local en el servidor +
+          copia cifrada por correo). Si quieres uno adicional ahora mismo — antes de un
+          cambio importante, por ejemplo — puedes generarlo aquí.
+        </p>
+
+        <div class="admin-table-wrap" style="padding:1.1rem 1.3rem;max-width:520px;">
+          <div style="font-weight:700;color:var(--text);margin-bottom:0.3rem;">Último respaldo en este servidor</div>
+          <div id="respaldo-info" style="color:var(--text-light);font-size:0.88rem;">Cargando…</div>
+
+          <button class="btn-admin-add" id="btn-generar-respaldo" style="margin-top:1rem;">🗄️ Generar respaldo ahora</button>
+          <div id="respaldo-resultado" style="font-size:0.85rem;margin-top:0.7rem;"></div>
         </div>
       </section>
 
