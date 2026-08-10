@@ -26,10 +26,33 @@
    de npm —nodemailer— estén disponibles; es el mismo virtualenv que
    ya usa la app real, cPanel lo crea solo al hacer "Setup Node.js App").
 
-   REQUISITOS: ninguno nuevo. Usa las mismas variables de entorno que
-   ya tiene el resto del backend en el .env de producción
-   (DB_HOST/DB_USER/DB_PASSWORD/DB_NAME, SMTP_*), y el binario
-   "mysqldump", que siempre está instalado junto con MySQL en cPanel.
+   REQUISITOS: usa las mismas variables de entorno que ya tiene el
+   resto del backend en el .env de producción (DB_HOST/DB_USER/
+   DB_PASSWORD/DB_NAME, SMTP_*), el binario "mysqldump" (siempre
+   instalado junto con MySQL en cPanel), y el binario "openssl"
+   (siempre instalado en cPanel/Linux — se usa para TLS) más la
+   variable nueva BACKUP_ENCRYPTION_PASSWORD (ver abajo).
+
+   CIFRADO DEL ADJUNTO: el dump contiene datos reales de clientes
+   (nombres, direcciones, teléfonos, historial de compra). Mandarlo
+   sin cifrar como adjunto significa que esos datos personales quedan
+   viviendo indefinidamente en la bandeja de Gmail, y si esa cuenta
+   se llegara a comprometer, se compromete también toda la base de
+   datos histórica. Por eso el .sql.gz se cifra con
+   "openssl enc -aes-256-cbc -pbkdf2" (contraseña simétrica, ver
+   BACKUP_ENCRYPTION_PASSWORD en .env.example) ANTES de adjuntarlo:
+   si el correo se filtra o la cuenta de Gmail se compromete, el
+   archivo por sí solo no sirve de nada sin esa contraseña — que NUNCA
+   vive en el .env de un repo ni se manda por correo, solo se conoce
+   de memoria/gestor de contraseñas. Si BACKUP_ENCRYPTION_PASSWORD no
+   está configurada, el script NO manda el correo (mejor no mandar
+   nada que mandar datos de clientes en claro) — solo deja la copia
+   local, que ya estaba protegida por los permisos del propio server.
+
+   Para restaurar un respaldo descargado del correo:
+     openssl enc -d -aes-256-cbc -pbkdf2 -salt \
+       -pass pass:LA_CONTRASEÑA -in archivo.sql.gz.enc -out archivo.sql.gz
+     gunzip archivo.sql.gz
 ================================================================ */
 
 const { execFileSync } = require('child_process');
@@ -52,6 +75,12 @@ const DB_NAME     = process.env.DB_NAME;
 // si no se define, cae en SMTP_USER (la misma cuenta que ya manda
 // todos los demás correos del sitio, ver memoria admin-smtp-account).
 const DESTINO = process.env.BACKUP_EMAIL || process.env.SMTP_USER;
+
+// Contraseña simétrica para cifrar el adjunto antes de mandarlo (ver
+// explicación completa arriba, en el bloque de comentarios). Nunca
+// tiene un valor por defecto: si falta, el correo simplemente no se
+// manda — nunca se manda el dump de clientes sin cifrar.
+const BACKUP_ENCRYPTION_PASSWORD = process.env.BACKUP_ENCRYPTION_PASSWORD;
 
 const CARPETA_RESPALDOS = path.join(os.homedir(), 'backups');
 const LIMITE_DIAS = 30; // cuántos días de respaldos locales conservar
@@ -133,8 +162,39 @@ async function main() {
     return;
   }
 
-  await mailer.enviarRespaldoBD(DESTINO, rutaGz, nombreBase + '.sql.gz', fechaISO);
-  console.log('[backupDB] Respaldo generado (' + tamañoMB + 'MB) y enviado a ' + DESTINO + '.');
+  /* ── 5. Cifrar ANTES de mandarlo por correo ──────────────────
+     El .sql.gz local se queda sin cifrar (ya está protegido por los
+     permisos del servidor y sirve para restaurar rápido ahí mismo).
+     Lo que sale por correo es una copia cifrada aparte: si Gmail se
+     compromete algún día, lo único que hay ahí es un archivo inútil
+     sin la contraseña. Se usa "-pass env:..." (no "-pass pass:...")
+     para que la contraseña nunca aparezca como argumento de proceso
+     visible en "ps aux" — mismo motivo que el --defaults-extra-file
+     de mysqldump arriba. */
+  if (!BACKUP_ENCRYPTION_PASSWORD) {
+    console.warn('[backupDB] Falta BACKUP_ENCRYPTION_PASSWORD en el .env — NO se mandó el respaldo por correo (mandar el dump de clientes sin cifrar es peor que no mandarlo). Queda solo la copia local en ' + rutaGz + '.');
+    return;
+  }
+
+  const rutaEnc = rutaGz + '.enc';
+  try {
+    execFileSync('openssl', [
+      'enc', '-aes-256-cbc', '-pbkdf2', '-salt',
+      '-pass', 'env:BACKUP_ENCRYPTION_PASSWORD',
+      '-in', rutaGz,
+      '-out', rutaEnc
+    ]);
+  } catch (err) {
+    console.error('[backupDB] No se pudo cifrar el respaldo con openssl — NO se mandó por correo. Queda solo la copia local en ' + rutaGz + '. Error:', err.message);
+    return;
+  }
+
+  try {
+    await mailer.enviarRespaldoBD(DESTINO, rutaEnc, nombreBase + '.sql.gz.enc', fechaISO);
+    console.log('[backupDB] Respaldo generado (' + tamañoMB + 'MB), cifrado y enviado a ' + DESTINO + '.');
+  } finally {
+    fs.unlinkSync(rutaEnc); // la copia cifrada temporal no necesita quedarse en disco, ya se mandó
+  }
 }
 
 main().catch(function (err) {

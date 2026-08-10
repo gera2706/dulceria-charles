@@ -250,8 +250,8 @@ async function enviarRespaldoBD(destino, rutaArchivo, nombreArchivo, fechaTexto)
       '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#333;">' +
         '<h2 style="color:#d94c85;">🍬 Dulcería Charles</h2>' +
         '<p>Respaldo automático de la base de datos del <strong>' + escapeHtml(fechaTexto) + '</strong>.</p>' +
-        '<p>Archivo adjunto: <strong>' + escapeHtml(nombreArchivo) + '</strong> (' + kb + ' KB, comprimido).</p>' +
-        '<p style="color:#888;font-size:0.85rem;">Este correo se genera solo automáticamente. Guárdalo o archívalo: es la copia de tu base de datos que vive fuera del hosting, por si Namecheap llegara a fallar.</p>' +
+        '<p>Archivo adjunto: <strong>' + escapeHtml(nombreArchivo) + '</strong> (' + kb + ' KB, comprimido y <u>cifrado</u>).</p>' +
+        '<p style="color:#888;font-size:0.85rem;">Este correo se genera solo automáticamente. Guárdalo o archívalo: es la copia de tu base de datos que vive fuera del hosting, por si Namecheap llegara a fallar. El archivo está cifrado con la misma contraseña que configuraste como BACKUP_ENCRYPTION_PASSWORD — sin ella, el adjunto no sirve de nada aunque alguien más lo abra. Para restaurarlo: <code>openssl enc -d -aes-256-cbc -pbkdf2 -salt -pass pass:TU_CONTRASEÑA -in ' + escapeHtml(nombreArchivo) + ' -out respaldo.sql.gz</code>, y luego descomprimir con gunzip.</p>' +
       '</div>',
     text: 'Respaldo automático de la base de datos del ' + fechaTexto + '. Archivo adjunto: ' + nombreArchivo + ' (' + kb + ' KB).',
     attachments: [{ filename: nombreArchivo, path: rutaArchivo }]
