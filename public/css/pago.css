@@ -283,6 +283,26 @@
 .sum-total { font-size: 1.1rem; font-weight: 700; color: var(--pink); }
 hr { border: none; border-top: 1px solid var(--border); }
 
+/* Botón "Cancelar pedido" del resumen lateral — mismo estilo rojo-outline
+   que el de pedidos.html (.btn-cancelar-pedido), como clase propia porque
+   aquí vive fijo en el HTML en vez de armarse por JS. */
+.btn-cancel-order {
+  margin-top: 0.4rem;
+  width: 100%;
+  background: none;
+  color: #b91c1c;
+  border: 1.5px solid #e2685f;
+  padding: 0.55rem 1rem;
+  border-radius: 50px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-cancel-order:hover  { background: rgba(185,28,28,0.08); }
+.btn-cancel-order:disabled { opacity: 0.6; cursor: default; background: none; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
   .checkout-layout { flex-direction: column; padding: 1.5rem; }

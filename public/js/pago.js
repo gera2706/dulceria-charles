@@ -121,6 +121,42 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
   })();
 
+  /* ── CANCELAR PEDIDO (visible en los 3 pasos del checkout) ──
+     Mismo patrón que el botón "✕ Cancelar pedido" de pedidos.js: pide
+     un motivo con dcPrompt y llama apiCancelarPedido. La diferencia es
+     que aquí no hay que volver a pintar una lista — simplemente se
+     limpia todo y se manda al cliente de vuelta al catálogo, para que
+     no tenga que ir hasta "Mis Pedidos" a buscar este pedido y
+     cancelarlo desde allá. Si por algo no llegó a crearse el pedido en
+     la BD (ej. checkoutCart llegó vacío), no hay nada que cancelar en
+     el servidor — solo se limpia lo local. */
+  document.getElementById('btn-cancel-order').addEventListener('click', async function () {
+    var btn = this;
+    var motivo = await dcPrompt('¿Por qué quieres cancelar este pedido?', {
+      placeholder: 'Ej: agregué un producto de más, ya no lo necesito…',
+      required: true,
+      okLabel: 'Cancelar pedido',
+      cancelLabel: 'Volver'
+    });
+    if (motivo === null) return; // se arrepintió / cerró el diálogo
+
+    btn.disabled    = true;
+    btn.textContent = 'Cancelando…';
+
+    var pedidoId = sessionStorage.getItem('dc_pedido_id');
+    try {
+      if (pedidoId) await apiCancelarPedido(pedidoId, motivo);
+      saveCart([]);
+      sessionStorage.removeItem('dc_pedido_id');
+      showToast('Pedido cancelado');
+      window.location.href = 'catalogo.html';
+    } catch (e) {
+      btn.disabled    = false;
+      btn.textContent = '✕ Cancelar pedido';
+      await dcAlert(e.message);
+    }
+  });
+
   /* ── Indicadores de paso ── */
   function setStep(n) {
     [1, 2, 3].forEach(function (i) {
