@@ -1414,12 +1414,80 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* ══════════════════════════════════════
      RESPALDOS
-     Botón para generar un respaldo de la BD ahora mismo (backend/
+     Botón para PEDIR un respaldo de la BD ahora mismo (backend/
      routes/respaldos.js), sin esperar al Cron Job diario. El botón
      es fijo en el HTML (no se recrea cada vez que se entra a la
      sección), así que su listener se registra UNA sola vez aquí
      abajo — renderRespaldos() solo actualiza los textos.
+
+     REESCRITO EL 14-ago-2026 junto con el backend: el botón ya NO
+     genera el respaldo al instante — solo dispara la solicitud
+     (POST) y luego el panel hace polling a GET /api/respaldos cada
+     5s hasta que un Cron Job aparte (corre cada 1-2 min, ver
+     backend/scripts/procesarSolicitudManual.js) la procese de
+     verdad. Por eso el resultado tarda hasta ~2 minutos en aparecer
+     en vez de ser instantáneo — es el trade-off para que el botón
+     no dependa de que el proceso principal de Node tenga el código
+     más reciente cargado.
   ══════════════════════════════════════ */
+  var pollRespaldoTimer = null;
+  var TEXTO_BOTON_RESPALDO = '🗄️ Generar respaldo ahora'; // debe coincidir con admin.html
+
+  function pararPollingRespaldo() {
+    if (pollRespaldoTimer) { clearTimeout(pollRespaldoTimer); pollRespaldoTimer = null; }
+  }
+
+  function mostrarResultadoManual(resultadoManual, resultadoEl) {
+    if (!resultadoManual) return;
+    if (resultadoManual.ok) {
+      var r = resultadoManual.resultado;
+      if (r.mailed) {
+        resultadoEl.style.color = 'var(--teal)';
+        resultadoEl.textContent = '✅ Respaldo generado (' + r.tamanoMB + ' MB) y enviado por correo a ' + r.destino + '.';
+      } else {
+        resultadoEl.style.color = '#c9821a';
+        resultadoEl.textContent = '⚠️ Respaldo local generado (' + r.tamanoMB + ' MB), pero no se mandó por correo: ' + r.motivo;
+      }
+    } else {
+      resultadoEl.style.color = '#e74c3c';
+      resultadoEl.textContent = '❌ ' + resultadoManual.error;
+    }
+  }
+
+  /* Consulta GET /api/respaldos cada 5s mientras enCurso siga true.
+     intentos tope ~24 (2 minutos) — si el Cron Job de 1-2 min no ha
+     corrido para entonces, algo raro pasa (job mal configurado, por
+     ejemplo) y no tiene caso seguir preguntando para siempre. */
+  function iniciarPollingRespaldo(btn, resultadoEl, intentos) {
+    intentos = intentos || 0;
+    pararPollingRespaldo();
+    pollRespaldoTimer = setTimeout(async function () {
+      try {
+        var data = await apiGetRespaldoInfo();
+        if (!data.enCurso) {
+          mostrarResultadoManual(data.ultimoResultadoManual, resultadoEl);
+          btn.disabled = false;
+          btn.textContent = TEXTO_BOTON_RESPALDO;
+          renderRespaldos();
+          return;
+        }
+        if (intentos + 1 >= 24) {
+          resultadoEl.style.color = '#c9821a';
+          resultadoEl.textContent = '⏳ Está tardando más de lo normal. Puedes cerrar esta sección y revisar "Último respaldo" más tarde.';
+          btn.disabled = false;
+          btn.textContent = TEXTO_BOTON_RESPALDO;
+          return;
+        }
+        iniciarPollingRespaldo(btn, resultadoEl, intentos + 1);
+      } catch (e) {
+        resultadoEl.style.color = '#e74c3c';
+        resultadoEl.textContent = '❌ Error al consultar el estado: ' + e.message;
+        btn.disabled = false;
+        btn.textContent = TEXTO_BOTON_RESPALDO;
+      }
+    }, 5000);
+  }
+
   async function renderRespaldos() {
     var infoEl = document.getElementById('respaldo-info');
     infoEl.textContent = 'Cargando…';
@@ -1428,6 +1496,15 @@ document.addEventListener('DOMContentLoaded', function () {
       infoEl.textContent = data.ultimo
         ? data.ultimo.nombre + ' — ' + data.ultimo.tamanoMB + ' MB — ' + fmtFechaCorta(data.ultimo.fecha)
         : 'Todavía no se ha generado ningún respaldo en este servidor.';
+
+      // Si ya había una solicitud en curso (ej. se recargó la página
+      // mientras esperaba), retoma el polling en vez de dejarlo mudo.
+      var btn = document.getElementById('btn-generar-respaldo');
+      if (data.enCurso && btn && btn.disabled !== true) {
+        btn.disabled = true;
+        btn.textContent = 'Generando… (puede tardar hasta 2 min)';
+        iniciarPollingRespaldo(btn, document.getElementById('respaldo-resultado'), 0);
+      }
     } catch (e) {
       infoEl.textContent = 'Error al consultar el estado: ' + e.message;
     }
@@ -1437,27 +1514,18 @@ document.addEventListener('DOMContentLoaded', function () {
   if (btnGenerarRespaldo) {
     btnGenerarRespaldo.addEventListener('click', async function () {
       var resultadoEl = document.getElementById('respaldo-resultado');
-      var textoOriginal = btnGenerarRespaldo.textContent;
       btnGenerarRespaldo.disabled = true;
-      btnGenerarRespaldo.textContent = 'Generando… (puede tardar un momento)';
-      resultadoEl.textContent = '';
+      btnGenerarRespaldo.textContent = 'Generando… (puede tardar hasta 2 min)';
       resultadoEl.style.color = '';
+      resultadoEl.textContent = 'Respaldo solicitado — esperando a que se genere…';
       try {
-        var r = await apiGenerarRespaldo();
-        if (r.mailed) {
-          resultadoEl.style.color = 'var(--teal)';
-          resultadoEl.textContent = '✅ Respaldo generado (' + r.tamanoMB + ' MB) y enviado por correo a ' + r.destino + '.';
-        } else {
-          resultadoEl.style.color = '#c9821a';
-          resultadoEl.textContent = '⚠️ Respaldo local generado (' + r.tamanoMB + ' MB), pero no se mandó por correo: ' + r.motivo;
-        }
-        renderRespaldos(); // refresca "último respaldo" con el que se acaba de generar
+        await apiGenerarRespaldo();
+        iniciarPollingRespaldo(btnGenerarRespaldo, resultadoEl, 0);
       } catch (e) {
         resultadoEl.style.color = '#e74c3c';
         resultadoEl.textContent = '❌ ' + e.message;
-      } finally {
         btnGenerarRespaldo.disabled = false;
-        btnGenerarRespaldo.textContent = textoOriginal;
+        btnGenerarRespaldo.textContent = TEXTO_BOTON_RESPALDO;
       }
     });
   }
