@@ -305,17 +305,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
       rows.forEach(function (p) {
         var tr = document.createElement('tr');
+        /* data-label en cada <td>: no hace nada en escritorio (el
+           <thead> ya rotula), pero en móvil el CSS oculta el <thead>
+           y convierte cada fila en tarjeta usando esta etiqueta —
+           ver el bloque "Tablas del panel admin" en admin.css. */
         tr.innerHTML =
-          '<td><img src="' + escapeHtml(p.imagen || '') + '" alt="' + escapeHtml(p.nombre) + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" onerror="this.style.opacity=0.3"></td>' +
-          '<td><strong>' + escapeHtml(p.nombre) + '</strong></td>' +
-          '<td><span class="admin-badge">' + escapeHtml(p.categoria) + '</span></td>' +
-          '<td><strong>' + fmt(p.precio) + '</strong></td>' +
-          '<td>' + _stockCellHtml(p) + '</td>' +
-          '<td><button class="btn-star-toggle" data-id="' + p.id + '" title="' +
+          '<td data-label=""><img src="' + escapeHtml(p.imagen || '') + '" alt="' + escapeHtml(p.nombre) + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px;" onerror="this.style.opacity=0.3"></td>' +
+          '<td data-label="Nombre"><strong>' + escapeHtml(p.nombre) + '</strong></td>' +
+          '<td data-label="Categoría"><span class="admin-badge">' + escapeHtml(p.categoria) + '</span></td>' +
+          '<td data-label="Precio"><strong>' + fmt(p.precio) + '</strong></td>' +
+          '<td data-label="Stock">' + _stockCellHtml(p) + '</td>' +
+          '<td data-label="Destacado"><button class="btn-star-toggle" data-id="' + p.id + '" title="' +
             (p.destacado ? 'Quitar de destacados' : 'Marcar como destacado') +
             '" style="background:none;border:none;cursor:pointer;font-size:1.15rem;line-height:1;padding:0.2rem;">' +
             (p.destacado ? '⭐' : '☆') + '</button></td>' +
-          '<td><div class="td-actions">' +
+          '<td data-label=""><div class="td-actions">' +
             '<button class="btn-admin-sm btn-edit"   data-id="' + p.id + '">✏️ Editar</button>' +
             '<button class="btn-admin-sm btn-delete" data-id="' + p.id + '">🗑️ Eliminar</button>' +
           '</div></td>';
@@ -569,14 +573,17 @@ document.addEventListener('DOMContentLoaded', function () {
         /* fila principal */
         var tr = document.createElement('tr');
         tr.style.cursor = 'pointer';
+        /* data-label: ver nota en renderProductos() más arriba —
+           mismo mecanismo, lo usa el CSS para la vista de tarjeta
+           en móvil. */
         tr.innerHTML =
-          '<td><strong>#' + o.id + '</strong></td>' +
-          '<td>' + escapeHtml(o.cliente_nombre || '—') + '<br><small style="color:var(--text-light);">' + escapeHtml(o.cliente_email || '') + '</small></td>' +
-          '<td style="white-space:nowrap;">' + (o.fecha ? new Date(o.fecha).toLocaleDateString('es-MX') : '—') + '</td>' +
-          '<td>' + badge + '<br>' + select + '</td>' +
-          '<td>' + (pagoLabel[o.metodo_pago] || o.metodo_pago || '—') + '</td>' +
-          '<td><strong style="color:var(--pink);">' + fmt(calcTotalPedido(o)) + '</strong></td>' +
-          '<td style="text-align:center;">▼</td>';
+          '<td data-label="Pedido"><strong>#' + o.id + '</strong></td>' +
+          '<td data-label="Cliente">' + escapeHtml(o.cliente_nombre || '—') + '<br><small style="color:var(--text-light);">' + escapeHtml(o.cliente_email || '') + '</small></td>' +
+          '<td data-label="Fecha" style="white-space:nowrap;">' + (o.fecha ? new Date(o.fecha).toLocaleDateString('es-MX') : '—') + '</td>' +
+          '<td data-label="Estado">' + badge + '<br>' + select + '</td>' +
+          '<td data-label="Pago">' + (pagoLabel[o.metodo_pago] || o.metodo_pago || '—') + '</td>' +
+          '<td data-label="Total"><strong style="color:var(--pink);">' + fmt(calcTotalPedido(o)) + '</strong></td>' +
+          '<td data-label="" style="text-align:center;">▼</td>';
 
         /* fila de detalle (oculta por defecto) */
         var trDetail = document.createElement('tr');
@@ -672,12 +679,13 @@ document.addEventListener('DOMContentLoaded', function () {
       usuarios.forEach(function (u) {
         var tr = document.createElement('tr');
         var rolColor = u.rol === 'admin' ? '#8b5cf6' : '#ec4899';
+        /* data-label: ver nota en renderProductos() más arriba. */
         tr.innerHTML =
-          '<td><strong>' + escapeHtml(u.nombre) + '</strong></td>' +
-          '<td>' + escapeHtml(u.email) + '</td>' +
-          '<td><span style="background:' + rolColor + '20;color:' + rolColor + ';padding:2px 10px;border-radius:50px;font-size:0.8rem;font-weight:700;">' + escapeHtml(u.rol) + '</span></td>' +
-          '<td>' + (u.fecha_registro ? new Date(u.fecha_registro).toLocaleDateString('es-MX') : '—') + '</td>' +
-          '<td>' +
+          '<td data-label="Nombre"><strong>' + escapeHtml(u.nombre) + '</strong></td>' +
+          '<td data-label="Correo">' + escapeHtml(u.email) + '</td>' +
+          '<td data-label="Rol"><span style="background:' + rolColor + '20;color:' + rolColor + ';padding:2px 10px;border-radius:50px;font-size:0.8rem;font-weight:700;">' + escapeHtml(u.rol) + '</span></td>' +
+          '<td data-label="Registro">' + (u.fecha_registro ? new Date(u.fecha_registro).toLocaleDateString('es-MX') : '—') + '</td>' +
+          '<td data-label="">' +
             (u.rol !== 'admin'
               ? '<button class="btn-admin-sm btn-edit btn-set-admin" data-uid="' + u.id + '" data-nombre="' + escapeHtml(u.nombre) + '">👑 Hacer admin</button>'
               : '<button class="btn-admin-sm btn-delete btn-unset-admin" data-uid="' + u.id + '" data-nombre="' + escapeHtml(u.nombre) + '">🚫 Quitar admin</button>') +
@@ -1330,13 +1338,18 @@ document.addEventListener('DOMContentLoaded', function () {
       var despues  = fmtDetalleJson(fila.datos_nuevos);
       var tieneDetalle = antes || despues;
 
+      /* data-label en cada <td>: en escritorio no hace nada (el <thead>
+         ya rotula las columnas), pero en móvil el CSS oculta el <thead>
+         y usa este atributo para poner la etiqueta junto al valor —
+         así la fila se puede apilar en tarjeta en vez de obligar a
+         hacer scroll horizontal por 6 columnas (ver admin.css). */
       tr.innerHTML =
-        '<td style="white-space:nowrap;">' + fmtFechaHora(fila.fecha) + '</td>' +
-        '<td style="text-transform:capitalize;">' + escapeHtml(fila.tabla_afectada) + '</td>' +
-        '<td><span class="stock-badge ' + accionBadge + '">' + accionLabel + '</span></td>' +
-        '<td>' + escapeHtml(fila.descripcion || '') + '</td>' +
-        '<td>' + escapeHtml(fila.usuario || 'sistema') + '</td>' +
-        '<td>' + (tieneDetalle ? '<button class="btn-admin-sm btn-edit btn-ver-detalle">👁️ Ver</button>' : '') + '</td>';
+        '<td data-label="Fecha" style="white-space:nowrap;">' + fmtFechaHora(fila.fecha) + '</td>' +
+        '<td data-label="Tabla" style="text-transform:capitalize;">' + escapeHtml(fila.tabla_afectada) + '</td>' +
+        '<td data-label="Acción"><span class="stock-badge ' + accionBadge + '">' + accionLabel + '</span></td>' +
+        '<td data-label="Descripción">' + escapeHtml(fila.descripcion || '') + '</td>' +
+        '<td data-label="Quién">' + escapeHtml(fila.usuario || 'sistema') + '</td>' +
+        '<td data-label="">' + (tieneDetalle ? '<button class="btn-admin-sm btn-edit btn-ver-detalle">👁️ Ver</button>' : '') + '</td>';
       tbody.appendChild(tr);
 
       if (tieneDetalle) {

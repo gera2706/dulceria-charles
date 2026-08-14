@@ -437,7 +437,6 @@
      ancho y "envolviera" uno por línea igual —por fuera se veía como
      una columna, no como una fila de iconos. */
   .admin-nav-btn { padding: 0.6rem 0.8rem; font-size: 0.82rem; width: auto; }
-  .admin-table { font-size: 0.78rem; }
 
   /* Formularios (Configuración del sitio, modal de producto, modal de
      pregunta del chatbot): en pantallas angostas dos campos uno junto
@@ -446,4 +445,69 @@
   .admin-form-row { flex-direction: column; gap: 0; }
   .admin-modal { padding: 1.3rem; }
   #sec-configuracion .admin-table-wrap { padding: 1.2rem 1rem !important; }
+
+  /* La barra de búsqueda/filtros tenía un ancho fijo (220px) pensado
+     para escritorio — en una pantalla de 360px eso ya casi la ocupa
+     toda, y si hay más de un control en la misma barra no caben ni
+     envolviendo línea por línea sin verse apretados. A ancho completo
+     cada uno queda cómodo y legible.
+     !important porque varios <select> traen "style=width:auto" en el
+     HTML (admin.html) para su versión de escritorio — un estilo en
+     línea le gana a cualquier regla de clase normal, así que sin
+     !important esta regla no haría nada en esos casos. */
+  .admin-search { width: 100% !important; max-width: 100%; }
+  .admin-toolbar { flex-direction: column; align-items: stretch; }
+  .admin-toolbar > div { width: 100%; }
+  .admin-toolbar .btn-admin-add { width: 100%; justify-content: center; }
+
+  /* ── Tablas del panel admin (Productos, Pedidos, Usuarios,
+     Historial de cambios) ─────────────────────────────────────────
+     En escritorio son tablas normales con scroll horizontal de
+     respaldo (.admin-table-wrap { overflow-x:auto }, arriba) — pero
+     abajo de 600px esa columna extra que se "pierde" fuera de
+     pantalla obliga a arrastrar la pantalla para leer una sola fila,
+     que es justo lo que se quejó el dueño que se veía mal. Aquí cada
+     <tr> pasa a ser una tarjeta: se oculta el <thead> y cada <td>
+     muestra su etiqueta (atributo data-label, puesto en admin.js al
+     construir cada fila) arriba y el valor abajo — funciona igual de
+     bien para un texto simple que para contenido complejo (imagen,
+     el bloque de ajuste de stock, botones de acción, un <select>),
+     porque cada celda simplemente se apila de arriba a abajo en vez
+     de tener que caber en una columna angosta al lado de las demás. */
+  .admin-table-wrap { overflow-x: hidden; }
+  .admin-table thead { display: none; }
+  .admin-table, .admin-table tbody { display: block; width: 100%; }
+  .admin-table tr {
+    display: block;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-table tr:last-child { border-bottom: none; }
+  .admin-table td {
+    display: block;
+    padding: 0.3rem 0;
+    border-bottom: none;
+    max-width: 100%;
+  }
+  /* Celdas sin data-label (o vacío, ej. la columna de "Acciones" o el
+     flechita ▼ de expandir un pedido) no llevan encabezado — ya son
+     autoexplicativas por sus botones/iconos. */
+  .admin-table td[data-label]:not([data-label=""])::before {
+    content: attr(data-label);
+    display: block;
+    font-weight: 700;
+    font-size: 0.68rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.15rem;
+  }
+  /* Filas sin celdas con data-label (colspan=1: "Cargando…", "Sin
+     resultados.", fila de detalle de un pedido expandido, bloque
+     Antes/Después del historial) — su propio estilo inline ya trae
+     el padding/alineación que necesitan, y el grid de 2 columnas de
+     Antes/Después no cabe en una pantalla angosta. */
+  .admin-table td[colspan] { padding-top: 0.5rem; }
+  .admin-table td[colspan] > div { grid-template-columns: 1fr !important; }
+  .admin-table img { width: 40px; height: 40px; }
 }
