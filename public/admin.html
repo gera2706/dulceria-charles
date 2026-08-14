@@ -113,13 +113,24 @@
       <button class="admin-nav-btn" data-section="chatbot">
         <span class="nav-icon">🤖</span><span>Chatbot</span>
       </button>
-      <button class="admin-nav-btn" data-section="auditorias">
-        <span class="nav-icon">🔍</span><span>Auditorías</span>
+      <button class="admin-nav-btn" data-section="historial">
+        <span class="nav-icon">📜</span><span>Historial de cambios</span>
       </button>
 
       <span class="admin-sidebar-title">Mantenimiento</span>
       <button class="admin-nav-btn" data-section="respaldos">
         <span class="nav-icon">🗄️</span><span>Respaldos</span>
+      </button>
+
+      <!-- "Ayuda" hasta el final a propósito: son los reportes de
+           auditoría del proyecto (docs/auditorias/), archivos de
+           referencia menos importantes que el resto del panel — no
+           algo que el admin necesite ver seguido. Sigue siendo la
+           misma sección de siempre (data-section="auditorias",
+           backend/routes/auditorias.js), solo cambió el nombre y el
+           lugar en el menú. -->
+      <button class="admin-nav-btn" data-section="auditorias">
+        <span class="nav-icon">❓</span><span>Ayuda</span>
       </button>
 
       <!-- Antes el admin no tenía forma de cambiar de tema: el botón
@@ -344,7 +355,7 @@
            renderAuditorias() de admin.js.
       ──────────────────────────────────────────────────────────── -->
       <section class="admin-section" id="sec-auditorias">
-        <h2 class="admin-section-title">🔍 Auditorías</h2>
+        <h2 class="admin-section-title">❓ Ayuda</h2>
         <p style="color:var(--text-light);font-size:0.88rem;margin-bottom:1rem;max-width:640px;">
           Reportes de auditorías del proyecto (seguridad, rendimiento, incidentes resueltos...).
           Solo visibles aquí, con tu sesión de administrador — no están en el sitio público.
@@ -352,6 +363,57 @@
         <div id="auditorias-list" style="display:flex;flex-direction:column;gap:0.6rem;"></div>
         <div class="admin-empty hidden" id="auditorias-empty">
           <span>🔍</span>Todavía no se ha subido ninguna auditoría a este servidor.
+        </div>
+      </section>
+
+      <!-- ── SECCIÓN: HISTORIAL DE CAMBIOS ──────────────────────
+           Bitácora automática de la tabla `auditoria` (la llenan
+           SOLOS 8 triggers de MySQL cada vez que se crea, cambia o
+           elimina algo en productos, pedidos o usuarios — ver
+           dulceria_charles_hosting.sql, sección TRIGGERS). Muestra
+           QUÉ cambió, QUIÉN lo hizo y CUÁNDO — pensado para cuando
+           hay varios administradores y hace falta saber quién tocó
+           qué. NO es lo mismo que "Auditorías" (esa sección de
+           arriba son los reportes de bugs/seguridad del proyecto).
+           Lógica en renderHistorial() de admin.js.
+      ──────────────────────────────────────────────────────────── -->
+      <section class="admin-section" id="sec-historial">
+        <h2 class="admin-section-title">📜 Historial de cambios</h2>
+        <p style="color:var(--text-light);font-size:0.88rem;margin-bottom:1rem;max-width:640px;">
+          Registro automático de lo que se creó, cambió o eliminó en productos, pedidos
+          y usuarios — y quién lo hizo. Se llena solo, nadie tiene que anotarlo a mano.
+        </p>
+        <div class="admin-toolbar">
+          <select id="hist-filter-tabla" class="admin-search" style="width:auto;">
+            <option value="">Todas las tablas</option>
+            <option value="productos">Productos</option>
+            <option value="pedidos">Pedidos</option>
+            <option value="usuarios">Usuarios</option>
+          </select>
+          <select id="hist-filter-accion" class="admin-search" style="width:auto;">
+            <option value="">Todas las acciones</option>
+            <option value="INSERT">Creado</option>
+            <option value="UPDATE">Actualizado</option>
+            <option value="DELETE">Eliminado</option>
+          </select>
+        </div>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tabla</th>
+                <th>Acción</th>
+                <th>Descripción</th>
+                <th>Quién</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="hist-tbody"></tbody>
+          </table>
+        </div>
+        <div class="admin-empty hidden" id="hist-empty">
+          <span>📜</span>Todavía no hay cambios registrados.
         </div>
       </section>
 

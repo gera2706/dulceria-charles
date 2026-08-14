@@ -373,6 +373,21 @@ async function apiGetAuditoriaHtml(nombre) {
 }
 
 /* ================================================================
+   HISTORIAL DE CAMBIOS (panel admin)
+   Ver backend/routes/historial.js. Lee la tabla `auditoria`, que se
+   llena SOLA con 8 triggers de MySQL — no confundir con
+   apiGetAuditorias()/apiGetAuditoriaHtml() de arriba, que son los
+   reportes HTML de bugs/seguridad de docs/auditorias/ (cosa aparte).
+================================================================ */
+async function apiGetHistorialCambios(filtros) {
+  var partes = [];
+  if (filtros && filtros.tabla)  partes.push('tabla=' + encodeURIComponent(filtros.tabla));
+  if (filtros && filtros.accion) partes.push('accion=' + encodeURIComponent(filtros.accion));
+  var qs = partes.length ? '?' + partes.join('&') : '';
+  return apiFetch('/historial' + qs);
+}
+
+/* ================================================================
    RESPALDOS (panel admin)
    Ver backend/routes/respaldos.js.
 ================================================================ */

@@ -178,6 +178,7 @@ app.use('/api/chatbot-faq', require('./routes/chatbot_faq')); // preguntas frecu
 app.use('/api/upload',    require('./routes/upload')); // /api/categorias
 app.use('/api/avisos-stock', require('./routes/avisos'));    // panel admin: avisos de stock bajo/agotado
 app.use('/api/auditorias',   require('./routes/auditorias')); // panel admin: HTML de auditorías (solo admin)
+app.use('/api/historial',    require('./routes/historial'));  // panel admin: historial de cambios (tabla auditoria, distinta de /auditorias)
 app.use('/api/respaldos',    require('./routes/respaldos'));  // panel admin: botón "Generar respaldo ahora"
 
 /* ── MANEJADOR DE RUTAS NO ENCONTRADAS ────────────────────────

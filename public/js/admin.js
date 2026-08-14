@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (btn.dataset.section === 'configuracion') renderConfiguracion();
       if (btn.dataset.section === 'chatbot')       renderChatbotFaqs();
       if (btn.dataset.section === 'auditorias')    renderAuditorias();
+      if (btn.dataset.section === 'historial')     renderHistorial();
       if (btn.dataset.section === 'respaldos')     renderRespaldos();
     });
   });
@@ -1256,6 +1257,101 @@ document.addEventListener('DOMContentLoaded', function () {
           btn.textContent = textoOriginal;
         }
       });
+    });
+  }
+
+  /* ══════════════════════════════════════
+     HISTORIAL DE CAMBIOS
+     Lee la tabla `auditoria` (backend/routes/historial.js), que se
+     llena SOLA con 8 triggers de MySQL — nadie del backend escribe
+     ahí a mano. No confundir con renderAuditorias() de arriba (esos
+     son los reportes HTML de bugs/seguridad, cosa aparte).
+  ══════════════════════════════════════ */
+  var histFilterTabla  = document.getElementById('hist-filter-tabla');
+  var histFilterAccion = document.getElementById('hist-filter-accion');
+  histFilterTabla.addEventListener('change', renderHistorial);
+  histFilterAccion.addEventListener('change', renderHistorial);
+
+  var ACCION_LABEL = { INSERT: 'Creado', UPDATE: 'Actualizado', DELETE: 'Eliminado' };
+  var ACCION_BADGE = { INSERT: 'ok', UPDATE: 'bajo', DELETE: 'agotado' }; // reutiliza los colores de .stock-badge
+
+  /* Fecha completa con hora — a diferencia de fmtFechaCorta (que
+     solo da "8 ago" para las tarjetas del dashboard), aquí sí
+     importa saber a qué hora exacta pasó cada cambio. */
+  function fmtFechaHora(str) {
+    if (!str) return '';
+    return new Date(str).toLocaleString('es-MX', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  /* Da formato legible a datos_anteriores/datos_nuevos (vienen como
+     JSON desde MySQL, o ya como objeto si mysql2 los parseó solo). */
+  function fmtDetalleJson(valor) {
+    if (valor === null || valor === undefined) return null;
+    try {
+      var obj = typeof valor === 'string' ? JSON.parse(valor) : valor;
+      return JSON.stringify(obj, null, 2);
+    } catch (e) {
+      return String(valor);
+    }
+  }
+
+  async function renderHistorial() {
+    var tbody  = document.getElementById('hist-tbody');
+    var emptyEl = document.getElementById('hist-empty');
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-light);">Cargando…</td></tr>';
+    emptyEl.classList.add('hidden');
+
+    var filas;
+    try {
+      filas = await apiGetHistorialCambios({
+        tabla:  histFilterTabla.value,
+        accion: histFilterAccion.value
+      });
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:#e74c3c;">Error al cargar el historial: ' + escapeHtml(e.message) + '</td></tr>';
+      return;
+    }
+
+    if (!filas.length) {
+      tbody.innerHTML = '';
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    tbody.innerHTML = '';
+    filas.forEach(function (fila) {
+      var tr = document.createElement('tr');
+      var accionLabel = ACCION_LABEL[fila.accion] || fila.accion;
+      var accionBadge = ACCION_BADGE[fila.accion] || 'ok';
+
+      var antes    = fmtDetalleJson(fila.datos_anteriores);
+      var despues  = fmtDetalleJson(fila.datos_nuevos);
+      var tieneDetalle = antes || despues;
+
+      tr.innerHTML =
+        '<td style="white-space:nowrap;">' + fmtFechaHora(fila.fecha) + '</td>' +
+        '<td style="text-transform:capitalize;">' + escapeHtml(fila.tabla_afectada) + '</td>' +
+        '<td><span class="stock-badge ' + accionBadge + '">' + accionLabel + '</span></td>' +
+        '<td>' + escapeHtml(fila.descripcion || '') + '</td>' +
+        '<td>' + escapeHtml(fila.usuario || 'sistema') + '</td>' +
+        '<td>' + (tieneDetalle ? '<button class="btn-admin-sm btn-edit btn-ver-detalle">👁️ Ver</button>' : '') + '</td>';
+      tbody.appendChild(tr);
+
+      if (tieneDetalle) {
+        var trDetalle = document.createElement('tr');
+        trDetalle.className = 'hidden';
+        var bloques = '';
+        if (antes)   bloques += '<div><div style="font-weight:700;font-size:0.78rem;color:var(--text-light);margin-bottom:0.2rem;">Antes</div><pre style="background:var(--bg-2,rgba(0,0,0,0.04));padding:0.6rem 0.8rem;border-radius:8px;font-size:0.76rem;overflow-x:auto;white-space:pre-wrap;">' + escapeHtml(antes) + '</pre></div>';
+        if (despues) bloques += '<div><div style="font-weight:700;font-size:0.78rem;color:var(--text-light);margin-bottom:0.2rem;">Después</div><pre style="background:var(--bg-2,rgba(0,0,0,0.04));padding:0.6rem 0.8rem;border-radius:8px;font-size:0.76rem;overflow-x:auto;white-space:pre-wrap;">' + escapeHtml(despues) + '</pre></div>';
+        trDetalle.innerHTML = '<td colspan="6"><div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;max-width:700px;">' + bloques + '</div></td>';
+        tbody.appendChild(trDetalle);
+
+        tr.querySelector('.btn-ver-detalle').addEventListener('click', function () {
+          trDetalle.classList.toggle('hidden');
+        });
+      }
     });
   }
 
