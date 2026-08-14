@@ -9,7 +9,7 @@
 
 const router = require('express').Router();
 const db     = require('../db');
-const { adminMiddleware } = require('../middleware/auth');
+const { adminMiddleware, actorLabel } = require('../middleware/auth');
 
 /* ------------------------------------------------------------
    GET /api/categorias
@@ -64,8 +64,13 @@ router.put('/:id', adminMiddleware, async (req, res) => {
 
     await db.query('UPDATE categorias SET nombre=?, icono=? WHERE id=?', [nombre, icono, req.params.id]);
 
-    // Actualizamos todos los productos que tenían el nombre anterior
-    await db.query('UPDATE productos SET categoria = ? WHERE categoria = ?', [nombre, old[0].nombre]);
+    // Actualizamos todos los productos que tenían el nombre anterior.
+    // conActor: este UPDATE también dispara tr_productos_update por
+    // cada producto afectado, así que igual queremos que auditoria
+    // sepa qué admin renombró la categoría.
+    await db.conActor(actorLabel(req), (conn) =>
+      conn.query('UPDATE productos SET categoria = ? WHERE categoria = ?', [nombre, old[0].nombre])
+    );
 
     res.json({ id: +req.params.id, nombre, icono });
   } catch (e) {

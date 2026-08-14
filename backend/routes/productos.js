@@ -21,7 +21,7 @@
 const router = require('express').Router();
 const { revisarAlertaStock } = require('../utils/stockAlertas');
 const db     = require('../db');
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { authMiddleware, adminMiddleware, actorLabel } = require('../middleware/auth');
 
 /* ----------------------------------------------------------------
    RUTA: GET /api/productos
@@ -163,15 +163,20 @@ router.post('/', adminMiddleware, async (req, res) => {
     const [cat] = await db.query('SELECT id FROM categorias WHERE nombre = ?', [categoria]);
     if (!cat.length)
       return res.status(400).json({ error: 'La categoría especificada no existe.' });
-    const [result] = await db.query(
-      'INSERT INTO productos (nombre, categoria, precio, imagen, destacado, proveedor, stock, stock_minimo) VALUES (?,?,?,?,?,?,?,?)',
-      [nombre, categoria, precio,
-       imagen || null,       // si no mandaron imagen, guardamos NULL
-       destacado ? 1 : 0,    // MySQL usa 1/0 para booleanos (true/false)
-       proveedor || null,    // proveedor es opcional
-       stock === undefined || stock === null || stock === '' ? 0 : +stock,
-       stock_minimo === undefined || stock_minimo === null || stock_minimo === '' ? 5 : +stock_minimo]
-    );
+    let result;
+    // conActor: deja "quién" antes del INSERT, para que el trigger
+    // tr_productos_insert lo guarde en auditoria.usuario (ver db.js).
+    await db.conActor(actorLabel(req), async (conn) => {
+      [result] = await conn.query(
+        'INSERT INTO productos (nombre, categoria, precio, imagen, destacado, proveedor, stock, stock_minimo) VALUES (?,?,?,?,?,?,?,?)',
+        [nombre, categoria, precio,
+         imagen || null,       // si no mandaron imagen, guardamos NULL
+         destacado ? 1 : 0,    // MySQL usa 1/0 para booleanos (true/false)
+         proveedor || null,    // proveedor es opcional
+         stock === undefined || stock === null || stock === '' ? 0 : +stock,
+         stock_minimo === undefined || stock_minimo === null || stock_minimo === '' ? 5 : +stock_minimo]
+      );
+    });
 
     // Después de insertar, consultamos el producto para devolverlo completo
     // (con todos los campos tal como quedaron en la BD, incluyendo el ID)
@@ -210,13 +215,13 @@ router.put('/:id', adminMiddleware, async (req, res) => {
     if (!cat.length)
       return res.status(400).json({ error: 'La categoría especificada no existe.' });
 
-    await db.query(
+    await db.conActor(actorLabel(req), (conn) => conn.query(
       'UPDATE productos SET nombre=?, categoria=?, precio=?, imagen=?, destacado=?, proveedor=?, stock=?, stock_minimo=? WHERE id=?',
       [nombre, categoria, precio, imagen || null, destacado ? 1 : 0, proveedor || null,
        stock === undefined || stock === null || stock === '' ? 0 : +stock,
        stock_minimo === undefined || stock_minimo === null || stock_minimo === '' ? 5 : +stock_minimo,
        req.params.id]
-    );
+    ));
     // WHERE id=? limita la actualización al producto específico.
     // Sin WHERE, actualizaría TODOS los productos, lo que sería un desastre.
 
@@ -248,10 +253,10 @@ router.patch('/:id/stock', adminMiddleware, async (req, res) => {
   try {
     // GREATEST(...,0) evita que el stock quede en negativo si alguien
     // resta más de lo que hay disponible.
-    await db.query(
+    await db.conActor(actorLabel(req), (conn) => conn.query(
       'UPDATE productos SET stock = GREATEST(stock + ?, 0) WHERE id = ?',
       [delta, req.params.id]
-    );
+    ));
     const [rows] = await db.query('SELECT * FROM productos WHERE id = ?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado.' });
     await revisarAlertaStock(db, req.params.id);
@@ -274,7 +279,9 @@ router.patch('/:id/stock', adminMiddleware, async (req, res) => {
 router.patch('/:id/destacado', adminMiddleware, async (req, res) => {
   const destacado = req.body.destacado ? 1 : 0;
   try {
-    await db.query('UPDATE productos SET destacado = ? WHERE id = ?', [destacado, req.params.id]);
+    await db.conActor(actorLabel(req), (conn) =>
+      conn.query('UPDATE productos SET destacado = ? WHERE id = ?', [destacado, req.params.id])
+    );
     const [rows] = await db.query('SELECT * FROM productos WHERE id = ?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado.' });
     res.json(rows[0]);
@@ -301,7 +308,9 @@ router.patch('/:id/destacado', adminMiddleware, async (req, res) => {
 ---------------------------------------------------------------- */
 router.delete('/:id', adminMiddleware, async (req, res) => {
   try {
-    await db.query('UPDATE productos SET activo = 0 WHERE id = ?', [req.params.id]);
+    await db.conActor(actorLabel(req), (conn) =>
+      conn.query('UPDATE productos SET activo = 0 WHERE id = ?', [req.params.id])
+    );
     // activo = 0 hace que la ruta GET filtre este producto con WHERE activo = 1
     res.json({ ok: true });
   } catch (err) {
@@ -317,7 +326,9 @@ router.delete('/:id', adminMiddleware, async (req, res) => {
 ---------------------------------------------------------------- */
 router.patch('/:id/reactivar', adminMiddleware, async (req, res) => {
   try {
-    await db.query('UPDATE productos SET activo = 1 WHERE id = ?', [req.params.id]);
+    await db.conActor(actorLabel(req), (conn) =>
+      conn.query('UPDATE productos SET activo = 1 WHERE id = ?', [req.params.id])
+    );
     const [rows] = await db.query('SELECT * FROM productos WHERE id = ?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado.' });
     res.json(rows[0]);

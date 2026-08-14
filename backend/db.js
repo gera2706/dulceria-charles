@@ -53,6 +53,50 @@ const pool = mysql.createPool({
   // soporta emojis, por eso usamos mb4 (multi-byte 4).
 });
 
+/* ----------------------------------------------------------------
+   conActor(actorLabel, fn) — para que la auditoría sepa QUIÉN hizo
+   un cambio, no solo QUÉ cambió.
+
+   Los 8 triggers de auditoria (ver dulceria_charles_hosting.sql)
+   escriben solos una fila en `auditoria` cada vez que se hace un
+   INSERT/UPDATE/DELETE en productos, pedidos o usuarios — pero un
+   trigger de MySQL no tiene forma de saber qué admin de la página
+   disparó ese cambio: todos los admins comparten la misma cuenta de
+   conexión a la base de datos. La única forma de "avisarle" al
+   trigger quién es el actor real es dejarle una pista en la MISMA
+   conexión justo antes de la consulta, con una variable de sesión:
+   SET @app_usuario = 'Gera (gera@ejemplo.com)'. El trigger la lee
+   con COALESCE(@app_usuario, 'sistema') al armar la fila de
+   auditoría.
+
+   ¿Por qué no basta con db.query('SET @app_usuario=...') seguido de
+   db.query('UPDATE ...')? Porque el pool le puede dar a cada
+   .query() una conexión DISTINTA de las 10 que tiene reservadas —
+   las variables @sesión solo viven dentro de UNA conexión. Por eso
+   aquí se pide una conexión fija con getConnection() y TODO pasa
+   por ella (el SET y la consulta real), antes de devolverla al pool.
+
+   Uso típico en una ruta:
+     await db.conActor(actorLabel(req), async (conn) => {
+       await conn.query('UPDATE productos SET ... WHERE id = ?', [id]);
+     });
+---------------------------------------------------------------- */
+async function conActor(actorLabel, fn) {
+  const conn = await pool.getConnection();
+  try {
+    // COALESCE en el trigger ya cubre el caso de que esto no se
+    // llame nunca (@app_usuario sería NULL) — aquí solo nos
+    // aseguramos de no arrastrar el actor de una petición anterior
+    // que reusó esta misma conexión del pool.
+    await conn.query('SET @app_usuario = ?', [actorLabel || null]);
+    return await fn(conn);
+  } finally {
+    try { await conn.query('SET @app_usuario = NULL'); } catch (_) { /* no crítico */ }
+    conn.release();
+  }
+}
+
 // Exportamos el pool para que cualquier archivo del backend pueda
 // hacer consultas con: const [filas] = await db.query('SELECT ...')
 module.exports = pool;
+module.exports.conActor = conActor;

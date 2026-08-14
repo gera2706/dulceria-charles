@@ -7,7 +7,7 @@
 
 const router = require('express').Router();
 const db     = require('../db');
-const { adminMiddleware } = require('../middleware/auth');
+const { adminMiddleware, actorLabel } = require('../middleware/auth');
 
 /* ------------------------------------------------------------
    GET /api/usuarios
@@ -69,7 +69,9 @@ router.patch('/:id/rol', adminMiddleware, async (req, res) => {
       }
     }
 
-    await db.query('UPDATE usuarios SET rol = ? WHERE id = ?', [rol, req.params.id]);
+    await db.conActor(actorLabel(req), (conn) =>
+      conn.query('UPDATE usuarios SET rol = ? WHERE id = ?', [rol, req.params.id])
+    );
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Error al actualizar rol.' });
@@ -97,7 +99,9 @@ router.delete('/:id', adminMiddleware, async (req, res) => {
         return res.status(400).json({ error: 'No puedes eliminar el único administrador del sistema.' });
     }
 
-    await db.query('DELETE FROM usuarios WHERE id = ?', [req.params.id]);
+    await db.conActor(actorLabel(req), (conn) =>
+      conn.query('DELETE FROM usuarios WHERE id = ?', [req.params.id])
+    );
     res.json({ ok: true });
   } catch (err) {
     // El usuario tiene pedidos asociados (FK pedidos.usuario_id sin ON

@@ -12,7 +12,7 @@ const router = require('express').Router();
 const db     = require('../db');
 const mailer   = require('../mailer');
 const whatsapp = require('../whatsapp');
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { authMiddleware, adminMiddleware, actorLabel } = require('../middleware/auth');
 const { revisarAlertaStock } = require('../utils/stockAlertas');
 
 const ESTADOS_VALIDOS = ['pendiente_finalizar','pendiente_entregar','entregado','cancelado'];
@@ -176,6 +176,9 @@ router.post('/inconcluso', authMiddleware, async (req, res) => {
   let conn;
   try {
     conn = await db.getConnection();
+    // Deja "quién" en esta conexión antes de escribir, para que
+    // tr_pedidos_insert lo guarde en auditoria.usuario (ver db.js).
+    await conn.query('SET @app_usuario = ?', [actorLabel(req)]);
     const itemsValidados = await construirItemsValidados(conn, req.body.items);
     const total = calcularTotal(itemsValidados);
 
@@ -209,6 +212,7 @@ router.put('/:id/completar', authMiddleware, async (req, res) => {
   let conn;
   try {
     conn = await db.getConnection();
+    await conn.query('SET @app_usuario = ?', [actorLabel(req)]);
     await conn.beginTransaction();
 
     // FOR UPDATE bloquea el pedido mientras decidimos si hay que descontar
@@ -281,6 +285,7 @@ router.post('/', authMiddleware, async (req, res) => {
   let conn;
   try {
     conn = await db.getConnection();
+    await conn.query('SET @app_usuario = ?', [actorLabel(req)]);
     const itemsValidados = await construirItemsValidados(conn, items);
     const total = calcularTotal(itemsValidados);
 
@@ -552,6 +557,7 @@ router.patch('/:id/estado', adminMiddleware, async (req, res) => {
   let conn;
   try {
     conn = await db.getConnection();
+    await conn.query('SET @app_usuario = ?', [actorLabel(req)]);
     await conn.beginTransaction();
 
     // Traemos también el correo/nombre del cliente y el usuario_id:
@@ -644,6 +650,7 @@ router.post('/:id/cancelar', authMiddleware, async (req, res) => {
   let conn;
   try {
     conn = await db.getConnection();
+    await conn.query('SET @app_usuario = ?', [actorLabel(req)]);
     await conn.beginTransaction();
 
     const [rows] = await conn.query(

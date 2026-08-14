@@ -108,6 +108,23 @@ function adminMiddleware(req, res, next) {
   });
 }
 
-module.exports = { authMiddleware, adminMiddleware };
+/* ----------------------------------------------------------------
+   FUNCIÓN: actorLabel
+   ¿PARA QUÉ SIRVE? Para la auditoría (tabla `auditoria`, ver
+   db.js → conActor). Convierte req.user en un texto legible como
+   "Gera (gera@ejemplo.com)" que se guarda en auditoria.usuario,
+   para que si hay varios admins se sepa CUÁL de ellos hizo el
+   cambio — no solo que "alguien" lo hizo.
+
+   Si no hay sesión (ej. un trigger disparado por un script de
+   mantenimiento sin login), devuelve null y el propio trigger SQL
+   lo reemplaza por 'sistema' (ver COALESCE en los triggers).
+---------------------------------------------------------------- */
+function actorLabel(req) {
+  if (!req.user) return null;
+  return `${req.user.nombre} (${req.user.email})`;
+}
+
+module.exports = { authMiddleware, adminMiddleware, actorLabel };
 // Exportamos ambas funciones para usarlas en los archivos de rutas así:
-// const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+// const { authMiddleware, adminMiddleware, actorLabel } = require('../middleware/auth');

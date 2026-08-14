@@ -391,6 +391,19 @@ INSERT INTO productos (id, nombre, categoria, precio, imagen, destacado) VALUES
 --  Se crean DESPUÉS de insertar los 107 productos a propósito,
 --  para que el seed inicial no llene "auditoria" con 107 filas
 --  de "se agregó el producto..." en cada instalación nueva.
+--
+--  COLUMNA "usuario" (agregado 13-ago-2026, hallazgo de la guía de
+--  estudio): antes esta columna existía pero ningún trigger la
+--  llenaba, así que nunca se sabía QUIÉN hizo un cambio, solo qué
+--  cambió — un problema real si hay varios admins. Un trigger no
+--  puede saber por sí solo qué admin de la página disparó el
+--  cambio (todos comparten la misma conexión a MySQL), así que el
+--  backend deja una pista justo antes de la consulta, con una
+--  variable de sesión: SET @app_usuario = 'Gera (gera@ejemplo.com)'
+--  (ver db.js → conActor). Cada trigger la lee con COALESCE(...,
+--  'sistema'): si nadie la dejó (ej. un cambio hecho a mano desde
+--  Workbench, o un proceso automático como las alertas de stock),
+--  se guarda 'sistema' en vez de dejarlo vacío.
 -- ============================================================
 DELIMITER $$
 
@@ -399,8 +412,9 @@ CREATE TRIGGER tr_productos_insert
 AFTER INSERT ON productos
 FOR EACH ROW
 BEGIN
-  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_nuevos)
-  VALUES ('productos', 'INSERT', NEW.id, CONCAT('Se agregó el producto: ', NEW.nombre),
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, usuario, descripcion, datos_nuevos)
+  VALUES ('productos', 'INSERT', NEW.id, COALESCE(@app_usuario, 'sistema'),
+    CONCAT('Se agregó el producto: ', NEW.nombre),
     JSON_OBJECT('nombre', NEW.nombre, 'categoria', NEW.categoria, 'precio', NEW.precio, 'stock', NEW.stock));
 END$$
 
@@ -409,8 +423,9 @@ CREATE TRIGGER tr_productos_update
 AFTER UPDATE ON productos
 FOR EACH ROW
 BEGIN
-  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores, datos_nuevos)
-  VALUES ('productos', 'UPDATE', NEW.id, CONCAT('Se actualizó el producto: ', NEW.nombre),
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, usuario, descripcion, datos_anteriores, datos_nuevos)
+  VALUES ('productos', 'UPDATE', NEW.id, COALESCE(@app_usuario, 'sistema'),
+    CONCAT('Se actualizó el producto: ', NEW.nombre),
     JSON_OBJECT('nombre', OLD.nombre, 'categoria', OLD.categoria, 'precio', OLD.precio, 'stock', OLD.stock, 'activo', OLD.activo),
     JSON_OBJECT('nombre', NEW.nombre, 'categoria', NEW.categoria, 'precio', NEW.precio, 'stock', NEW.stock, 'activo', NEW.activo));
 END$$
@@ -420,8 +435,9 @@ CREATE TRIGGER tr_productos_delete
 AFTER DELETE ON productos
 FOR EACH ROW
 BEGIN
-  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores)
-  VALUES ('productos', 'DELETE', OLD.id, CONCAT('Se eliminó el producto: ', OLD.nombre),
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, usuario, descripcion, datos_anteriores)
+  VALUES ('productos', 'DELETE', OLD.id, COALESCE(@app_usuario, 'sistema'),
+    CONCAT('Se eliminó el producto: ', OLD.nombre),
     JSON_OBJECT('nombre', OLD.nombre, 'categoria', OLD.categoria, 'precio', OLD.precio, 'stock', OLD.stock));
 END$$
 
@@ -430,8 +446,9 @@ CREATE TRIGGER tr_pedidos_insert
 AFTER INSERT ON pedidos
 FOR EACH ROW
 BEGIN
-  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_nuevos)
-  VALUES ('pedidos', 'INSERT', NEW.id, CONCAT('Nuevo pedido #', NEW.id),
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, usuario, descripcion, datos_nuevos)
+  VALUES ('pedidos', 'INSERT', NEW.id, COALESCE(@app_usuario, 'sistema'),
+    CONCAT('Nuevo pedido #', NEW.id),
     JSON_OBJECT('usuario', NEW.usuario_id, 'total', NEW.total, 'estado', NEW.estado));
 END$$
 
@@ -440,8 +457,9 @@ CREATE TRIGGER tr_pedidos_update
 AFTER UPDATE ON pedidos
 FOR EACH ROW
 BEGIN
-  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores, datos_nuevos)
-  VALUES ('pedidos', 'UPDATE', NEW.id, CONCAT('Pedido #', NEW.id, ' actualizado'),
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, usuario, descripcion, datos_anteriores, datos_nuevos)
+  VALUES ('pedidos', 'UPDATE', NEW.id, COALESCE(@app_usuario, 'sistema'),
+    CONCAT('Pedido #', NEW.id, ' actualizado'),
     JSON_OBJECT('estado', OLD.estado, 'total', OLD.total),
     JSON_OBJECT('estado', NEW.estado, 'total', NEW.total));
 END$$
@@ -451,8 +469,9 @@ CREATE TRIGGER tr_usuarios_insert
 AFTER INSERT ON usuarios
 FOR EACH ROW
 BEGIN
-  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_nuevos)
-  VALUES ('usuarios', 'INSERT', NEW.id, CONCAT('Nuevo usuario registrado: ', NEW.nombre),
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, usuario, descripcion, datos_nuevos)
+  VALUES ('usuarios', 'INSERT', NEW.id, COALESCE(@app_usuario, 'sistema'),
+    CONCAT('Nuevo usuario registrado: ', NEW.nombre),
     JSON_OBJECT('nombre', NEW.nombre, 'email', NEW.email, 'rol', NEW.rol));
 END$$
 
@@ -461,8 +480,9 @@ CREATE TRIGGER tr_usuarios_update
 AFTER UPDATE ON usuarios
 FOR EACH ROW
 BEGIN
-  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores, datos_nuevos)
-  VALUES ('usuarios', 'UPDATE', NEW.id, CONCAT('Usuario actualizado: ', NEW.nombre),
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, usuario, descripcion, datos_anteriores, datos_nuevos)
+  VALUES ('usuarios', 'UPDATE', NEW.id, COALESCE(@app_usuario, 'sistema'),
+    CONCAT('Usuario actualizado: ', NEW.nombre),
     JSON_OBJECT('nombre', OLD.nombre, 'email', OLD.email, 'rol', OLD.rol),
     JSON_OBJECT('nombre', NEW.nombre, 'email', NEW.email, 'rol', NEW.rol));
 END$$
@@ -476,8 +496,9 @@ CREATE TRIGGER tr_usuarios_delete
 AFTER DELETE ON usuarios
 FOR EACH ROW
 BEGIN
-  INSERT INTO auditoria (tabla_afectada, accion, id_registro, descripcion, datos_anteriores)
-  VALUES ('usuarios', 'DELETE', OLD.id, CONCAT('Usuario eliminado: ', OLD.nombre),
+  INSERT INTO auditoria (tabla_afectada, accion, id_registro, usuario, descripcion, datos_anteriores)
+  VALUES ('usuarios', 'DELETE', OLD.id, COALESCE(@app_usuario, 'sistema'),
+    CONCAT('Usuario eliminado: ', OLD.nombre),
     JSON_OBJECT('nombre', OLD.nombre, 'email', OLD.email, 'rol', OLD.rol));
 END$$
 

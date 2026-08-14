@@ -116,10 +116,16 @@ router.post('/registro', async (req, res) => {
     // NUNCA guardamos password directamente, siempre el hash.
 
     // INSERTAR el nuevo usuario en la base de datos
-    const [result] = await db.query(
-      'INSERT INTO usuarios (nombre, email, password, rol) VALUES (?,?,?,?)',
-      [nombre.trim(), email.toLowerCase().trim(), hash, 'cliente']
-    );
+    // conActor: aquí todavía no hay sesión (req.user no existe, se está
+    // registrando apenas), así que el actor de auditoria.usuario se arma
+    // a mano con sus propios datos, en vez de con actorLabel(req).
+    let result;
+    await db.conActor(`${nombre.trim()} (${email.toLowerCase().trim()}) — registro propio`, async (conn) => {
+      [result] = await conn.query(
+        'INSERT INTO usuarios (nombre, email, password, rol) VALUES (?,?,?,?)',
+        [nombre.trim(), email.toLowerCase().trim(), hash, 'cliente']
+      );
+    });
     // Los ? son placeholders que mysql2 reemplaza de forma segura.
     // Esto previene "SQL Injection" (un tipo de ataque donde alguien
     // mete código SQL malicioso en los campos del formulario).
@@ -217,7 +223,7 @@ router.post('/login', async (req, res) => {
    guardado en localStorage y llama a /me para saber si sigue
    siendo válido o ya venció (los tokens duran 7 días).
 ---------------------------------------------------------------- */
-const { authMiddleware } = require('../middleware/auth');
+const { authMiddleware, actorLabel } = require('../middleware/auth');
 router.get('/me', authMiddleware, (req, res) => {
   res.json({ user: req.user });
   // req.user ya fue llenado por authMiddleware al verificar el token.
@@ -278,15 +284,15 @@ router.put('/me', authMiddleware, meLimiter, async (req, res) => {
     const telefonoLimpio = telefono && telefono.trim() ? telefono.trim() : null;
 
     if (nuevoHash) {
-      await db.query(
+      await db.conActor(actorLabel(req), (conn) => conn.query(
         'UPDATE usuarios SET nombre = ?, apellido = ?, email = ?, telefono = ?, password = ? WHERE id = ?',
         [nombre.trim(), apellidoLimpio, emailLimpio, telefonoLimpio, nuevoHash, req.user.id]
-      );
+      ));
     } else {
-      await db.query(
+      await db.conActor(actorLabel(req), (conn) => conn.query(
         'UPDATE usuarios SET nombre = ?, apellido = ?, email = ?, telefono = ? WHERE id = ?',
         [nombre.trim(), apellidoLimpio, emailLimpio, telefonoLimpio, req.user.id]
-      );
+      ));
     }
 
     // El token viejo tiene los datos ANTIGUOS. Generamos uno nuevo para
@@ -342,10 +348,12 @@ router.post('/olvide-password', olvidePasswordLimiter, async (req, res) => {
       const tokenHash   = crypto.createHash('sha256').update(tokenPlano).digest('hex');
       const expira      = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
-      await db.query(
+      // Sin sesión todavía (apenas está pidiendo recuperar su contraseña),
+      // así que el actor se arma con su propio correo, no con actorLabel(req).
+      await db.conActor(`${emailLimpio} — solicitó recuperar su contraseña`, (conn) => conn.query(
         'UPDATE usuarios SET reset_token = ?, reset_token_expira = ? WHERE id = ?',
         [tokenHash, expira, user.id]
-      );
+      ));
 
       const origen = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
       const link   = origen + '/resetear-password.html?token=' + tokenPlano;
@@ -393,7 +401,7 @@ router.post('/resetear-password', async (req, res) => {
     // reset_token_expira > NOW(): si ya pasó la hora, no cuenta como
     // válido aunque el hash coincida.
     const [rows] = await db.query(
-      'SELECT id FROM usuarios WHERE reset_token = ? AND reset_token_expira > NOW()',
+      'SELECT id, email FROM usuarios WHERE reset_token = ? AND reset_token_expira > NOW()',
       [tokenHash]
     );
 
@@ -404,10 +412,12 @@ router.post('/resetear-password', async (req, res) => {
 
     // Limpiamos el token al usarlo: un link de reseteo es de un solo
     // uso, si alguien lo reenvía después ya no debe funcionar.
-    await db.query(
+    // Tampoco hay sesión aquí (el token del link ES la prueba de
+    // identidad), así que el actor se arma con el correo ya encontrado.
+    await db.conActor(`${rows[0].email} — restableció su contraseña`, (conn) => conn.query(
       'UPDATE usuarios SET password = ?, reset_token = NULL, reset_token_expira = NULL WHERE id = ?',
       [hash, rows[0].id]
-    );
+    ));
 
     res.json({ ok: true });
 
