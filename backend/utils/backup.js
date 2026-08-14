@@ -11,33 +11,66 @@
         ahora" del panel admin, que corre DENTRO del mismo proceso
         de Node que atiende a los clientes de la tienda.
 
-   ¿POR QUÉ NO SE PUEDE REUSAR TAL CUAL EL CÓDIGO VIEJO DE
-   backupDB.js? Ese usaba execFileSync (versión SÍNCRONA/bloqueante)
-   de mysqldump/openssl — para un script aparte no importa, pero si
-   el panel admin llamara esa misma función, congelaría el sitio
-   ENTERO (nadie podría cargar el catálogo ni pagar) mientras dura
-   el dump. Aquí se usa la versión asíncrona (execFile + promisify)
-   para que, sin importar quién la llame, nunca bloquee el event
-   loop — mientras se genera el respaldo, el resto de peticiones al
-   servidor se siguen atendiendo normal.
+   REESCRITO EL 14-AGO-2026: la versión anterior llamaba a los
+   binarios "mysqldump" y "openssl" del sistema operativo vía
+   child_process. En este hosting (CloudLinux/CageFS) ese enfoque
+   dio problemas irresolubles: "mysqldump" a veces no es visible
+   para el proceso de Node aunque exista en el servidor, y no hay
+   forma de diagnosticarlo sin acceso a una terminal real.
+
+   Ahora TODO el respaldo se genera en JavaScript puro, sin depender
+   de ningún binario externo instalado en el servidor:
+     - El dump usa el paquete npm "mysqldump" (habla directo con
+       MySQL vía el mismo driver mysql2 que ya usa el resto del
+       proyecto — no ejecuta ningún programa aparte).
+     - El cifrado usa el módulo "crypto" incluido en Node (AES-256-CBC
+       + PBKDF2-SHA256), replicando exactamente el formato de
+       `openssl enc -aes-256-cbc -pbkdf2 -salt` (mismo prefijo
+       "Salted__", mismos 10000 iteraciones/SHA256 por defecto) —
+       así los respaldos .enc siguen restaurándose con el mismo
+       comando de openssl que ya se le explica al dueño por correo,
+       sin importar si ESTE servidor tiene openssl disponible o no.
+     Verificado localmente: un archivo cifrado con esta función se
+     descifra correctamente con `openssl enc -d -aes-256-cbc -pbkdf2
+     -salt -pass pass:X -in archivo -out salida` sin cambiar nada.
 
    Devuelve un objeto describiendo qué pasó (no siempre lanza error:
    por ejemplo "no se pudo mandar por correo" es un resultado válido,
    no una excepción) — quien la llame decide cómo mostrarlo.
 ================================================================ */
 
-const { execFile } = require('child_process');
-const { promisify } = require('util');
-const fs   = require('fs');
-const os   = require('os');
-const path = require('path');
-const zlib = require('zlib');
-
-const execFileAsync = promisify(execFile);
+const crypto   = require('crypto');
+const fs       = require('fs');
+const os       = require('os');
+const path     = require('path');
+const zlib     = require('zlib');
+const mysqldump = require('mysqldump').default;
 
 const CARPETA_RESPALDOS = path.join(os.homedir(), 'backups');
 const LIMITE_DIAS = 30; // cuántos días de respaldos locales conservar
 const LIMITE_MB_CORREO = 20; // por encima de esto, arriesgado que Gmail lo acepte (límite real 25MB)
+
+/* ----------------------------------------------------------------
+   cifrarComoOpenssl(buffer, password)
+   Reimplementación en JS puro de:
+     openssl enc -aes-256-cbc -pbkdf2 -salt -pass pass:X
+   Sin -iter ni -md explícitos, así que openssl usa sus valores por
+   defecto: PBKDF2 con SHA-256 y 10000 iteraciones — los mismos que
+   usamos aquí para que el resultado sea 100% intercambiable con el
+   comando real de openssl (probado localmente: cifrar aquí y
+   descifrar con openssl real, y viceversa, da el mismo contenido).
+   Formato del archivo: "Salted__" (8 bytes) + salt (8 bytes) + datos
+   cifrados — es el formato estándar que openssl espera al leer.
+---------------------------------------------------------------- */
+function cifrarComoOpenssl(buffer, password) {
+  const salt = crypto.randomBytes(8);
+  const keyIv = crypto.pbkdf2Sync(password, salt, 10000, 48, 'sha256');
+  const key = keyIv.subarray(0, 32);
+  const iv = keyIv.subarray(32, 48);
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  const cifrado = Buffer.concat([cipher.update(buffer), cipher.final()]);
+  return Buffer.concat([Buffer.from('Salted__'), salt, cifrado]);
+}
 
 /* ----------------------------------------------------------------
    generarRespaldo()
@@ -52,7 +85,7 @@ async function generarRespaldo() {
   const { obtenerCorreoDestino } = require('./correoDestino'); // ídem: usa db.js, que lee process.env al cargar
 
   const DB_HOST     = process.env.DB_HOST || 'localhost';
-  const DB_PORT     = process.env.DB_PORT || 3306;
+  const DB_PORT     = Number(process.env.DB_PORT) || 3306;
   const DB_USER     = process.env.DB_USER;
   const DB_PASSWORD = process.env.DB_PASSWORD || '';
   const DB_NAME     = process.env.DB_NAME;
@@ -75,69 +108,27 @@ async function generarRespaldo() {
   const rutaSql = path.join(CARPETA_RESPALDOS, nombreBase + '.sql');
   const rutaGz  = rutaSql + '.gz';
 
-  /* ── 1. Generar el dump con mysqldump (asíncrono) ───────────
-     --defaults-extra-file en vez de "-p..." directo: un "-p" en la
-     línea de comandos queda visible en "ps aux" mientras corre. */
-  const rutaCnfTemp = path.join(os.tmpdir(), 'dcbackup_' + process.pid + '_' + Date.now() + '.cnf');
-  fs.writeFileSync(
-    rutaCnfTemp,
-    '[client]\nuser=' + DB_USER + '\npassword=' + DB_PASSWORD + '\nhost=' + DB_HOST + '\nport=' + DB_PORT + '\n',
-    { mode: 0o600 }
-  );
-
-  let dump;
-  let stderrTexto = '';
-  let rutaBinario = '(no se pudo determinar)';
+  /* ── 1. Generar el dump (JS puro, sin binario externo) ──────── */
+  let dumpTexto;
   try {
-    // Diagnóstico previo: en hosting con CloudLinux/CageFS a veces "mysqldump"
-    // se resuelve a algo distinto (o a nada) según qué binarios están
-    // visibles para el proceso de Node — "which" barato de ejecutar y deja
-    // rastro útil en el mensaje de error si el dump sale vacío.
-    try {
-      const which = await execFileAsync('which', ['mysqldump']);
-      rutaBinario = which.stdout.toString().trim() || '(vacío)';
-    } catch (whichErr) {
-      rutaBinario = '(which falló: ' + whichErr.message + ')';
-    }
-
-    const resultado = await execFileAsync('mysqldump', [
-      '--defaults-extra-file=' + rutaCnfTemp,
-      '--single-transaction', // no bloquea las tablas mientras se lee
-      '--routines',
-      '--triggers',
-      DB_NAME
-    ], { maxBuffer: 1024 * 1024 * 200, encoding: 'buffer' });
-    dump = resultado.stdout;
-    stderrTexto = (resultado.stderr && resultado.stderr.toString().trim()) || '';
+    const resultado = await mysqldump({
+      connection: { host: DB_HOST, port: DB_PORT, user: DB_USER, password: DB_PASSWORD, database: DB_NAME },
+      // dump.data sin formatear (format:false) es más rápido para BDs
+      // grandes y no cambia el contenido, solo el espaciado del SQL.
+      dump: { data: { format: false } }
+    });
+    dumpTexto = [resultado.dump.schema, resultado.dump.trigger, resultado.dump.data]
+      .filter(Boolean)
+      .join('\n\n');
   } catch (err) {
-    // execFile rechaza con un Error que trae .stdout/.stderr pegados
-    // cuando mysqldump corrió pero salió con código distinto de 0 (ej.
-    // credenciales rechazadas, --routines sin permiso de SELECT sobre
-    // mysql.proc, etc.) — sin esto, err.message a veces es solo
-    // "Command failed" y no dice POR QUÉ falló mysqldump realmente.
-    const detalle = (err.stderr && err.stderr.toString().trim()) || err.message;
-    throw new Error('mysqldump falló (binario resuelto en: ' + rutaBinario + '): ' + detalle);
-  } finally {
-    fs.unlinkSync(rutaCnfTemp);
+    throw new Error('No se pudo generar el dump de la base de datos: ' + err.message);
   }
 
-  // Defensa extra: si por lo que sea mysqldump "tronó" pero execFile no
-  // lo marcó como error (raro, pero fue justo el síntoma que dio el
-  // primer intento en producción: fs.writeFileSync tronando con "data
-  // ... Received undefined" en vez de decir claramente qué pasó), mejor
-  // un mensaje que explique el problema real en vez de dejar que
-  // writeFileSync truene con un error críptico sobre tipos de dato.
-  // Incluye "which mysqldump" y cualquier texto en stderr (aunque haya
-  // salido con código 0) porque esa es la única pista real que tenemos
-  // sin acceso a shell en este hosting.
-  if (!dump || !dump.length) {
-    throw new Error(
-      'mysqldump no devolvió ningún dato (dump vacío). Binario resuelto en: ' + rutaBinario +
-      (stderrTexto ? '. stderr: ' + stderrTexto : '. (mysqldump no escribió nada en stderr tampoco)')
-    );
+  if (!dumpTexto || !dumpTexto.trim()) {
+    throw new Error('El dump de la base de datos salió vacío (sin tablas o sin permisos de lectura).');
   }
 
-  fs.writeFileSync(rutaSql, dump);
+  fs.writeFileSync(rutaSql, dumpTexto, 'utf8');
 
   /* ── 2. Comprimir (gzip) ──────────────────────────────────── */
   const gzBuffer = zlib.gzipSync(fs.readFileSync(rutaSql));
@@ -169,14 +160,10 @@ async function generarRespaldo() {
 
   const rutaEnc = rutaGz + '.enc';
   try {
-    await execFileAsync('openssl', [
-      'enc', '-aes-256-cbc', '-pbkdf2', '-salt',
-      '-pass', 'env:BACKUP_ENCRYPTION_PASSWORD',
-      '-in', rutaGz,
-      '-out', rutaEnc
-    ]);
+    const cifrado = cifrarComoOpenssl(fs.readFileSync(rutaGz), BACKUP_ENCRYPTION_PASSWORD);
+    fs.writeFileSync(rutaEnc, cifrado);
   } catch (err) {
-    return { ...resultadoBase, motivo: 'No se pudo cifrar el respaldo con openssl (' + err.message + '). Queda solo la copia local.' };
+    return { ...resultadoBase, motivo: 'No se pudo cifrar el respaldo (' + err.message + '). Queda solo la copia local.' };
   }
 
   try {

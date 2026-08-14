@@ -17,9 +17,15 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.1.1",
     "mysql2": "^3.9.7",
+    "mysqldump": "^3.2.0",
     "nodemailer": "^9.0.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
+  },
+  "overrides": {
+    "mysqldump": {
+      "mysql2": "$mysql2"
+    }
   }
 }
