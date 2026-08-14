@@ -95,8 +95,26 @@ async function generarRespaldo() {
       DB_NAME
     ], { maxBuffer: 1024 * 1024 * 200, encoding: 'buffer' });
     dump = resultado.stdout;
+  } catch (err) {
+    // execFile rechaza con un Error que trae .stdout/.stderr pegados
+    // cuando mysqldump corrió pero salió con código distinto de 0 (ej.
+    // credenciales rechazadas, --routines sin permiso de SELECT sobre
+    // mysql.proc, etc.) — sin esto, err.message a veces es solo
+    // "Command failed" y no dice POR QUÉ falló mysqldump realmente.
+    const detalle = (err.stderr && err.stderr.toString().trim()) || err.message;
+    throw new Error('mysqldump falló: ' + detalle);
   } finally {
     fs.unlinkSync(rutaCnfTemp);
+  }
+
+  // Defensa extra: si por lo que sea mysqldump "tronó" pero execFile no
+  // lo marcó como error (raro, pero fue justo el síntoma que dio el
+  // primer intento en producción: fs.writeFileSync tronando con "data
+  // ... Received undefined" en vez de decir claramente qué pasó), mejor
+  // un mensaje que explique el problema real en vez de dejar que
+  // writeFileSync truene con un error críptico sobre tipos de dato.
+  if (!dump || !dump.length) {
+    throw new Error('mysqldump no devolvió ningún dato (dump vacío) — revisa que el binario "mysqldump" esté disponible para la app de Node en este hosting.');
   }
 
   fs.writeFileSync(rutaSql, dump);
