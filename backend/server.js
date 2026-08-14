@@ -181,6 +181,23 @@ app.use('/api/auditorias',   require('./routes/auditorias')); // panel admin: HT
 app.use('/api/historial',    require('./routes/historial'));  // panel admin: historial de cambios (tabla auditoria, distinta de /auditorias)
 app.use('/api/respaldos',    require('./routes/respaldos'));  // panel admin: botón "Generar respaldo ahora"
 
+/* ── DIAGNÓSTICO TEMPORAL (14 ago 2026) ───────────────────────
+   Ruta pública sin autenticación, de un solo uso: para confirmar
+   desde afuera si el proceso de Node que atiende dulceria-charles.com
+   es realmente el que se acaba de crear (uptimeSec chico) o un
+   proceso viejo que cPanel nunca reemplazó (uptimeSec grande),
+   sin depender de que un cambio de código se refleje en el
+   comportamiento de una ruta real. Borrar este bloque una vez
+   resuelto el problema de reinicios que no se aplican.
+────────────────────────────────────────────────────────────── */
+app.get('/api/_diag', (req, res) => {
+  res.json({
+    pid: process.pid,
+    uptimeSec: Math.round(process.uptime()),
+    bootedAtAprox: new Date(Date.now() - process.uptime() * 1000).toISOString()
+  });
+});
+
 /* ── MANEJADOR DE RUTAS NO ENCONTRADAS ────────────────────────
    Este middleware se ejecuta cuando ninguna ruta anterior
    coincidió con la petición (se registra al final por eso).
