@@ -104,13 +104,6 @@
 .stat-card.clickable { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
 .stat-card.clickable:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
 
-/* ── Tarjetas de abajo del Dashboard (Últimos pedidos, Últimos
-   registros, Stock bajo o agotado, Avisos) — mismo hover que
-   .stat-card.clickable de arriba, para que se note que también se
-   pueden clickear y mandan a su sección (ver admin.js). ── */
-.dash-card-clickable { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
-.dash-card-clickable:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-
 /* ── Grid de widgets del dashboard (pedidos / clientes / stock) ── */
 .dash-grid {
   display: grid;

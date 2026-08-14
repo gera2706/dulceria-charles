@@ -158,22 +158,19 @@
         <h2 class="admin-section-title">📊 Dashboard</h2>
         <div class="admin-stats" id="stat-cards"></div>
 
-        <!-- Cada tarjeta de abajo tiene data-goto-section: un clic en
-             cualquier parte de la tarjeta (no solo en una fila) manda a
-             esa sección del panel — ver el bloque "Dashboard: tarjetas
-             de abajo clickeables" en admin.js. Mismo espíritu que las
-             tarjetas de arriba (#stat-cards), que ya mandaban a
-             Productos al hacer clic en Stock bajo/Agotado. -->
+        <!-- Estas tarjetas son solo informativas (no clickeables) — a
+             diferencia de las de arriba (#stat-cards), aquí no hay una
+             sola acción obvia a la que mandar con un clic. -->
         <div class="dash-grid">
-          <div class="admin-table-wrap dash-card-clickable" data-goto-section="pedidos" style="padding:1.2rem 1.4rem;">
+          <div class="admin-table-wrap" style="padding:1.2rem 1.4rem;">
             <h3 style="font-family:var(--font-display);font-weight:600;color:var(--pink-dark);font-size:1rem;margin-bottom:0.8rem;">📦 Últimos pedidos</h3>
             <div id="dash-orders"></div>
           </div>
-          <div class="admin-table-wrap dash-card-clickable" data-goto-section="usuarios" style="padding:1.2rem 1.4rem;">
+          <div class="admin-table-wrap" style="padding:1.2rem 1.4rem;">
             <h3 style="font-family:var(--font-display);font-weight:600;color:var(--purple);font-size:1rem;margin-bottom:0.8rem;">👥 Últimos registros</h3>
             <div id="dash-users"></div>
           </div>
-          <div class="admin-table-wrap dash-card-clickable" data-goto-section="productos" style="padding:1.2rem 1.4rem;">
+          <div class="admin-table-wrap" style="padding:1.2rem 1.4rem;">
             <h3 style="font-family:var(--font-display);font-weight:600;color:#c2410c;font-size:1rem;margin-bottom:0.8rem;">⚠️ Stock bajo o agotado</h3>
             <div id="dash-stock"></div>
           </div>
@@ -184,13 +181,22 @@
                sola combinada) para distinguir de un vistazo cuáles son
                de stock bajo y cuáles de agotados. Lógica en
                renderAvisosStock() de admin.js. -->
-          <div class="admin-table-wrap dash-card-clickable" data-goto-section="productos" data-goto-stock-filtro="bajo" style="padding:1.2rem 1.4rem;">
+          <div class="admin-table-wrap" style="padding:1.2rem 1.4rem;">
             <h3 style="font-family:var(--font-display);font-weight:600;color:#c2410c;font-size:1rem;margin-bottom:0.8rem;">📉 Avisos de stock bajo</h3>
             <div id="dash-avisos-bajo"></div>
           </div>
-          <div class="admin-table-wrap dash-card-clickable" data-goto-section="productos" data-goto-stock-filtro="agotado" style="padding:1.2rem 1.4rem;">
+          <div class="admin-table-wrap" style="padding:1.2rem 1.4rem;">
             <h3 style="font-family:var(--font-display);font-weight:600;color:#b91c1c;font-size:1rem;margin-bottom:0.8rem;">🚫 Avisos de agotados</h3>
             <div id="dash-avisos-agotado"></div>
+          </div>
+          <!-- Vista rápida de los últimos movimientos registrados en
+               Historial de cambios — informativa, igual que las demás
+               tarjetas de aquí abajo. Lógica en renderDashboard() de
+               admin.js (reutiliza los mismos datos que ya trae para la
+               tarjeta "📜 Cambios recientes" de arriba). -->
+          <div class="admin-table-wrap" style="padding:1.2rem 1.4rem;">
+            <h3 style="font-family:var(--font-display);font-weight:600;color:var(--purple);font-size:1rem;margin-bottom:0.8rem;">📜 Últimos cambios</h3>
+            <div id="dash-historial"></div>
           </div>
         </div>
       </section>

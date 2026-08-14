@@ -80,33 +80,35 @@ document.addEventListener('DOMContentLoaded', function () {
         return new Date(h.fecha).getTime() >= haceUnDia;
       });
 
-      // Todas las tarjetas son clickeables ahora: cada una manda a la
-      // sección del panel donde vive ese dato ("section"), y las de stock
-      // además activan su propio filtro antes de entrar a Productos
-      // (stockFiltro) — igual que ya hacían.
+      // La mayoría de las tarjetas mandan a la sección del panel donde
+      // vive ese dato ("section"), y las de stock además activan su
+      // propio filtro antes de entrar a Productos (stockFiltro). Ingresos
+      // totales se queda solo informativa (sin "section") — no hay una
+      // sola sección obvia a la que mandarla.
       var cards = [
         { icon: '🍬', value: productos.length, label: 'Productos', section: 'productos' },
         { icon: '📦', value: confirmados,       label: 'Pedidos confirmados', section: 'pedidos' },
         { icon: '⏳', value: inconclusos,       label: 'Pedidos inconclusos', section: 'pedidos' },
         { icon: '👥', value: clientes.length,   label: 'Clientes', section: 'usuarios' },
-        { icon: '💰', value: fmt(revenue),      label: 'Ingresos totales', section: 'pedidos', raw: true },
+        { icon: '💰', value: fmt(revenue),      label: 'Ingresos totales', raw: true },
         // Antes era una sola tarjeta "Stock bajo / agotado" combinada —
         // separadas para que se vea de un vistazo cuál de las dos cosas
         // está pasando, sin tener que entrar a Productos a averiguarlo.
         { icon: '📉', value: bajoStock.length, label: 'Stock bajo', section: 'productos', stockFiltro: 'bajo' },
         { icon: '🚫', value: agotados.length,  label: 'Agotado',    section: 'productos', stockFiltro: 'agotado' },
-        { icon: '📜', value: cambiosRecientes.length, label: 'Cambios recientes (24h)', section: 'historial' },
+        { icon: '📜', value: cambiosRecientes.length, label: 'Cambios recientes', section: 'historial' },
       ];
 
       var wrap = document.getElementById('stat-cards');
       wrap.innerHTML = '';
       cards.forEach(function (c) {
         var div = document.createElement('div');
-        div.className = 'stat-card clickable';
+        div.className = 'stat-card' + (c.section ? ' clickable' : '');
         div.innerHTML =
           '<span class="stat-icon">' + c.icon + '</span>' +
           '<span class="stat-value">' + c.value + '</span>' +
           '<span class="stat-label">' + c.label + '</span>';
+        if (!c.section) { wrap.appendChild(div); return; } // Ingresos totales: sin clic
         div.addEventListener('click', function () {
           if (c.stockFiltro) {
             // Cada tarjeta activa SOLO su propio filtro (antes las dos
@@ -164,6 +166,23 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('');
       }
 
+      /* últimos 5 cambios (misma data que ya trae la tarjeta "📜 Cambios
+         recientes" de arriba — el backend la devuelve ordenada por fecha
+         DESC, así que los primeros 5 ya son los más nuevos). */
+      var dashHistorial = document.getElementById('dash-historial');
+      if (dashHistorial) {
+        if (!historial.length) {
+          dashHistorial.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">Sin cambios registrados.</p>';
+        } else {
+          dashHistorial.innerHTML = historial.slice(0, 5).map(function (h) {
+            return '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid #f3eeff;font-size:0.85rem;">' +
+              '<span>' + escapeHtml(h.descripcion || '') + '</span>' +
+              '<span style="color:var(--text-light);font-size:0.78rem;white-space:nowrap;">' + fmtFechaCorta(h.fecha) + '</span>' +
+              '</div>';
+          }).join('');
+        }
+      }
+
       renderAvisosStock(); // aparte: si falla, no debe tumbar el resto del dashboard
     } catch (e) {
       console.error('Dashboard error:', e);
@@ -217,27 +236,6 @@ document.addEventListener('DOMContentLoaded', function () {
       wrapAgotado.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">Sin avisos recientes.</p>';
     }
   }
-
-  /* Dashboard: tarjetas de abajo (Últimos pedidos, Últimos registros,
-     Stock bajo o agotado, Avisos) clickeables — mismo espíritu que las
-     tarjetas de arriba (#stat-cards, ver renderDashboard): un clic en
-     cualquier parte de la tarjeta manda a la sección que diga su
-     data-goto-section, y si trae data-goto-stock-filtro también activa
-     ese filtro antes de entrar a Productos. Se registra UNA sola vez
-     aquí (los <div> son fijos en admin.html, no se recrean en cada
-     render, a diferencia de #stat-cards). */
-  document.querySelectorAll('.dash-card-clickable').forEach(function (card) {
-    card.addEventListener('click', function () {
-      var filtro = card.dataset.gotoStockFiltro;
-      if (filtro) {
-        _stockFiltroActivo   = filtro === 'bajo';
-        _agotadoFiltroActivo = filtro === 'agotado';
-        document.getElementById('btn-filter-stock').classList.toggle('active', _stockFiltroActivo);
-        document.getElementById('btn-filter-agotado').classList.toggle('active', _agotadoFiltroActivo);
-      }
-      document.querySelector('.admin-nav-btn[data-section="' + card.dataset.gotoSection + '"]').click();
-    });
-  });
 
   /* Formato corto de fecha para el widget de avisos: "8 ago" */
   function fmtFechaCorta(str) {
