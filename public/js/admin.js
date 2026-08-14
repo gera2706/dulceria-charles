@@ -42,10 +42,14 @@ document.addEventListener('DOMContentLoaded', function () {
   ══════════════════════════════════════ */
   async function renderDashboard() {
     try {
-      var [productos, pedidos, usuarios] = await Promise.all([
+      // apiGetHistorialCambios() con su propio .catch(): si esta llamada
+      // falla (ej. sesión vieja, endpoint caído) no debe tumbar TODO el
+      // dashboard — simplemente la tarjeta de "Cambios recientes" queda en 0.
+      var [productos, pedidos, usuarios, historial] = await Promise.all([
         apiGetProductos(),
         apiGetTodosPedidos(),
-        apiGetUsuarios()
+        apiGetUsuarios(),
+        apiGetHistorialCambios({}).catch(function () { return []; })
       ]);
 
       var clientes    = usuarios.filter(function (u) { return u.rol !== 'admin'; });
@@ -65,39 +69,55 @@ document.addEventListener('DOMContentLoaded', function () {
       var bajoStock = productos.filter(function (p) { return p.stock > 0 && p.stock <= p.stock_minimo; });
       var agotados  = productos.filter(function (p) { return p.stock <= 0; });
 
+      /* Cambios recientes: cuántas filas de la tabla `auditoria` (ver
+         [[historial]] de admin.js) quedaron en las últimas 24h. La API
+         devuelve como máximo 50 (el límite por defecto del backend), así
+         que si hubiera más de 50 cambios en un solo día el número real
+         quedaría subestimado — poco probable para el volumen de esta
+         tienda, pero queda anotado por si algún día hace falta paginar. */
+      var haceUnDia = Date.now() - 24 * 60 * 60 * 1000;
+      var cambiosRecientes = historial.filter(function (h) {
+        return new Date(h.fecha).getTime() >= haceUnDia;
+      });
+
+      // Todas las tarjetas son clickeables ahora: cada una manda a la
+      // sección del panel donde vive ese dato ("section"), y las de stock
+      // además activan su propio filtro antes de entrar a Productos
+      // (stockFiltro) — igual que ya hacían.
       var cards = [
-        { icon: '🍬', value: productos.length, label: 'Productos' },
-        { icon: '📦', value: confirmados,       label: 'Pedidos confirmados' },
-        { icon: '⏳', value: inconclusos,       label: 'Pedidos inconclusos' },
-        { icon: '👥', value: clientes.length,   label: 'Clientes' },
-        { icon: '💰', value: fmt(revenue),      label: 'Ingresos totales', raw: true },
+        { icon: '🍬', value: productos.length, label: 'Productos', section: 'productos' },
+        { icon: '📦', value: confirmados,       label: 'Pedidos confirmados', section: 'pedidos' },
+        { icon: '⏳', value: inconclusos,       label: 'Pedidos inconclusos', section: 'pedidos' },
+        { icon: '👥', value: clientes.length,   label: 'Clientes', section: 'usuarios' },
+        { icon: '💰', value: fmt(revenue),      label: 'Ingresos totales', section: 'pedidos', raw: true },
         // Antes era una sola tarjeta "Stock bajo / agotado" combinada —
         // separadas para que se vea de un vistazo cuál de las dos cosas
         // está pasando, sin tener que entrar a Productos a averiguarlo.
-        { icon: '📉', value: bajoStock.length, label: 'Stock bajo', click: 'bajo' },
-        { icon: '🚫', value: agotados.length,  label: 'Agotado',    click: 'agotado' },
+        { icon: '📉', value: bajoStock.length, label: 'Stock bajo', section: 'productos', stockFiltro: 'bajo' },
+        { icon: '🚫', value: agotados.length,  label: 'Agotado',    section: 'productos', stockFiltro: 'agotado' },
+        { icon: '📜', value: cambiosRecientes.length, label: 'Cambios recientes (24h)', section: 'historial' },
       ];
 
       var wrap = document.getElementById('stat-cards');
       wrap.innerHTML = '';
       cards.forEach(function (c) {
         var div = document.createElement('div');
-        div.className = 'stat-card' + (c.click ? ' clickable' : '');
+        div.className = 'stat-card clickable';
         div.innerHTML =
           '<span class="stat-icon">' + c.icon + '</span>' +
           '<span class="stat-value">' + c.value + '</span>' +
           '<span class="stat-label">' + c.label + '</span>';
-        if (c.click) {
-          div.addEventListener('click', function () {
+        div.addEventListener('click', function () {
+          if (c.stockFiltro) {
             // Cada tarjeta activa SOLO su propio filtro (antes las dos
             // se activaban juntas porque era una sola tarjeta combinada).
-            _stockFiltroActivo   = c.click === 'bajo';
-            _agotadoFiltroActivo = c.click === 'agotado';
+            _stockFiltroActivo   = c.stockFiltro === 'bajo';
+            _agotadoFiltroActivo = c.stockFiltro === 'agotado';
             document.getElementById('btn-filter-stock').classList.toggle('active', _stockFiltroActivo);
             document.getElementById('btn-filter-agotado').classList.toggle('active', _agotadoFiltroActivo);
-            document.querySelector('.admin-nav-btn[data-section="productos"]').click();
-          });
-        }
+          }
+          document.querySelector('.admin-nav-btn[data-section="' + c.section + '"]').click();
+        });
         wrap.appendChild(div);
       });
 
@@ -197,6 +217,27 @@ document.addEventListener('DOMContentLoaded', function () {
       wrapAgotado.innerHTML = '<p style="color:var(--text-light);font-size:0.88rem;">Sin avisos recientes.</p>';
     }
   }
+
+  /* Dashboard: tarjetas de abajo (Últimos pedidos, Últimos registros,
+     Stock bajo o agotado, Avisos) clickeables — mismo espíritu que las
+     tarjetas de arriba (#stat-cards, ver renderDashboard): un clic en
+     cualquier parte de la tarjeta manda a la sección que diga su
+     data-goto-section, y si trae data-goto-stock-filtro también activa
+     ese filtro antes de entrar a Productos. Se registra UNA sola vez
+     aquí (los <div> son fijos en admin.html, no se recrean en cada
+     render, a diferencia de #stat-cards). */
+  document.querySelectorAll('.dash-card-clickable').forEach(function (card) {
+    card.addEventListener('click', function () {
+      var filtro = card.dataset.gotoStockFiltro;
+      if (filtro) {
+        _stockFiltroActivo   = filtro === 'bajo';
+        _agotadoFiltroActivo = filtro === 'agotado';
+        document.getElementById('btn-filter-stock').classList.toggle('active', _stockFiltroActivo);
+        document.getElementById('btn-filter-agotado').classList.toggle('active', _agotadoFiltroActivo);
+      }
+      document.querySelector('.admin-nav-btn[data-section="' + card.dataset.gotoSection + '"]').click();
+    });
+  });
 
   /* Formato corto de fecha para el widget de avisos: "8 ago" */
   function fmtFechaCorta(str) {
