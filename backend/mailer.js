@@ -89,19 +89,23 @@ async function enviarCorreoReseteo(destino, nombre, linkReseteo) {
   });
 }
 
-/* Envía al DUEÑO (misma cuenta que manda los correos, SMTP_USER) un
-   aviso de stock bajo o agotado. Dos orígenes posibles:
+/* Envía al DUEÑO un aviso de stock bajo o agotado. Dos orígenes
+   posibles:
    - 'sistema': el backend detectó automáticamente que un producto
      cruzó el umbral (ver backend/utils/stockAlertas.js).
    - 'cliente': un cliente con un pedido incompleto avisó a propósito
      porque el producto que quería ya no está (ver
      POST /api/pedidos/:id/avisar-agotado en routes/pedidos.js).
+   destino: a diferencia de antes (SMTP_USER fijo), quien llama esta
+   función ya resolvió el correo real — normalmente el contacto_email
+   configurado en el panel admin (ver quienes llaman: stockAlertas.js,
+   routes/pedidos.js) — así que un solo cambio en Configuración mueve
+   también a dónde llegan estas alertas.
    No lanza el error hacia arriba si falla — un correo de alerta que
    no salió no debe tumbar la venta ni el aviso del cliente; solo se
    registra en consola (ver uso en stockAlertas.js/pedidos.js). */
-async function enviarAlertaStock({ nombre, stock, stockMinimo, tipo, origen, cliente, pedidoId }) {
+async function enviarAlertaStock({ destino, nombre, stock, stockMinimo, tipo, origen, cliente, pedidoId }) {
   const transporter = getTransporter();
-  const destino = process.env.SMTP_USER; // el dueño se avisa a sí mismo, misma cuenta que envía
 
   const esAgotado = tipo === 'agotado';
   const asunto = (esAgotado ? '🚫 Se agotó: ' : '⚠️ Stock bajo: ') + nombre;
@@ -140,7 +144,8 @@ async function enviarAlertaStock({ nombre, stock, stockMinimo, tipo, origen, cli
 
 /* Avisa que un pedido se canceló. Sirve para las dos direcciones:
    - Cliente cancela su propio pedido → se avisa al DUEÑO (destino =
-     SMTP_USER), con el motivo que escribió el cliente.
+     contacto_email, ver utils/correoDestino.js), con el motivo que
+     escribió el cliente.
    - Admin cancela el pedido de un cliente → se avisa al CLIENTE
      (destino = su correo registrado), con el motivo que haya puesto
      el admin (opcional).

@@ -19,8 +19,9 @@
    próxima vez que se agote vuelva a avisar.
 ================================================================ */
 
-const mailer   = require('../mailer');
-const whatsapp = require('../whatsapp');
+const mailer          = require('../mailer');
+const whatsapp        = require('../whatsapp');
+const { obtenerCorreoDestino } = require('./correoDestino');
 
 /* Calcula en qué nivel de alerta está un producto ahora mismo. */
 function calcularNivel(stock, stockMinimo) {
@@ -67,6 +68,7 @@ async function revisarAlertaStock(conn, productoId) {
     );
 
     await mailer.enviarAlertaStock({
+      destino: await obtenerCorreoDestino(conn),
       nombre: producto.nombre,
       stock: producto.stock,
       stockMinimo: producto.stock_minimo,

@@ -49,13 +49,19 @@ const LIMITE_MB_CORREO = 20; // por encima de esto, arriesgado que Gmail lo acep
 ---------------------------------------------------------------- */
 async function generarRespaldo() {
   const mailer = require('../mailer'); // require tardío: mailer.js también depende de process.env ya cargado
+  const { obtenerCorreoDestino } = require('./correoDestino'); // ídem: usa db.js, que lee process.env al cargar
 
   const DB_HOST     = process.env.DB_HOST || 'localhost';
   const DB_PORT     = process.env.DB_PORT || 3306;
   const DB_USER     = process.env.DB_USER;
   const DB_PASSWORD = process.env.DB_PASSWORD || '';
   const DB_NAME     = process.env.DB_NAME;
-  const DESTINO     = process.env.BACKUP_EMAIL || process.env.SMTP_USER;
+  // BACKUP_EMAIL sigue siendo un override específico por si el dueño
+  // quiere que el respaldo (distinto de las alertas normales) vaya a
+  // otra cuenta — pero si no está puesto, ahora cae en el mismo
+  // contacto_email de Configuración en vez de saltar directo a
+  // SMTP_USER, para que un solo cambio ahí mueva todo lo demás.
+  const DESTINO     = process.env.BACKUP_EMAIL || await obtenerCorreoDestino();
   const BACKUP_ENCRYPTION_PASSWORD = process.env.BACKUP_ENCRYPTION_PASSWORD;
 
   if (!DB_USER || !DB_NAME) {

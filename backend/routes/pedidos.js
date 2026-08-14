@@ -14,6 +14,7 @@ const mailer   = require('../mailer');
 const whatsapp = require('../whatsapp');
 const { authMiddleware, adminMiddleware, actorLabel } = require('../middleware/auth');
 const { revisarAlertaStock } = require('../utils/stockAlertas');
+const { obtenerCorreoDestino } = require('../utils/correoDestino');
 
 const ESTADOS_VALIDOS = ['pendiente_finalizar','pendiente_entregar','entregado','cancelado'];
 
@@ -447,6 +448,7 @@ router.post('/:id/avisar-agotado', authMiddleware, async (req, res) => {
 
     try {
       await mailer.enviarAlertaStock({
+        destino: await obtenerCorreoDestino(),
         nombre: prodRows[0].nombre,
         stock: 0,
         tipo: 'agotado',
@@ -686,7 +688,7 @@ router.post('/:id/cancelar', authMiddleware, async (req, res) => {
 
     try {
       await mailer.enviarAvisoCancelacion({
-        destino: process.env.SMTP_USER,
+        destino: await obtenerCorreoDestino(),
         paraCliente: false,
         pedidoId: req.params.id,
         motivo: motivo,

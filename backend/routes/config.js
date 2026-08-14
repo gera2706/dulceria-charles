@@ -11,6 +11,7 @@ const db         = require('../db');
 const rateLimit  = require('express-rate-limit');
 const mailer     = require('../mailer');
 const { adminMiddleware } = require('../middleware/auth');
+const { obtenerCorreoDestino } = require('../utils/correoDestino');
 
 // El formulario de Contacto es público (no requiere login) y cada envío
 // manda un correo — sin límite, cualquiera podría usarlo para bombardear
@@ -105,13 +106,11 @@ router.post('/contacto-mensaje', contactoLimiter, async (req, res) => {
     return res.status(400).json({ error: 'El correo no tiene un formato válido.' });
 
   try {
-    const [rows] = await db.query(
-      "SELECT valor FROM configuracion WHERE clave = 'contacto_email'"
-    );
-    // Si el admin todavía no configuró un correo de contacto, usamos
-    // la misma cuenta que manda los demás correos (SMTP_USER) como
-    // respaldo — así el formulario nunca se queda sin destino.
-    const destino = (rows[0] && rows[0].valor) || process.env.SMTP_USER;
+    // obtenerCorreoDestino() ya hace exactamente esto: lee contacto_email
+    // y si no existe cae en SMTP_USER — mismo helper que usan ahora las
+    // alertas de stock, el aviso de cancelación al dueño y el respaldo
+    // por correo (ver utils/correoDestino.js).
+    const destino = await obtenerCorreoDestino();
     if (!destino) return res.status(500).json({ error: 'El sitio todavía no tiene un correo de contacto configurado.' });
 
     await mailer.enviarMensajeContacto({
