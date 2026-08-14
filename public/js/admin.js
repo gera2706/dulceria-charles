@@ -1079,7 +1079,12 @@ document.addEventListener('DOMContentLoaded', function () {
         'padding:1rem 1.2rem;' + (faq.activo ? '' : 'opacity:0.6;');
       card.innerHTML =
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.8rem;flex-wrap:wrap;">' +
-          '<div style="flex:1;min-width:220px;">' +
+          /* overflow-wrap:anywhere — "Palabras clave" es texto libre que
+             el admin escribe sin espacio después de cada coma a veces
+             (ej: "horario,hora,abren,cierran,..."); sin esto el navegador
+             lo trata como una sola palabra gigante y se sale de la
+             tarjeta en pantallas angostas en vez de partirse de línea. */
+          '<div style="flex:1;min-width:220px;overflow-wrap:anywhere;">' +
             '<div style="font-weight:700;color:var(--text);margin-bottom:0.3rem;">' + escapeHtml(faq.pregunta) + '</div>' +
             '<div style="font-size:0.82rem;color:var(--text-light);margin-bottom:0.4rem;">' + escapeHtml(faq.respuesta).replace(/\n/g, ' · ') + '</div>' +
             (faq.palabras_clave ? '<div style="font-size:0.78rem;color:var(--text-light);"><strong>Palabras clave:</strong> ' + escapeHtml(faq.palabras_clave) + '</div>' : '') +
