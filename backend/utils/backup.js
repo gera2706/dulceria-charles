@@ -86,7 +86,20 @@ async function generarRespaldo() {
   );
 
   let dump;
+  let stderrTexto = '';
+  let rutaBinario = '(no se pudo determinar)';
   try {
+    // Diagnóstico previo: en hosting con CloudLinux/CageFS a veces "mysqldump"
+    // se resuelve a algo distinto (o a nada) según qué binarios están
+    // visibles para el proceso de Node — "which" barato de ejecutar y deja
+    // rastro útil en el mensaje de error si el dump sale vacío.
+    try {
+      const which = await execFileAsync('which', ['mysqldump']);
+      rutaBinario = which.stdout.toString().trim() || '(vacío)';
+    } catch (whichErr) {
+      rutaBinario = '(which falló: ' + whichErr.message + ')';
+    }
+
     const resultado = await execFileAsync('mysqldump', [
       '--defaults-extra-file=' + rutaCnfTemp,
       '--single-transaction', // no bloquea las tablas mientras se lee
@@ -95,6 +108,7 @@ async function generarRespaldo() {
       DB_NAME
     ], { maxBuffer: 1024 * 1024 * 200, encoding: 'buffer' });
     dump = resultado.stdout;
+    stderrTexto = (resultado.stderr && resultado.stderr.toString().trim()) || '';
   } catch (err) {
     // execFile rechaza con un Error que trae .stdout/.stderr pegados
     // cuando mysqldump corrió pero salió con código distinto de 0 (ej.
@@ -102,7 +116,7 @@ async function generarRespaldo() {
     // mysql.proc, etc.) — sin esto, err.message a veces es solo
     // "Command failed" y no dice POR QUÉ falló mysqldump realmente.
     const detalle = (err.stderr && err.stderr.toString().trim()) || err.message;
-    throw new Error('mysqldump falló: ' + detalle);
+    throw new Error('mysqldump falló (binario resuelto en: ' + rutaBinario + '): ' + detalle);
   } finally {
     fs.unlinkSync(rutaCnfTemp);
   }
@@ -113,8 +127,14 @@ async function generarRespaldo() {
   // ... Received undefined" en vez de decir claramente qué pasó), mejor
   // un mensaje que explique el problema real en vez de dejar que
   // writeFileSync truene con un error críptico sobre tipos de dato.
+  // Incluye "which mysqldump" y cualquier texto en stderr (aunque haya
+  // salido con código 0) porque esa es la única pista real que tenemos
+  // sin acceso a shell en este hosting.
   if (!dump || !dump.length) {
-    throw new Error('mysqldump no devolvió ningún dato (dump vacío) — revisa que el binario "mysqldump" esté disponible para la app de Node en este hosting.');
+    throw new Error(
+      'mysqldump no devolvió ningún dato (dump vacío). Binario resuelto en: ' + rutaBinario +
+      (stderrTexto ? '. stderr: ' + stderrTexto : '. (mysqldump no escribió nada en stderr tampoco)')
+    );
   }
 
   fs.writeFileSync(rutaSql, dump);
