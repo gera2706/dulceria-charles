@@ -15,7 +15,7 @@
    La solución: el botón del panel YA NO ejecuta el respaldo él
    mismo. Solo dejar una "señal" (el archivo SOLICITUD_PATH) — ver
    backend/routes/respaldos.js. Este script corre por su cuenta cada
-   1-2 minutos vía un Cron Job de cPanel NUEVO (proceso de Node
+   5 minutos vía un Cron Job de cPanel NUEVO (proceso de Node
    completamente fresco en cada ejecución, arrancado por el sistema
    operativo, no por Passenger) — así que SIEMPRE lee el código
    actual del disco, sin importar qué tan atascado esté el proceso
@@ -27,7 +27,7 @@
    (backup.js) solo necesita que ESTE script corra una vez más por
    cron — nunca más depende de que el proceso principal se refresque.
 
-   Configurar en cPanel → Cron Jobs (cada 1-2 minutos):
+   Configurar en cPanel → Cron Jobs (cada 5 minutos):
      source /home/<usuario>/nodevenv/dulceria-charles/backend/<version>/bin/activate && \
      node /home/<usuario>/dulceria-charles/backend/scripts/procesarSolicitudManual.js >> /home/<usuario>/backups/manual.log 2>&1
 ================================================================ */
@@ -46,7 +46,7 @@ const RESULTADO_PATH  = path.join(CARPETA_RESPALDOS, '.ultimo-resultado-manual.j
 (async () => {
   if (!fs.existsSync(SOLICITUD_PATH)) {
     // Caso normal en la gran mayoría de las ejecuciones (cron corre
-    // cada 1-2 min pero el dueño rara vez toca el botón): no hay
+    // cada 5 min pero el dueño rara vez toca el botón): no hay
     // nada que hacer, salir rápido y barato.
     process.exit(0);
   }

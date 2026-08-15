@@ -1425,7 +1425,7 @@ document.addEventListener('DOMContentLoaded', function () {
      (POST) y luego el panel hace polling a GET /api/respaldos cada
      5s hasta que un Cron Job aparte (corre cada 1-2 min, ver
      backend/scripts/procesarSolicitudManual.js) la procese de
-     verdad. Por eso el resultado tarda hasta ~2 minutos en aparecer
+     verdad. Por eso el resultado tarda hasta ~5-8 minutos en aparecer
      en vez de ser instantáneo — es el trade-off para que el botón
      no dependa de que el proceso principal de Node tenga el código
      más reciente cargado.
@@ -1454,10 +1454,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  /* Consulta GET /api/respaldos cada 5s mientras enCurso siga true.
-     intentos tope ~24 (2 minutos) — si el Cron Job de 1-2 min no ha
-     corrido para entonces, algo raro pasa (job mal configurado, por
-     ejemplo) y no tiene caso seguir preguntando para siempre. */
+  /* Consulta GET /api/respaldos cada 10s mientras enCurso siga true.
+     El hosting solo deja correr Cron Jobs cada 5 minutos como mínimo
+     (no cada 1-2 como se planeó al inicio), así que en el peor caso
+     (justo se pidió el respaldo un segundo después de que el cron
+     acaba de pasar) hay que esperar casi 5 min completos a la
+     siguiente pasada, más lo que tarde el dump en sí. Tope de
+     intentos ~48 (~8 minutos) — de ahí en adelante, algo raro pasa
+     (Cron Job mal configurado, por ejemplo) y no tiene caso seguir
+     preguntando para siempre. */
   function iniciarPollingRespaldo(btn, resultadoEl, intentos) {
     intentos = intentos || 0;
     pararPollingRespaldo();
@@ -1471,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', function () {
           renderRespaldos();
           return;
         }
-        if (intentos + 1 >= 24) {
+        if (intentos + 1 >= 48) {
           resultadoEl.style.color = '#c9821a';
           resultadoEl.textContent = '⏳ Está tardando más de lo normal. Puedes cerrar esta sección y revisar "Último respaldo" más tarde.';
           btn.disabled = false;
@@ -1485,7 +1490,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.disabled = false;
         btn.textContent = TEXTO_BOTON_RESPALDO;
       }
-    }, 5000);
+    }, 10000);
   }
 
   async function renderRespaldos() {
@@ -1502,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var btn = document.getElementById('btn-generar-respaldo');
       if (data.enCurso && btn && btn.disabled !== true) {
         btn.disabled = true;
-        btn.textContent = 'Generando… (puede tardar hasta 2 min)';
+        btn.textContent = 'Generando… (puede tardar unos minutos)';
         iniciarPollingRespaldo(btn, document.getElementById('respaldo-resultado'), 0);
       }
     } catch (e) {
@@ -1515,7 +1520,7 @@ document.addEventListener('DOMContentLoaded', function () {
     btnGenerarRespaldo.addEventListener('click', async function () {
       var resultadoEl = document.getElementById('respaldo-resultado');
       btnGenerarRespaldo.disabled = true;
-      btnGenerarRespaldo.textContent = 'Generando… (puede tardar hasta 2 min)';
+      btnGenerarRespaldo.textContent = 'Generando… (puede tardar unos minutos)';
       resultadoEl.style.color = '';
       resultadoEl.textContent = 'Respaldo solicitado — esperando a que se genere…';
       try {

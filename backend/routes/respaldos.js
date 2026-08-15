@@ -14,7 +14,7 @@
 
    Ahora el botón solo deja una señal (un archivo) y responde de
    inmediato. Un Cron Job aparte —backend/scripts/
-   procesarSolicitudManual.js, corre cada 1-2 minutos como proceso
+   procesarSolicitudManual.js, corre cada 5 minutos como proceso
    de Node completamente nuevo cada vez— es quien de verdad genera
    el respaldo, leyendo siempre el código actual del disco. El panel
    admin hace polling a GET /api/respaldos hasta que la señal
@@ -41,7 +41,7 @@ let ultimaSolicitudMs = 0;
    - ultimo: info del respaldo local más reciente (lo haya generado
      el cron diario o una solicitud manual).
    - enCurso: true si hay una solicitud manual todavía sin procesar
-     (el archivo de señal existe — el Cron Job de 1-2 min aún no
+     (el archivo de señal existe — el Cron Job de 5 min aún no
      pasó, o el dueño acaba de tocar el botón).
    - ultimoResultadoManual: el resultado (éxito o error) de la
      última solicitud manual que SÍ se procesó, para mostrarlo una
@@ -72,7 +72,7 @@ router.get('/', adminMiddleware, async (req, res) => {
 /* ----------------------------------------------------------------
    POST /api/respaldos
    Deja la señal para que el Cron Job de procesarSolicitudManual.js
-   la recoja en su próxima pasada (máximo 1-2 minutos de espera).
+   la recoja en su próxima pasada (máximo 5 minutos de espera).
    No genera nada aquí mismo — por diseño, ver encabezado del
    archivo.
 ---------------------------------------------------------------- */
@@ -86,7 +86,7 @@ router.post('/', adminMiddleware, async (req, res) => {
   try {
     fs.mkdirSync(CARPETA_RESPALDOS, { recursive: true });
     fs.writeFileSync(SOLICITUD_PATH, JSON.stringify({ solicitadoEn: new Date().toISOString() }));
-    res.json({ ok: true, enCurso: true, mensaje: 'Respaldo solicitado — puede tardar hasta 2 minutos en generarse.' });
+    res.json({ ok: true, enCurso: true, mensaje: 'Respaldo solicitado — puede tardar unos minutos en generarse.' });
   } catch (err) {
     console.error('[respaldos] Error al dejar la solicitud manual:', err);
     res.status(500).json({ error: 'No se pudo registrar la solicitud de respaldo: ' + err.message });
