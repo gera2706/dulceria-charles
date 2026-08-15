@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 500" fill="none">
+  <defs>
+    <linearGradient id="p4-fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#fff"/>
+      <stop offset="38%" stop-color="#fff" stop-opacity="0.5"/>
+      <stop offset="65%" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="p4-fadeMask">
+      <rect x="0" y="0" width="1400" height="500" fill="url(#p4-fade)"/>
+    </mask>
+
+    <radialGradient id="p4-lolliPink" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#ffc4dc"/>
+      <stop offset="55%" stop-color="#ef6fa3"/>
+      <stop offset="100%" stop-color="#c94b82"/>
+    </radialGradient>
+    <radialGradient id="p4-lolliMint" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#d3fff0"/>
+      <stop offset="55%" stop-color="#6fe0bd"/>
+      <stop offset="100%" stop-color="#37b491"/>
+    </radialGradient>
+    <radialGradient id="p4-lolliYellow" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#fff3c4"/>
+      <stop offset="55%" stop-color="#ffcf5c"/>
+      <stop offset="100%" stop-color="#e0a728"/>
+    </radialGradient>
+    <linearGradient id="p4-wrapBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#bfe0ff"/>
+      <stop offset="100%" stop-color="#6fa8e0"/>
+    </linearGradient>
+    <linearGradient id="p4-wrapViolet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e2c4ff"/>
+      <stop offset="100%" stop-color="#b17ce0"/>
+    </linearGradient>
+    <radialGradient id="p4-gummyOrange" cx="35%" cy="25%" r="80%">
+      <stop offset="0%" stop-color="#ffd7a8"/>
+      <stop offset="100%" stop-color="#f0913f"/>
+    </radialGradient>
+  </defs>
+
+  <!-- todo el contenido decorativo vive dentro de este grupo, que se
+       desvanece de arriba (visible) a la mitad (transparente) — pensado
+       para un footer alto donde solo el borde superior debe insinuar
+       el motivo, y el resto se queda limpio para el texto/columnas. -->
+  <g mask="url(#p4-fadeMask)">
+
+    <!-- confeti disperso a lo largo de todo el ancho -->
+    <g opacity="0.8">
+      <circle cx="40"   cy="40"  r="5" fill="#ffcf5c"/>
+      <circle cx="160"  cy="90"  r="4" fill="#6fe0bd"/>
+      <circle cx="300"  cy="30"  r="4" fill="#ef6fa3"/>
+      <circle cx="480"  cy="70"  r="5" fill="#6fa8e0"/>
+      <circle cx="640"  cy="25"  r="4" fill="#ffcf5c"/>
+      <circle cx="820"  cy="60"  r="5" fill="#b17ce0"/>
+      <circle cx="980"  cy="35"  r="4" fill="#ef6fa3"/>
+      <circle cx="1140" cy="80"  r="4" fill="#6fe0bd"/>
+      <circle cx="1300" cy="30"  r="5" fill="#ffcf5c"/>
+      <rect x="230" y="100" width="11" height="4.5" rx="2" fill="#f0913f" transform="rotate(22 230 100)"/>
+      <rect x="700" y="110" width="11" height="4.5" rx="2" fill="#37b491" transform="rotate(-18 700 110)"/>
+      <rect x="1080" y="95" width="11" height="4.5" rx="2" fill="#ef6fa3" transform="rotate(30 1080 95)"/>
+    </g>
+
+    <!-- fila de dulces a lo largo del borde superior -->
+    <g transform="translate(90,60) rotate(-8)">
+      <rect x="-4" y="42" width="8" height="70" rx="4" fill="#f3e6d8" opacity="0.6"/>
+      <circle cx="0" cy="0" r="46" fill="url(#p4-lolliPink)"/>
+      <path d="M0 0 m0 -34 a34 34 0 0 1 30 51 a27 27 0 0 1 -47 -7 a19 19 0 0 1 31 -17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+    </g>
+
+    <g transform="translate(280,140) scale(0.75)">
+      <path d="M35 90 C10 90 0 65 8 45 C-4 40 -2 15 18 12 C22 -2 55 -4 60 10 C82 8 90 34 76 45 C86 62 74 90 50 90 Z" fill="url(#p4-gummyOrange)"/>
+      <circle cx="24" cy="34" r="4" fill="#7a3d0a"/>
+      <circle cx="46" cy="34" r="4" fill="#7a3d0a"/>
+    </g>
+
+    <g transform="translate(460,55) rotate(10)">
+      <path d="M30 0 L7 15 L0 30 L14 7 Z" fill="url(#p4-wrapBlue)"/>
+      <rect x="7" y="13" width="44" height="34" rx="7" fill="url(#p4-wrapBlue)"/>
+      <path d="M58 0 L80 15 L87 30 L72 7 Z" fill="url(#p4-wrapBlue)"/>
+    </g>
+
+    <g transform="translate(630,150) rotate(8)">
+      <rect x="-4" y="40" width="8" height="66" rx="4" fill="#f3e6d8" opacity="0.6"/>
+      <circle cx="0" cy="0" r="44" fill="url(#p4-lolliMint)"/>
+      <path d="M0 0 m0 -32 a32 32 0 0 1 28 48 a25 25 0 0 1 -44 -6 a18 18 0 0 1 29 -16" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+    </g>
+
+    <g transform="translate(800,60) rotate(-12)">
+      <path d="M30 0 L7 15 L0 30 L14 7 Z" fill="url(#p4-wrapViolet)"/>
+      <rect x="7" y="13" width="44" height="34" rx="7" fill="url(#p4-wrapViolet)"/>
+      <path d="M58 0 L80 15 L87 30 L72 7 Z" fill="url(#p4-wrapViolet)"/>
+    </g>
+
+    <g transform="translate(980,145) rotate(-6)">
+      <rect x="-4" y="42" width="8" height="70" rx="4" fill="#f3e6d8" opacity="0.6"/>
+      <circle cx="0" cy="0" r="46" fill="url(#p4-lolliYellow)"/>
+      <path d="M0 0 m0 -34 a34 34 0 0 1 30 51 a27 27 0 0 1 -47 -7 a19 19 0 0 1 31 -17" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+    </g>
+
+    <g transform="translate(1160,55) scale(0.75)">
+      <path d="M35 90 C10 90 0 65 8 45 C-4 40 -2 15 18 12 C22 -2 55 -4 60 10 C82 8 90 34 76 45 C86 62 74 90 50 90 Z" fill="url(#p4-gummyOrange)"/>
+      <circle cx="24" cy="34" r="4" fill="#7a3d0a"/>
+      <circle cx="46" cy="34" r="4" fill="#7a3d0a"/>
+    </g>
+
+    <g transform="translate(1320,140) rotate(10)">
+      <rect x="-4" y="40" width="8" height="66" rx="4" fill="#f3e6d8" opacity="0.6"/>
+      <circle cx="0" cy="0" r="42" fill="url(#p4-lolliPink)"/>
+    </g>
+
+    <!-- brillos -->
+    <g fill="#fff" opacity="0.6">
+      <path d="M380 30 l4 8 8 4 -8 4 -4 8 -4 -8 -8 -4 8 -4 z"/>
+      <path d="M900 20 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"/>
+      <path d="M1240 20 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"/>
+    </g>
+  </g>
+</svg>

@@ -308,7 +308,16 @@ ul { list-style: none; }
   bottom: 0;
   width: 300px;
   z-index: 300;
-  background: linear-gradient(160deg, #4a3163 0%, #2f2246 100%);
+  /* Degradado morado de siempre + tercera ilustración generada, de
+     fondo — VISTA PREVIA LOCAL, sin commitear. El degradado va semi-
+     transparente (rgba) encima de la imagen para que el texto del menú
+     siga siendo legible. background-attachment por defecto ("scroll")
+     hace que el fondo quede fijo respecto al panel aunque la lista
+     interna haga scroll (no se mueve con las categorías). */
+  background:
+    linear-gradient(160deg, rgba(74,49,99,0.86) 0%, rgba(47,34,70,0.9) 100%),
+    url('../img/Parte principal/hero-generado-preview-3.svg') center top / cover no-repeat,
+    #2f2246;
   transform: translateX(100%);
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -418,7 +427,23 @@ ul { list-style: none; }
   color: #fff;
   text-align: center;
   padding: 3.2rem 1rem 2.2rem;
+  position: relative;
+  overflow: hidden;
 }
+/* Fondo con dulces, muy sutil — mismo patrón que .hero::before.
+   VISTA PREVIA LOCAL, sin commitear: prueba de una segunda ilustración
+   generada, a juego con el morado de este banner. */
+.page-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('../img/Parte principal/hero-generado-preview-2.svg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.28;
+  z-index: 0;
+}
+.page-header > * { position: relative; z-index: 1; }
 .page-header h1 {
   font-family: var(--font-display);
   font-weight: 600;
@@ -537,7 +562,28 @@ ul { list-style: none; }
   color: #ccc;
   padding: 3rem 3rem 0;
   margin-top: 4rem;
+  position: relative;
+  overflow: hidden;
 }
+/* Cuarta ilustración generada, muy sutil y concentrada en el borde
+   superior (se desvanece hacia abajo dentro del propio SVG) para no
+   estorbar las columnas de texto. Capa aparte (no metida en el
+   "background:" de arriba) a propósito: [data-theme="dark"] .footer
+   más abajo pisa ese background con otro color sólido, y así esta
+   imagen sigue mostrándose sin importar el tema.
+   VISTA PREVIA LOCAL, sin commitear. */
+.footer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('../img/Parte principal/hero-generado-preview-4.svg');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  opacity: 0.5;
+  z-index: 0;
+}
+.footer > * { position: relative; z-index: 1; }
 .footer-grid {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
@@ -1194,7 +1240,14 @@ body.drawer-is-open .dc-chat-panel { opacity: 0; transform: translateY(16px) sca
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  background: var(--bg);
+  /* Quinta ilustración generada, con opacidad bajísima horneada en el
+     propio SVG (no como capa aparte) — puesta directo en el
+     "background:" del elemento con scroll para que quede fija detrás
+     de los mensajes en vez de desplazarse con ellos.
+     VISTA PREVIA LOCAL, sin commitear. */
+  background:
+    url('../img/Parte principal/hero-generado-preview-5.svg') center top / cover no-repeat,
+    var(--bg);
 }
 .dc-msg {
   max-width: 82%;

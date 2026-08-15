@@ -14,7 +14,15 @@
 .admin-sidebar {
   width: 230px;
   flex-shrink: 0;
-  background: linear-gradient(160deg, #4a3163 0%, #2f2246 100%);
+  /* Mismo degradado morado de siempre + la ilustración generada del
+     drawer, pero mucho más sutil (gradiente casi opaco encima) porque
+     esto es una herramienta de trabajo, no una página de cara al
+     cliente — el texto del menú tiene que leerse sin esfuerzo.
+     VISTA PREVIA LOCAL, sin commitear. */
+  background:
+    linear-gradient(160deg, rgba(74,49,99,0.95) 0%, rgba(47,34,70,0.96) 100%),
+    url('../img/Parte principal/hero-generado-preview-3.svg') center top / cover no-repeat,
+    #2f2246;
   padding: 1.5rem 0;
   display: flex;
   flex-direction: column;

@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" fill="none">
+  <defs>
+    <radialGradient id="p2-lolliPink" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#ffc4dc"/>
+      <stop offset="55%" stop-color="#ef6fa3"/>
+      <stop offset="100%" stop-color="#c94b82"/>
+    </radialGradient>
+    <radialGradient id="p2-lolliMint" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#d3fff0"/>
+      <stop offset="55%" stop-color="#6fe0bd"/>
+      <stop offset="100%" stop-color="#37b491"/>
+    </radialGradient>
+    <radialGradient id="p2-lolliYellow" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#fff3c4"/>
+      <stop offset="55%" stop-color="#ffcf5c"/>
+      <stop offset="100%" stop-color="#e0a728"/>
+    </radialGradient>
+    <radialGradient id="p2-lolliBlue" cx="35%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#cfe6ff"/>
+      <stop offset="55%" stop-color="#7fb4f0"/>
+      <stop offset="100%" stop-color="#4d84c9"/>
+    </radialGradient>
+    <linearGradient id="p2-wrapGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffe29a"/>
+      <stop offset="100%" stop-color="#f0b23e"/>
+    </linearGradient>
+    <linearGradient id="p2-wrapViolet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e2c4ff"/>
+      <stop offset="100%" stop-color="#b17ce0"/>
+    </linearGradient>
+    <radialGradient id="p2-gummyOrange" cx="35%" cy="25%" r="80%">
+      <stop offset="0%" stop-color="#ffd7a8"/>
+      <stop offset="100%" stop-color="#f0913f"/>
+    </radialGradient>
+    <radialGradient id="p2-gummyPink" cx="35%" cy="25%" r="80%">
+      <stop offset="0%" stop-color="#ffc4d6"/>
+      <stop offset="100%" stop-color="#f0618f"/>
+    </radialGradient>
+  </defs>
+
+  <!-- confeti disperso a lo largo del banner -->
+  <g opacity="0.9">
+    <circle cx="60"  cy="60"  r="6" fill="#ffcf5c"/>
+    <circle cx="140" cy="220" r="5" fill="#6fe0bd"/>
+    <circle cx="230" cy="90"  r="4" fill="#ef6fa3"/>
+    <circle cx="980" cy="70"  r="5" fill="#7fb4f0"/>
+    <circle cx="1080" cy="200" r="6" fill="#ffcf5c"/>
+    <circle cx="1140" cy="110" r="4" fill="#ef6fa3"/>
+    <circle cx="600" cy="40"  r="4" fill="#e2c4ff"/>
+    <circle cx="480" cy="290" r="5" fill="#6fe0bd"/>
+    <circle cx="760" cy="280" r="4" fill="#ffcf5c"/>
+    <rect x="330" y="50" width="12" height="5" rx="2.5" fill="#f0913f" transform="rotate(25 330 50)"/>
+    <rect x="860" y="260" width="12" height="5" rx="2.5" fill="#b17ce0" transform="rotate(-20 860 260)"/>
+    <rect x="1000" y="290" width="12" height="5" rx="2.5" fill="#37b491" transform="rotate(15 1000 290)"/>
+    <rect x="100" y="150" width="12" height="5" rx="2.5" fill="#ef6fa3" transform="rotate(-35 100 150)"/>
+  </g>
+
+  <!-- paleta rosa grande, izquierda -->
+  <g transform="translate(140,160) rotate(-8)">
+    <rect x="-5" y="55" width="10" height="120" rx="5" fill="#f3e6d8" opacity="0.8"/>
+    <circle cx="0" cy="0" r="78" fill="url(#p2-lolliPink)"/>
+    <path d="M0 0 m0 -58 a58 58 0 0 1 50 87 a46 46 0 0 1 -79 -12 a33 33 0 0 1 54 -29" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+  </g>
+
+  <!-- oso de goma naranja, izquierda-centro -->
+  <g transform="translate(320,230) scale(0.8)">
+    <path d="M35 90 C10 90 0 65 8 45 C-4 40 -2 15 18 12 C22 -2 55 -4 60 10 C82 8 90 34 76 45 C86 62 74 90 50 90 Z" fill="url(#p2-gummyOrange)"/>
+    <circle cx="24" cy="34" r="4" fill="#7a3d0a"/>
+    <circle cx="46" cy="34" r="4" fill="#7a3d0a"/>
+    <path d="M27 50 Q35 57 43 50" stroke="#7a3d0a" stroke-width="3" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <!-- dulce envuelto dorado, arriba centro -->
+  <g transform="translate(560,70) rotate(10)">
+    <path d="M34 0 L8 17 L0 34 L17 8 Z" fill="url(#p2-wrapGold)"/>
+    <rect x="8" y="15" width="52" height="40" rx="9" fill="url(#p2-wrapGold)"/>
+    <path d="M68 0 L94 17 L102 34 L85 8 Z" fill="url(#p2-wrapGold)"/>
+  </g>
+
+  <!-- paleta menta, centro-derecha, abajo -->
+  <g transform="translate(700,250) rotate(12)">
+    <rect x="-4" y="42" width="8" height="80" rx="4" fill="#f3e6d8" opacity="0.7"/>
+    <circle cx="0" cy="0" r="52" fill="url(#p2-lolliMint)"/>
+    <path d="M0 0 m0 -38 a38 38 0 0 1 33 57 a30 30 0 0 1 -52 -8 a22 22 0 0 1 36 -19" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.85"/>
+  </g>
+
+  <!-- gomita rosa, centro-derecha -->
+  <g transform="translate(860,120)">
+    <path d="M0 34 C0 8 17 0 30 0 C43 0 60 8 60 34 C60 51 43 64 30 64 C17 64 0 51 0 34 Z" fill="url(#p2-gummyPink)"/>
+    <ellipse cx="20" cy="17" rx="8" ry="5" fill="#fff" opacity="0.4"/>
+  </g>
+
+  <!-- dulce envuelto violeta, derecha -->
+  <g transform="translate(960,220) rotate(-14)">
+    <path d="M34 0 L8 17 L0 34 L17 8 Z" fill="url(#p2-wrapViolet)"/>
+    <rect x="8" y="15" width="52" height="40" rx="9" fill="url(#p2-wrapViolet)"/>
+    <path d="M68 0 L94 17 L102 34 L85 8 Z" fill="url(#p2-wrapViolet)"/>
+  </g>
+
+  <!-- paleta azul grande, derecha -->
+  <g transform="translate(1080,150) rotate(9)">
+    <rect x="-5" y="55" width="10" height="115" rx="5" fill="#f3e6d8" opacity="0.8"/>
+    <circle cx="0" cy="0" r="72" fill="url(#p2-lolliBlue)"/>
+    <path d="M0 0 m0 -54 a54 54 0 0 1 47 81 a43 43 0 0 1 -74 -11 a31 31 0 0 1 50 -27" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0.85"/>
+  </g>
+
+  <!-- paleta amarilla pequeña, arriba izquierda -->
+  <g transform="translate(440,50) rotate(-18) scale(0.6)">
+    <rect x="-4" y="42" width="8" height="80" rx="4" fill="#f3e6d8" opacity="0.6"/>
+    <circle cx="0" cy="0" r="52" fill="url(#p2-lolliYellow)"/>
+  </g>
+
+  <!-- brillos -->
+  <g fill="#fff" opacity="0.7">
+    <path d="M250 190 l5 11 11 5 -11 5 -5 11 -5 -11 -11 -5 11 -5 z"/>
+    <path d="M780 60 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4 z"/>
+    <path d="M1020 260 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4 z"/>
+  </g>
+</svg>

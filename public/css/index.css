@@ -10,12 +10,15 @@
   overflow: hidden;
   background: linear-gradient(120deg, #faf1ee 0%, #f3e9ef 100%);
 }
-/* Fondo con imagen de dulces explotando, muy sutil */
+/* Fondo con imagen de dulces explotando, muy sutil
+   NOTA (vista previa local, sin commitear): "imagen principal 4.jpg" ya
+   no existe en disco — apuntando temporalmente al SVG generado para
+   probar cómo se ve un fondo nuevo aquí. */
 .hero::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url('../img/Parte principal/imagen principal 4.jpg');
+  background-image: url('../img/Parte principal/hero-generado-preview.svg');
   background-size: cover;
   background-position: center 30%;
   opacity: 0.25;
